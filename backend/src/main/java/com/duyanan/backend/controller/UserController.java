@@ -141,6 +141,7 @@ public class UserController {
             // 1. Call Facebook Graph API to verify token and get user details
             String fbUrl = "https://graph.facebook.com/me?fields=id,first_name,last_name,email&access_token=" + accessToken;
             RestTemplate restTemplate = new RestTemplate();
+            @SuppressWarnings("unchecked")
             Map<String, Object> fbData = restTemplate.getForObject(fbUrl, Map.class);
 
             if (fbData == null || fbData.get("id") == null) {

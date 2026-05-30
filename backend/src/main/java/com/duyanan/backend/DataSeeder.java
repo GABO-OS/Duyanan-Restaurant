@@ -2,7 +2,6 @@ package com.duyanan.backend;
 
 import com.duyanan.backend.model.*;
 import com.duyanan.backend.repository.*;
-import com.duyanan.backend.controller.*;
 
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.security.crypto.password.PasswordEncoder;
