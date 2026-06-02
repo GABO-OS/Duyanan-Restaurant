@@ -22,6 +22,9 @@ public class OrderItem {
     @JoinColumn(name = "product_id", nullable = false)
     private Product product;
 
+    @Column
+    private String variant;
+
     @Column(nullable = false)
     private Integer quantity;
 

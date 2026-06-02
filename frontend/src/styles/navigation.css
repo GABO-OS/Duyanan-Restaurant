@@ -8,8 +8,8 @@
   background: linear-gradient(to bottom, var(--accent-orange), var(--dark-brown));
   box-shadow: 0 4px 30px rgba(0, 0, 0, 0.1);
   border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-  padding-top: 5px !important;
-  padding-bottom: 5px !important;
+  padding-top: 4px !important;
+  padding-bottom: 4px !important;
 }
 
 .nav-clear {

@@ -7,20 +7,24 @@ export const useCart = () => useContext(CartContext);
 export const CartProvider = ({ children }) => {
     const [cart, setCart] = useState([]);
 
-    const addToCart = (product) => {
+    const addToCart = (product, variant = null, variantPrice = null) => {
         setCart((prevCart) => {
-            const existingItem = prevCart.find((item) => item.id === product.id);
+            const cartItemId = `${product.id}-${variant || 'base'}`;
+            const existingItem = prevCart.find((item) => item.cartItemId === cartItemId);
+            
+            const priceToUse = variantPrice !== null ? variantPrice : product.price;
+
             if (existingItem) {
                 return prevCart.map((item) =>
-                    item.id === product.id ? { ...item, quantity: item.quantity + 1 } : item
+                    item.cartItemId === cartItemId ? { ...item, quantity: item.quantity + 1 } : item
                 );
             }
-            return [...prevCart, { ...product, quantity: 1 }];
+            return [...prevCart, { ...product, cartItemId, variant, price: priceToUse, quantity: 1 }];
         });
     };
 
-    const removeFromCart = (productId) => {
-        setCart((prevCart) => prevCart.filter((item) => item.id !== productId));
+    const removeFromCart = (cartItemId) => {
+        setCart((prevCart) => prevCart.filter((item) => item.cartItemId !== cartItemId));
     };
 
     const clearCart = () => {

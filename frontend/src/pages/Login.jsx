@@ -4,7 +4,7 @@ import { useAuth } from '../context/AuthContext';
 import 'bootstrap-icons/font/bootstrap-icons.css';
 import duyananBg from '../assets/img/duyanan_bg.jpg';
 
-const API_URL = import.meta.env.VITE_API_URL;
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8080';
 
 const Login = () => {
     const [credentials, setCredentials] = useState({ email: '', password: '', rememberMe: false });
@@ -100,7 +100,8 @@ const Login = () => {
                     navigate('/');
                 }
             }
-        } catch {
+        } catch (err) {
+            console.error("Login fetch error:", err);
             setLoginError('Could not connect to the server. Please try again.');
         } finally {
             setIsLoading(false);

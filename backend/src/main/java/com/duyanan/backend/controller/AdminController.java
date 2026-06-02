@@ -56,10 +56,15 @@ public class AdminController {
     public ResponseEntity<?> updateProduct(@PathVariable Long id, @RequestBody Product product) {
         return productRepository.findById(id).map(existing -> {
             existing.setName(product.getName());
-            existing.setPrice(product.getPrice());
+            existing.setPriceSolo(product.getPriceSolo());
+            existing.setPriceALaCarte(product.getPriceALaCarte());
+            existing.setPrice1Liter(product.getPrice1Liter());
+            existing.setPrice1Point5Liter(product.getPrice1Point5Liter());
+            existing.setPrice2Liter(product.getPrice2Liter());
             existing.setDescription(product.getDescription());
             existing.setImageUrl(product.getImageUrl());
             existing.setCategory(product.getCategory());
+            existing.setFlavors(product.getFlavors());
             productRepository.save(existing);
             return ResponseEntity.ok(existing);
         }).orElse(ResponseEntity.notFound().build());

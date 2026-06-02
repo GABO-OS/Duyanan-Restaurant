@@ -26,4 +26,10 @@ public class User {
 
     @Column(nullable = false)
     private String role = "CUSTOMER";
+
+    @Column
+    private String phone;
+
+    @Column
+    private String address;
 }

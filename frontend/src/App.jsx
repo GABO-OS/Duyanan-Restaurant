@@ -14,6 +14,7 @@ import Login from './pages/Login';
 import Register from './pages/Register';
 import Profile from './pages/Profile';
 import AdminPanel from './pages/AdminPanel';
+import ScrollToTop from './components/ScrollToTop';
 import 'bootstrap/dist/css/bootstrap.min.css';
 
 function App() {
@@ -21,6 +22,7 @@ function App() {
         <AuthProvider>
             <CartProvider>
                 <Router>
+                    <ScrollToTop />
                     <div className="d-flex flex-column min-vh-100">
                         <Navigation />
                         <Routes>

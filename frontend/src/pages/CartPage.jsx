@@ -47,7 +47,8 @@ const CartPage = () => {
                         notes: "Customer order via Website",
                         items: cart.map(item => ({
                             productId: item.id,
-                            quantity: item.quantity
+                            quantity: item.quantity,
+                            variant: item.variant
                         }))
                     })
                 });
@@ -101,29 +102,31 @@ const CartPage = () => {
                     <thead>
                         <tr style={{ color: '#A04000' }}>
                             <th scope="col">Item</th>
-                            <th scope="col">Price</th>
-                            <th scope="col">Quantity</th>
-                            <th scope="col">Total</th>
-                            <th scope="col">Action</th>
+                            <th scope="col" className="text-center">Price</th>
+                            <th scope="col" className="text-center">Quantity</th>
+                            <th scope="col" className="text-center">Total</th>
+                            <th scope="col" className="text-center">Action</th>
                         </tr>
                     </thead>
                     <tbody>
                         {cart.map((item) => (
-                            <tr key={item.id} style={{ verticalAlign: 'middle' }}>
+                            <tr key={item.cartItemId} style={{ verticalAlign: 'middle' }}>
                                 <td>
                                     <div className="d-flex align-items-center">
                                         <img src={item.imageUrl || 'https://placehold.co/50'} alt={item.name} style={{ width: '50px', height: '50px', objectFit: 'cover', borderRadius: '8px', marginRight: '10px' }} />
                                         <div>
-                                            <h6 className="mb-0" style={{ color: '#333' }}>{item.name}</h6>
+                                            <h6 className="mb-0" style={{ color: '#333' }}>
+                                                {item.name} {item.variant ? <span className="fst-italic text-primary ms-1">({item.variant})</span> : null}
+                                            </h6>
                                             <small className="text-muted">{item.description}</small>
                                         </div>
                                     </div>
                                 </td>
-                                <td>₱{item.price.toFixed(2)}</td>
-                                <td>{item.quantity}</td>
-                                <td>₱{(item.price * item.quantity).toFixed(2)}</td>
-                                <td>
-                                    <button className="btn-remove" onClick={() => removeFromCart(item.id)} title="Remove item">
+                                <td className="text-center fw-medium">₱{item.price.toFixed(2)}</td>
+                                <td className="text-center fw-medium">{item.quantity}</td>
+                                <td className="text-center fw-bold">₱{(item.price * item.quantity).toFixed(2)}</td>
+                                <td className="text-center">
+                                    <button className="btn btn-outline-danger btn-sm rounded-circle d-inline-flex align-items-center justify-content-center" style={{ width: '32px', height: '32px' }} onClick={() => removeFromCart(item.cartItemId)} title="Remove item">
                                         <i className="bi bi-trash3-fill"></i>
                                     </button>
                                 </td>
@@ -142,9 +145,9 @@ const CartPage = () => {
                 </div>
                 <div className="col-md-6 d-flex flex-column align-items-end justify-content-center">
                     <h4 className="mb-3" style={{ color: '#A04000' }}>Total: <span style={{ fontWeight: 'bold' }}>₱{total.toFixed(2)}</span></h4>
-                    <div className="d-flex gap-2">
-                        <Link to="/menu" className="btn btn-outline-brand">Add More</Link>
-                        <button className="btn btn-brand" onClick={handleCheckout}>Order Now</button>
+                    <div className="d-flex gap-3 mt-2">
+                        <Link to="/menu" className="btn bg-white border shadow-sm px-4 fw-bold" style={{ color: '#555' }}>Add More</Link>
+                        <button className="btn shadow-sm px-4 fw-bold" style={{ backgroundColor: '#e67e22', color: '#fff' }} onClick={handleCheckout}>Order Now</button>
                     </div>
                 </div>
             </div>

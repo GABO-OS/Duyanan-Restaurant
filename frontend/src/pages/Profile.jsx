@@ -1,12 +1,17 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import 'bootstrap-icons/font/bootstrap-icons.css';
+
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8080';
 
 const Profile = () => {
     // Current active tab in the sidebar
     const [activeTab, setActiveTab] = useState('profile');
     const { user } = useAuth();
+    
+    const [myOrders, setMyOrders] = useState([]);
+    const [loadingOrders, setLoadingOrders] = useState(false);
 
     // Use real user data from AuthContext
     const [profileData] = useState({
@@ -27,6 +32,39 @@ const Profile = () => {
 
     const handleToggle = (key) => {
         setCommPrefs(prev => ({ ...prev, [key]: !prev[key] }));
+    };
+
+    const fetchOrders = () => {
+        if (user?.token) {
+            setLoadingOrders(true);
+            fetch(`${API_URL}/api/orders/my-orders`, {
+                headers: { 'Authorization': `Bearer ${user.token}` }
+            })
+            .then(res => res.json())
+            .then(data => {
+                if (Array.isArray(data)) {
+                    setMyOrders(data);
+                }
+            })
+            .catch(err => console.error("Error fetching orders:", err))
+            .finally(() => setLoadingOrders(false));
+        }
+    };
+
+    useEffect(() => {
+        if (activeTab === 'orders') {
+            fetchOrders();
+        }
+    }, [activeTab, user?.token]);
+
+    const getStatusInfo = (status) => {
+        switch (status?.toUpperCase()) {
+            case 'PENDING': return { text: 'Order Placed', width: '33%', color: 'var(--accent-orange)', icon: 'bi-clock' };
+            case 'PREPARING': return { text: 'Preparing Food', width: '66%', color: '#f39c12', icon: 'bi-fire' };
+            case 'COMPLETED': return { text: 'Completed', width: '100%', color: '#2ecc71', icon: 'bi-check-circle-fill' };
+            case 'CANCELLED': return { text: 'Cancelled', width: '100%', color: '#e74c3c', icon: 'bi-x-circle' };
+            default: return { text: 'Pending', width: '33%', color: 'var(--accent-orange)', icon: 'bi-clock' };
+        }
     };
 
     const renderMainContent = () => {
@@ -69,14 +107,7 @@ const Profile = () => {
                             <i className="bi bi-pencil-square info-action" title="Edit Mobile"></i>
                         </div>
 
-                        {/* Detail Row: Date of Birth */}
-                        <div className="info-row d-flex justify-content-between align-items-center">
-                            <div className="d-flex flex-column flex-sm-row flex-grow-1 align-items-start align-items-sm-center">
-                                <div className="info-label">Date of Birth</div>
-                                <div className="info-value pr-3">{profileData.dob}</div>
-                            </div>
-                            <i className="bi bi-lock info-action text-muted" style={{ cursor: 'not-allowed' }} title="Cannot edit DOB"></i>
-                        </div>
+
                     </div>
                 </>
             );
@@ -107,19 +138,88 @@ const Profile = () => {
         if (activeTab === 'orders') {
             return (
                 <>
-                    <div className="mb-5">
-                        <h4 className="fw-bold mb-1" style={{ color: 'var(--text-dark)' }}>My Orders</h4>
-                        <p className="text-muted small">Track your order history effortlessly</p>
+                    <div className="mb-4 d-flex justify-content-between align-items-end">
+                        <div>
+                            <h4 className="fw-bold mb-1" style={{ color: 'var(--text-dark)' }}>My Orders</h4>
+                            <p className="text-muted small mb-0">Track your order history effortlessly</p>
+                        </div>
+                        <button onClick={fetchOrders} className="btn btn-sm text-white px-3 py-2 fw-bold" style={{ backgroundColor: 'var(--accent-orange)', borderRadius: '8px' }}>
+                            <i className="bi bi-arrow-clockwise me-1"></i> Refresh Status
+                        </button>
                     </div>
+                    <hr style={{ borderColor: '#e9ecef', opacity: 1, margin: 0, marginBottom: '20px' }} />
 
-                    <div className="text-center py-5" style={{ marginTop: '50px' }}>
-                        <i className="bi bi-bag text-muted mb-3 d-block" style={{ fontSize: '3rem', opacity: 0.5 }}></i>
-                        <h5 className="fw-bold mb-2" style={{ color: 'var(--text-dark)' }}>Your order history is empty</h5>
-                        <p className="text-muted small mb-4">Please register or log in to start tracking your orders.</p>
-                        <Link to="/menu" className="btn btn-sm shadow-sm" style={{ backgroundColor: '#dc3545', color: '#fff', borderRadius: '50px', padding: '10px 30px', fontWeight: 'bold' }}>
-                            Order Now
-                        </Link>
-                    </div>
+                    {loadingOrders ? (
+                        <div className="text-center py-5">
+                            <div className="spinner-border text-secondary" role="status"></div>
+                            <p className="text-muted mt-3 small">Fetching your orders...</p>
+                        </div>
+                    ) : myOrders.length === 0 ? (
+                        <div className="text-center py-5" style={{ marginTop: '30px' }}>
+                            <i className="bi bi-bag text-muted mb-3 d-block" style={{ fontSize: '3rem', opacity: 0.5 }}></i>
+                            <h5 className="fw-bold mb-2" style={{ color: 'var(--text-dark)' }}>Your order history is empty</h5>
+                            <p className="text-muted small mb-4">You haven't placed any orders yet.</p>
+                            <Link to="/menu" className="btn btn-sm shadow-sm" style={{ backgroundColor: 'var(--accent-orange)', color: '#fff', borderRadius: '50px', padding: '10px 30px', fontWeight: 'bold' }}>
+                                Order Now
+                            </Link>
+                        </div>
+                    ) : (
+                        <div className="orders-list d-flex flex-column gap-4">
+                            {myOrders.map(order => {
+                                const statusInfo = getStatusInfo(order.status);
+                                const dateStr = new Date(order.orderDate).toLocaleString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' });
+                                
+                                return (
+                                    <div key={order.id} className="card border-0 bg-white" style={{ borderRadius: '16px', boxShadow: '0 4px 20px rgba(0,0,0,0.05)', border: '1px solid rgba(0,0,0,0.04)' }}>
+                                        <div className="card-header bg-transparent border-bottom-0 pt-4 pb-0 px-4 d-flex justify-content-between align-items-center">
+                                            <div>
+                                                <h6 className="fw-bold mb-1" style={{ color: 'var(--primary-brown)' }}>Order #{order.id}</h6>
+                                                <p className="text-muted small mb-0"><i className="bi bi-calendar3 me-1"></i> {dateStr}</p>
+                                            </div>
+                                            <div className="text-end">
+                                                <h5 className="fw-bold mb-0" style={{ color: 'var(--text-dark)' }}>₱{order.totalAmount.toFixed(2)}</h5>
+                                                <span className="badge rounded-pill" style={{ backgroundColor: `${statusInfo.color}20`, color: statusInfo.color }}>
+                                                    <i className={`bi ${statusInfo.icon} me-1`}></i>
+                                                    {statusInfo.text}
+                                                </span>
+                                            </div>
+                                        </div>
+                                        <div className="card-body px-4 py-3">
+                                            {/* Tracking Timeline */}
+                                            {order.status !== 'CANCELLED' && (
+                                                <div className="mb-4 mt-2">
+                                                    <div className="progress" style={{ height: '6px', borderRadius: '10px', backgroundColor: '#f0f0f0' }}>
+                                                        <div className="progress-bar progress-bar-striped progress-bar-animated" role="progressbar" 
+                                                             style={{ width: statusInfo.width, backgroundColor: statusInfo.color, borderRadius: '10px' }}></div>
+                                                    </div>
+                                                    <div className="d-flex justify-content-between mt-2 text-muted" style={{ fontSize: '0.75rem', fontWeight: 600 }}>
+                                                        <span style={{ color: statusInfo.width === '33%' ? statusInfo.color : '' }}>Placed</span>
+                                                        <span style={{ color: statusInfo.width === '66%' ? statusInfo.color : '' }}>Preparing</span>
+                                                        <span style={{ color: statusInfo.width === '100%' ? statusInfo.color : '' }}>Completed</span>
+                                                    </div>
+                                                </div>
+                                            )}
+
+                                            {/* Order Items */}
+                                            <div className="order-items-preview bg-light rounded-3 p-3 mt-3">
+                                                {order.items?.map((item, idx) => (
+                                                    <div key={idx} className="d-flex justify-content-between mb-2 small">
+                                                        <span><span className="fw-bold me-2">{item.quantity}x</span> {item.product?.name || 'Item'}</span>
+                                                        <span className="text-muted">₱{item.subtotal.toFixed(2)}</span>
+                                                    </div>
+                                                ))}
+                                                {order.notes && (
+                                                    <div className="mt-3 pt-3 border-top small text-muted">
+                                                        <i className="bi bi-chat-text me-1"></i> Note: {order.notes}
+                                                    </div>
+                                                )}
+                                            </div>
+                                        </div>
+                                    </div>
+                                );
+                            })}
+                        </div>
+                    )}
                 </>
             );
         }
@@ -265,7 +365,22 @@ const Profile = () => {
 
                 {/* Main Content Area */}
                 <div className="col-12 col-md-9">
-                    {renderMainContent()}
+                    <style>
+                        {`
+                        @keyframes fadeIn {
+                            from { opacity: 0; transform: translateY(10px); }
+                            to { opacity: 1; transform: translateY(0); }
+                        }
+                        .fade-in-content {
+                            animation: fadeIn 0.4s ease-out forwards;
+                        }
+                        .sidebar-link { transition: all 0.2s ease; }
+                        .sidebar-link:hover { transform: translateX(5px); }
+                        `}
+                    </style>
+                    <div className="fade-in-content" key={activeTab}>
+                        {renderMainContent()}
+                    </div>
                 </div>
             </div>
         </div>

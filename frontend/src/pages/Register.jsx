@@ -5,13 +5,13 @@ import Swal from 'sweetalert2';
 import 'bootstrap-icons/font/bootstrap-icons.css';
 import duyananBg from '../assets/img/duyanan_bg.jpg';
 
-const API_URL = import.meta.env.VITE_API_URL;
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8080';
 
 // Only letters, spaces, hyphens and apostrophes are valid in names
 const NAME_REGEX = /^[a-zA-ZÀ-ÖØ-öø-ÿ\s'\-]*$/;
 
 const Register = () => {
-    const [formData, setFormData] = useState({ firstName: '', lastName: '', email: '', password: '', confirmPassword: '' });
+    const [formData, setFormData] = useState({ firstName: '', lastName: '', email: '', password: '', confirmPassword: '', phone: '', address: '' });
     const [showPassword, setShowPassword] = useState(false);
     const [showConfirm, setShowConfirm] = useState(false);
     const [formError, setFormError] = useState('');
@@ -75,6 +75,8 @@ const Register = () => {
                     lastName:  formData.lastName,
                     email:     formData.email,
                     password:  formData.password,
+                    phone:     formData.phone,
+                    address:   formData.address,
                 }),
             });
             const data = await response.json();
@@ -83,7 +85,8 @@ const Register = () => {
             } else {
                 navigate('/login');
             }
-        } catch {
+        } catch (err) {
+            console.error("Registration fetch error:", err);
             setFormError('Could not connect to the server. Please try again.');
         } finally {
             setIsLoading(false);
@@ -264,6 +267,35 @@ const Register = () => {
                         <div className="mb-3 position-relative">
                             <i className="bi bi-envelope position-absolute" style={iconPos()}></i>
                             <input type="email" className="form-control input-auth ps-5" placeholder="Email Address" name="email" value={formData.email} onChange={handleChange} required style={glassInput} />
+                        </div>
+
+                        {/* Phone & Address */}
+                        <div className="row g-2 mb-3">
+                            <div className="col-12 col-md-5 position-relative">
+                                <i className="bi bi-telephone position-absolute" style={iconPos()}></i>
+                                <input type="text" className="form-control input-auth ps-5" placeholder="Contact No. (e.g. 0912...)" name="phone" value={formData.phone} onChange={handleChange} required style={glassInput} />
+                            </div>
+                            <div className="col-12 col-md-7 position-relative">
+                                <i className="bi bi-geo-alt position-absolute" style={iconPos()}></i>
+                                <select 
+                                    className="form-control input-auth ps-5" 
+                                    name="address" 
+                                    value={formData.address} 
+                                    onChange={handleChange} 
+                                    required 
+                                    style={{...glassInput, appearance: 'none'}}
+                                >
+                                    <option value="" disabled style={{ color: '#000' }}>Select Barangay (Padre Burgos Only)</option>
+                                    {[
+                                        'Burgos', 'Cabuyao', 'Danlagan', 'Hinguiwin', 'Kinagunan Ibaba', 'Kinagunan Ilaya', 
+                                        'Lipata', 'Marao', 'Marquez', 'Rizal', 'San Isidro', 'San Vicente', 'Sipa', 
+                                        'Tulay Buhangin', 'Villapaz', 'Walay', 'Yawe'
+                                    ].map(brgy => (
+                                        <option key={brgy} value={`${brgy}, Padre Burgos, Quezon`} style={{ color: '#000' }}>{brgy}</option>
+                                    ))}
+                                </select>
+                                <i className="bi bi-chevron-down position-absolute" style={{...iconPos('right'), pointerEvents: 'none'}}></i>
+                            </div>
                         </div>
 
                         {/* Password + Confirm */}

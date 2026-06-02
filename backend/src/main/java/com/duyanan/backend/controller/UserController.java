@@ -63,6 +63,13 @@ public class UserController {
         user.setEmail(email);
         user.setPassword(passwordEncoder.encode(body.get("password"))); // BCrypt hash
         user.setRole("CUSTOMER");
+        
+        if (body.containsKey("phone")) {
+            user.setPhone(body.get("phone"));
+        }
+        if (body.containsKey("address")) {
+            user.setAddress(body.get("address"));
+        }
 
         userRepository.save(user);
         return ResponseEntity.ok(Map.of("message", "Registration successful!"));

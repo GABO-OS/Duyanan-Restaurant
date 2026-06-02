@@ -19,17 +19,21 @@ const Menu = () => {
     const [activeCategory, setActiveCategory] = useState('All');
     const [searchQuery, setSearchQuery] = useState('');
 
-    const categories = ['All', 'Appetizers', 'Set Meal', 'Party Meal', 'Kids Meal', 'Drinks'];
+    const categories = ['All', 'Rice Meals', 'Sizzling Meals', 'Duyanan Specials', 'Burger', 'French Fries', 'Nachos', 'Home-Made Siomai', 'Drinks', 'Soup', 'Milk Shakes', 'Sandwich', 'Student Meals', 'Extras'];
 
     useEffect(() => {
         axios.get(`${API_URL}/api/products`)
             .then(response => {
                 const updatedProducts = response.data.map(p => {
                     let finalImg = p.imageUrl;
-                    if (p.name === 'Sizzling Fried Chicken' || p.name === 'Chicken Inasal') {
+                    if (p.name === 'Sizzling Fried Chicken' || p.name === 'Chicken Inasal' || p.imageUrl === 'sfc.png' || p.imageUrl === 'sfc.jpg') {
                         finalImg = sfcImg;
-                    } else if (p.name === 'Pancit Habhab') {
+                    } else if (p.name === 'Pancit Habhab' || p.imageUrl === 'habhab.jpg' || p.imageUrl === 'habhab.png') {
                         finalImg = habhabImg;
+                    } else if (p.imageUrl === 'duyanan_logo.png') {
+                        finalImg = logoImg;
+                    } else if (p.imageUrl && !p.imageUrl.startsWith('http') && !p.imageUrl.startsWith('data:') && !p.imageUrl.startsWith('/')) {
+                        finalImg = `/img/${p.imageUrl}`;
                     }
                     return { ...p, imageUrl: finalImg };
                 });
@@ -38,10 +42,10 @@ const Menu = () => {
             .catch(error => {
                 console.error('Error fetching products:', error);
                 setProducts([
-                    { id: 1, name: 'Sizzling Fried Chicken', price: 109.00, description: 'Solo | Ala Carte', imageUrl: sfcImg, category: 'Set Meal' },
-                    { id: 2, name: 'Pancit Habhab', price: 250.00, description: 'Ala Carte', imageUrl: habhabImg, category: 'Party Meal' },
-                    { id: 3, name: 'Lumpiang Turon', price: 50.00, description: '10pcs', imageUrl: 'https://placehold.co/300x200/brown/white?text=Turon', category: 'Appetizers' },
-                    { id: 4, name: 'Chicken Inasal', price: 120.00, description: 'Solo | Ala Carte', imageUrl: sfcImg, category: 'Set Meal' },
+                    { id: 1, name: 'Sizzling Fried Chicken', priceSolo: 109.00, priceALaCarte: 159.00, description: 'Solo | Ala Carte', imageUrl: sfcImg, category: 'Sizzling Meals' },
+                    { id: 2, name: 'Pancit Habhab', priceALaCarte: 250.00, description: 'Ala Carte', imageUrl: habhabImg, category: 'Duyanan Specials' },
+                    { id: 3, name: 'Lumpiang Turon', priceSolo: 50.00, description: '10pcs', imageUrl: 'https://placehold.co/300x200/brown/white?text=Turon', category: 'Extras' },
+                    { id: 4, name: 'Chicken Inasal', priceSolo: 120.00, priceALaCarte: 170.00, description: 'Solo | Ala Carte', imageUrl: sfcImg, category: 'Rice Meals' },
                 ]);
             })
             .finally(() => setIsLoading(false));
@@ -94,17 +98,225 @@ const Menu = () => {
             });
             return;
         }
-        addToCart(product);
-        Swal.fire({
-            toast: true,
-            position: 'bottom-end',
-            icon: 'success',
-            title: 'Added to cart',
-            text: `${product.name} has been added.`,
-            showConfirmButton: false,
-            timer: 2500,
-            timerProgressBar: true
-        });
+
+        const addAction = (variant = null, price = null) => {
+            addToCart(product, variant, price);
+            Swal.fire({
+                toast: true,
+                position: 'bottom-end',
+                icon: 'success',
+                title: 'Added to cart',
+                text: `${product.name}${variant ? ` (${variant})` : ''} has been added.`,
+                showConfirmButton: false,
+                timer: 2500,
+                timerProgressBar: true
+            });
+        };
+
+        const activePrices = [product.priceSolo, product.priceALaCarte, product.price1Liter, product.price1Point5Liter, product.price2Liter].filter(p => p > 0);
+        const hasVariants = activePrices.length > 1 || (product.category === 'Milk Shakes' && product.flavors && product.flavors.length > 0);
+
+        if (hasVariants) {
+            const flavorsList = product.flavors ? product.flavors.split(',').map(f => f.trim()).filter(f => f.length > 0) : [];
+            const flavorDropdownHtml = flavorsList.length > 0 ? `
+                <div class="mb-3 text-start px-1">
+                    <label class="form-label fw-bold mb-1" style="color: #555; font-size: 0.85rem;">Select Flavor <span class="text-danger">*</span></label>
+                    <select id="flavor-select" class="form-select shadow-sm" style="border-radius: 8px; border: 2px solid rgba(0,0,0,0.05); font-weight: 600; color: #444; padding: 6px 12px; cursor: pointer; font-size: 0.9rem;">
+                        <option value="" disabled selected>Choose a flavor...</option>
+                        ${flavorsList.map(f => `<option value="${f}">${f}</option>`).join('')}
+                    </select>
+                    <div id="flavor-error" class="text-danger mt-1 small d-none fw-bold"><i class="bi bi-exclamation-circle me-1"></i>Please select a flavor</div>
+                </div>
+            ` : '';
+
+            Swal.fire({
+                title: '',
+                html: `
+                    <style>
+                        .swal2-popup {
+                            border-radius: 24px !important;
+                            overflow: hidden !important;
+                            width: 26em !important;
+                        }
+                        .swal2-html-container {
+                            overflow: hidden !important;
+                            padding: 0 16px 16px 16px !important;
+                        }
+                        .variant-btn {
+                            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+                            border: 2px solid transparent;
+                            position: relative;
+                            overflow: hidden;
+                            cursor: pointer;
+                        }
+                        .variant-btn:hover {
+                            transform: translateY(-2px) scale(1.01);
+                            box-shadow: 0 4px 12px rgba(139, 58, 15, 0.2) !important;
+                            border-color: rgba(255, 255, 255, 0.3);
+                        }
+                        .variant-btn:active {
+                            transform: translateY(1px) scale(0.99);
+                        }
+                        .variant-btn::after {
+                            content: '';
+                            position: absolute;
+                            top: 50%; left: 50%;
+                            width: 150%; height: 150%;
+                            background: radial-gradient(circle, rgba(255,255,255,0.15) 0%, transparent 60%);
+                            transform: translate(-50%, -50%) scale(0);
+                            transition: transform 0.4s ease-out;
+                            opacity: 0;
+                        }
+                        .variant-btn:hover::after {
+                            transform: translate(-50%, -50%) scale(1);
+                            opacity: 1;
+                        }
+                        .swal-custom-cancel {
+                            background-color: transparent !important;
+                            color: #8B3A0F !important;
+                            border: 2px solid rgba(139, 58, 15, 0.2) !important;
+                            border-radius: 10px !important;
+                            font-weight: 700 !important;
+                            padding: 8px 24px !important;
+                            font-size: 0.9rem !important;
+                            transition: all 0.2s !important;
+                            box-shadow: none !important;
+                        }
+                        .swal-custom-cancel:hover {
+                            background-color: rgba(139, 58, 15, 0.05) !important;
+                            border-color: #8B3A0F !important;
+                            transform: translateY(-2px);
+                        }
+                    </style>
+                    <div class="d-flex align-items-center mb-2 text-start pb-2" style="border-bottom: 2px solid rgba(0,0,0,0.05);">
+                        <div style="width: 45px; height: 45px; flex-shrink: 0; border-radius: 8px; overflow: hidden; box-shadow: 0 2px 6px rgba(0,0,0,0.08); margin-right: 12px;">
+                            <img src="${product.imageUrl || 'https://placehold.co/300x200?text=No+Image'}" alt="${product.name}" style="width: 100%; height: 100%; object-fit: cover;" />
+                        </div>
+                        <div>
+                            <h4 style="color: var(--primary-brown); font-weight: 800; margin: 0 0 2px 0; font-size: 1.1rem; letter-spacing: -0.5px;">Choose Variant</h4>
+                            <p style="margin: 0; color: #666; font-size: 0.85rem; font-weight: 600;">${product.name}</p>
+                        </div>
+                    </div>
+                    ${flavorDropdownHtml}
+
+                    <div class="d-flex flex-column gap-1 mb-1 px-1">
+                        ${product.priceSolo > 0 ? `
+                            <button id="btn-solo" class="variant-btn btn text-white py-1 fw-bold shadow-sm d-flex justify-content-between align-items-center px-3" style="background: linear-gradient(135deg, #8B3A0F, #5C1F00); border-radius: 8px; font-size: 0.9rem; min-height: 38px;">
+                                <span>${['Drinks', 'Milk Shakes'].includes(product.category) ? 'Glass' : product.category === 'Duyanan Specials' ? 'Price 1' : 'Solo'}</span>
+                                <span style="color: rgba(255,255,255,0.9);">₱${product.priceSolo.toFixed(2)}</span>
+                            </button>
+                        ` : ''}
+                        ${!['Drinks', 'Milk Shakes'].includes(product.category) && product.priceALaCarte > 0 ? `
+                            <button id="btn-alacarte" class="variant-btn btn text-white py-1 fw-bold shadow-sm d-flex justify-content-between align-items-center px-3" style="background: linear-gradient(135deg, #D35400, #A04000); border-radius: 8px; font-size: 0.9rem; min-height: 38px;">
+                                <span>${product.category === 'Duyanan Specials' ? 'Price 2' : 'A La Carte'}</span>
+                                <span style="color: rgba(255,255,255,0.9);">₱${product.priceALaCarte.toFixed(2)}</span>
+                            </button>
+                        ` : ''}
+                        ${['Drinks', 'Milk Shakes'].includes(product.category) && product.price1Liter > 0 ? `
+                            <button id="btn-1l" class="variant-btn btn text-white py-1 fw-bold shadow-sm d-flex justify-content-between align-items-center px-3" style="background: linear-gradient(135deg, #D35400, #A04000); border-radius: 8px; font-size: 0.9rem; min-height: 38px;">
+                                <span>1 Liter</span>
+                                <span style="color: rgba(255,255,255,0.9);">₱${product.price1Liter.toFixed(2)}</span>
+                            </button>
+                        ` : ''}
+                        ${['Drinks', 'Milk Shakes'].includes(product.category) && product.price1Point5Liter > 0 ? `
+                            <button id="btn-15l" class="variant-btn btn text-white py-1 fw-bold shadow-sm d-flex justify-content-between align-items-center px-3" style="background: linear-gradient(135deg, #D35400, #A04000); border-radius: 8px; font-size: 0.9rem; min-height: 38px;">
+                                <span>1.5 Liters</span>
+                                <span style="color: rgba(255,255,255,0.9);">₱${product.price1Point5Liter.toFixed(2)}</span>
+                            </button>
+                        ` : ''}
+                        ${['Drinks', 'Milk Shakes'].includes(product.category) && product.price2Liter > 0 ? `
+                            <button id="btn-2l" class="variant-btn btn text-white py-1 fw-bold shadow-sm d-flex justify-content-between align-items-center px-3" style="background: linear-gradient(135deg, #D35400, #A04000); border-radius: 8px; font-size: 0.9rem; min-height: 38px;">
+                                <span>2 Liters</span>
+                                <span style="color: rgba(255,255,255,0.9);">₱${product.price2Liter.toFixed(2)}</span>
+                            </button>
+                        ` : ''}
+                    </div>
+                `,
+                showConfirmButton: false,
+                showCancelButton: true,
+                cancelButtonText: 'Cancel',
+                buttonsStyling: false,
+                customClass: {
+                    cancelButton: 'swal-custom-cancel mt-4'
+                },
+                didOpen: () => {
+                    const btnSolo = document.getElementById('btn-solo');
+                    const btnAlaCarte = document.getElementById('btn-alacarte');
+                    const btn1L = document.getElementById('btn-1l');
+                    const btn15L = document.getElementById('btn-15l');
+                    const btn2L = document.getElementById('btn-2l');
+                    const flavorSelect = document.getElementById('flavor-select');
+                    const flavorError = document.getElementById('flavor-error');
+                    
+                    const validateFlavorAndAdd = (baseVariantName, price) => {
+                        let finalVariantName = baseVariantName;
+                        if (flavorSelect) {
+                            if (!flavorSelect.value) {
+                                flavorSelect.style.borderColor = '#dc3545';
+                                flavorError.classList.remove('d-none');
+                                // Shake animation
+                                flavorSelect.classList.add('animate__animated', 'animate__headShake');
+                                setTimeout(() => flavorSelect.classList.remove('animate__animated', 'animate__headShake'), 500);
+                                return;
+                            }
+                            finalVariantName = `${flavorSelect.value} - ${baseVariantName}`;
+                        }
+                        Swal.close();
+                        addAction(finalVariantName, price);
+                    };
+
+                    if (flavorSelect) {
+                        flavorSelect.addEventListener('change', () => {
+                            flavorSelect.style.borderColor = 'rgba(0,0,0,0.05)';
+                            flavorError.classList.add('d-none');
+                        });
+                    }
+
+                    if (btnSolo) {
+                        btnSolo.addEventListener('click', () => {
+                            validateFlavorAndAdd(['Drinks', 'Milk Shakes'].includes(product.category) ? 'Glass' : product.category === 'Duyanan Specials' ? 'Price 1' : 'Solo', product.priceSolo);
+                        });
+                    }
+                    if (btnAlaCarte) {
+                        btnAlaCarte.addEventListener('click', () => {
+                            validateFlavorAndAdd(product.category === 'Duyanan Specials' ? 'Price 2' : 'A La Carte', product.priceALaCarte);
+                        });
+                    }
+                    if (btn1L) {
+                        btn1L.addEventListener('click', () => {
+                            validateFlavorAndAdd('1 Liter', product.price1Liter);
+                        });
+                    }
+                    if (btn15L) {
+                        btn15L.addEventListener('click', () => {
+                            validateFlavorAndAdd('1.5 Liters', product.price1Point5Liter);
+                        });
+                    }
+                    if (btn2L) {
+                        btn2L.addEventListener('click', () => {
+                            validateFlavorAndAdd('2 Liters', product.price2Liter);
+                        });
+                    }
+                }
+            });
+        } else {
+            let activeVariant = null;
+            let activePrice = 0;
+            if (product.priceSolo > 0) { activeVariant = ['Drinks', 'Milk Shakes'].includes(product.category) ? 'Glass' : product.category === 'Duyanan Specials' ? 'Price 1' : 'Solo'; activePrice = product.priceSolo; }
+            else if (product.priceALaCarte > 0) { activeVariant = product.category === 'Drinks' ? null : product.category === 'Duyanan Specials' ? 'Price 2' : 'A La Carte'; activePrice = product.priceALaCarte; }
+            else if (product.price1Liter > 0) { activeVariant = '1 Liter'; activePrice = product.price1Liter; }
+            else if (product.price1Point5Liter > 0) { activeVariant = '1.5 Liters'; activePrice = product.price1Point5Liter; }
+            else if (product.price2Liter > 0) { activeVariant = '2 Liters'; activePrice = product.price2Liter; }
+            
+            // For milk shakes with only 1 variant (or 0) but multiple flavors, they will trigger the modal due to hasVariants.
+            // If they reach here, it means 0 or 1 price AND 0 or 1 flavors.
+            const singleFlavor = (product.category === 'Milk Shakes' && product.flavors) ? product.flavors.split(',')[0].trim() : null;
+            if (singleFlavor && activeVariant) {
+                activeVariant = `${singleFlavor} - ${activeVariant}`;
+            }
+
+            addAction(activeVariant, activePrice);
+        }
     };
 
     return (
@@ -184,11 +396,15 @@ const Menu = () => {
             {/* Main Content Areas */}
             <div className="px-4 mt-4">
                 {isLoading ? (
-                    <div className="text-center py-5">
-                        <div className="spinner-border" style={{ color: 'var(--accent-orange)', width: '3rem', height: '3rem' }} role="status">
-                            <span className="visually-hidden">Loading...</span>
+                    <div className="duyanan-loading-overlay">
+                        <div className="duyanan-loading-card">
+                            <div className="duyanan-loading-icon-wrap">
+                                <span className="duyanan-loading-leaf">🍃</span>
+                                <span className="duyanan-loading-ring"></span>
+                            </div>
+                            <p className="duyanan-loading-text">Preparing the menu<span className="duyanan-loading-dots"><span>.</span><span>.</span><span>.</span></span></p>
+                            <p className="duyanan-loading-sub">Duyanan Restaurant</p>
                         </div>
-                        <p className="mt-3 text-muted">Loading menu...</p>
                     </div>
                 ) : (
                     <>
@@ -208,40 +424,117 @@ const Menu = () => {
                             {categoryProducts.length > 0 ? (
                                 <div className="row g-4">
                                     {categoryProducts.map(product => (
-                                        <div className="col-md-6 col-lg-4 col-xl-3" key={product.id}>
-                                            <div className="card h-100 border-0 frosted-card">
-                                                <img 
-                                                    src={product.imageUrl || 'https://placehold.co/300x200?text=No+Image'} 
-                                                    className="card-img-top" 
-                                                    alt={product.name} 
-                                                    style={{ width: '100%', height: '200px', objectFit: 'cover' }} 
-                                                />
-                                                <div className="card-body text-center d-flex flex-column">
-                                                    <h5 className="card-title mb-1" style={{ color: 'var(--primary-brown)', fontWeight: 'bold', fontSize: '1.1rem' }}>{product.name}</h5>
-                                                    <p className="card-text text-muted small mb-2">{product.description}</p>
-                                                    <div className="mt-auto">
-                                                        <p className="card-text mb-2">
-                                                            <span style={{ color: 'var(--accent-orange)', fontWeight: 'bold', fontSize: '1.2rem' }}>
-                                                                {typeof product.price === 'number' ? `₱${product.price.toFixed(2)}` : product.price}
-                                                            </span>
+                                        <div className="col-md-6 col-lg-6 col-xl-4" key={product.id}>
+                                            <div className="card h-100 border-0 bg-white" style={{ borderRadius: '12px', boxShadow: '0 2px 12px rgba(0,0,0,0.03)', border: '1px solid rgba(0,0,0,0.05)' }}>
+                                                <div className="d-flex h-100 align-items-center p-3">
+                                                    {/* Image Container */}
+                                                    <div style={{ width: '120px', height: '120px', flexShrink: 0, overflow: 'hidden', borderRadius: '10px' }}>
+                                                        <img 
+                                                            src={product.imageUrl || 'https://placehold.co/300x200?text=No+Image'} 
+                                                            alt={product.name} 
+                                                            style={{ width: '100%', height: '100%', objectFit: 'cover' }} 
+                                                        />
+                                                    </div>
+                                                    
+                                                    {/* Content Container */}
+                                                    <div className="ms-3 d-flex flex-column h-100 justify-content-center w-100 pt-1">
+                                                        <h5 className="mb-1" style={{ color: '#222', fontWeight: '700', fontSize: '1.05rem', lineHeight: '1.3' }}>
+                                                            {product.category === 'Milk Shakes' && product.flavors ? product.flavors : product.name}
+                                                        </h5>
+                                                        <p className="text-muted mb-2" style={{ fontSize: '0.82rem', lineHeight: '1.3', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
+                                                            {product.description}
                                                         </p>
-                                                        <button 
-                                                            className="btn-outline-brand w-100" 
-                                                            style={{ 
-                                                                fontSize: '0.9rem', 
-                                                                padding: '8px 0',
-                                                                opacity: isAuthenticated ? 1 : 0.75,
-                                                                cursor: isAuthenticated ? 'pointer' : 'not-allowed',
-                                                                position: 'relative'
-                                                            }}
-                                                            onClick={() => handleAddToCart(product)}
-                                                            title={!isAuthenticated ? 'Login to add items to cart' : ''}
-                                                        >
-                                                            {!isAuthenticated && (
-                                                                <i className="bi bi-lock-fill me-1" style={{ fontSize: '0.8rem' }}></i>
-                                                            )}
-                                                            Add to cart
-                                                        </button>
+                                                        <div className="d-flex justify-content-between align-items-center mt-auto pt-1">
+                                                            <div className="d-flex flex-column">
+                                                                {['Milk Shakes', 'Drinks'].includes(product.category) && (
+                                                                    <>
+                                                                        {product.priceSolo > 0 && (
+                                                                            <span style={{ fontSize: '0.72rem', color: '#555', fontWeight: '600', lineHeight: '1.2', whiteSpace: 'nowrap' }}>
+                                                                                Glass: <span style={{ color: 'var(--accent-orange)', fontSize: '0.82rem' }}>₱{product.priceSolo.toFixed(2)}</span>
+                                                                            </span>
+                                                                        )}
+                                                                        {product.priceALaCarte > 0 && (
+                                                                            <span style={{ fontSize: '0.72rem', color: '#555', fontWeight: '600', lineHeight: '1.2', whiteSpace: 'nowrap' }}>
+                                                                                <span style={{ color: 'var(--accent-orange)', fontSize: '0.82rem' }}>₱{product.priceALaCarte.toFixed(2)}</span>
+                                                                            </span>
+                                                                        )}
+                                                                        {product.price1Liter > 0 && (
+                                                                            <span style={{ fontSize: '0.72rem', color: '#555', fontWeight: '600', lineHeight: '1.2', whiteSpace: 'nowrap' }}>
+                                                                                1 Liter: <span style={{ color: 'var(--accent-orange)', fontSize: '0.82rem' }}>₱{product.price1Liter.toFixed(2)}</span>
+                                                                            </span>
+                                                                        )}
+                                                                        {product.price1Point5Liter > 0 && (
+                                                                            <span style={{ fontSize: '0.72rem', color: '#555', fontWeight: '600', lineHeight: '1.2', whiteSpace: 'nowrap' }}>
+                                                                                1.5 Liters: <span style={{ color: 'var(--accent-orange)', fontSize: '0.82rem' }}>₱{product.price1Point5Liter.toFixed(2)}</span>
+                                                                            </span>
+                                                                        )}
+                                                                        {product.price2Liter > 0 && (
+                                                                            <span style={{ fontSize: '0.72rem', color: '#555', fontWeight: '600', lineHeight: '1.2', whiteSpace: 'nowrap' }}>
+                                                                                2 Liters: <span style={{ color: 'var(--accent-orange)', fontSize: '0.82rem' }}>₱{product.price2Liter.toFixed(2)}</span>
+                                                                            </span>
+                                                                        )}
+                                                                    </>
+                                                                )}
+                                                                
+                                                                {['Duyanan Specials'].includes(product.category) && (
+                                                                    <span style={{ fontSize: '0.85rem', color: 'var(--accent-orange)', fontWeight: '700', lineHeight: '1.2', whiteSpace: 'nowrap' }}>
+                                                                        {product.priceSolo > 0 && product.priceALaCarte > 0 
+                                                                            ? `₱${product.priceSolo.toFixed(2)} - ₱${product.priceALaCarte.toFixed(2)}` 
+                                                                            : `₱${(product.priceSolo || product.priceALaCarte || 0).toFixed(2)}`}
+                                                                    </span>
+                                                                )}
+
+                                                                {['French Fries', 'Nachos', 'Home-Made Siomai', 'Soup', 'Sandwich', 'Student Meals'].includes(product.category) && (
+                                                                    <span style={{ fontSize: '0.85rem', color: 'var(--accent-orange)', fontWeight: '700', lineHeight: '1.2', whiteSpace: 'nowrap' }}>
+                                                                        ₱{(product.priceSolo || 0).toFixed(2)}
+                                                                    </span>
+                                                                )}
+
+                                                                {!['Milk Shakes', 'Drinks', 'Duyanan Specials', 'French Fries', 'Nachos', 'Home-Made Siomai', 'Soup', 'Sandwich', 'Student Meals'].includes(product.category) && (
+                                                                    <>
+                                                                        {product.priceSolo > 0 && (
+                                                                            <span style={{ fontSize: '0.72rem', color: '#555', fontWeight: '600', lineHeight: '1.2', whiteSpace: 'nowrap' }}>
+                                                                                Solo: <span style={{ color: 'var(--accent-orange)', fontSize: '0.82rem' }}>₱{product.priceSolo.toFixed(2)}</span>
+                                                                            </span>
+                                                                        )}
+                                                                        {product.priceALaCarte > 0 && (
+                                                                            <span style={{ fontSize: '0.72rem', color: '#555', fontWeight: '600', lineHeight: '1.2', whiteSpace: 'nowrap' }}>
+                                                                                A La Carte: <span style={{ color: 'var(--accent-orange)', fontSize: '0.82rem' }}>₱{product.priceALaCarte.toFixed(2)}</span>
+                                                                            </span>
+                                                                        )}
+                                                                    </>
+                                                                )}
+                                                            </div>
+                                                            <button 
+                                                                className="btn btn-sm px-3 fw-bold rounded-pill text-nowrap" 
+                                                                style={{ 
+                                                                    backgroundColor: 'rgba(211, 84, 0, 0.08)', 
+                                                                    color: 'var(--accent-orange)',
+                                                                    fontSize: '0.8rem',
+                                                                    transition: 'all 0.2s ease',
+                                                                    opacity: isAuthenticated ? 1 : 0.75,
+                                                                    cursor: isAuthenticated ? 'pointer' : 'not-allowed',
+                                                                    border: '1px solid rgba(211, 84, 0, 0.15)'
+                                                                }}
+                                                                onMouseOver={(e) => {
+                                                                    if (isAuthenticated) {
+                                                                        e.currentTarget.style.backgroundColor = 'var(--accent-orange)';
+                                                                        e.currentTarget.style.color = '#fff';
+                                                                    }
+                                                                }}
+                                                                onMouseOut={(e) => {
+                                                                    if (isAuthenticated) {
+                                                                        e.currentTarget.style.backgroundColor = 'rgba(211, 84, 0, 0.08)';
+                                                                        e.currentTarget.style.color = 'var(--accent-orange)';
+                                                                    }
+                                                                }}
+                                                                onClick={() => handleAddToCart(product)}
+                                                                title={!isAuthenticated ? 'Login to add items to cart' : ''}
+                                                            >
+                                                                {!isAuthenticated && <i className="bi bi-lock-fill me-1" style={{ fontSize: '0.7rem' }}></i>}
+                                                                Add Order
+                                                            </button>
+                                                        </div>
                                                     </div>
                                                 </div>
                                             </div>

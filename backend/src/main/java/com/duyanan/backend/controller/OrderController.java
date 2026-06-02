@@ -65,12 +65,22 @@ public class OrderController {
                 Product product = productRepository.findById(productId)
                         .orElseThrow(() -> new RuntimeException("Product not found: " + productId));
 
+                String variant = itemData.get("variant") != null ? itemData.get("variant").toString() : null;
+                
+                Double unitPrice = 0.0;
+                if ("A La Carte".equalsIgnoreCase(variant) && product.getPriceALaCarte() != null) {
+                    unitPrice = product.getPriceALaCarte();
+                } else if (product.getPriceSolo() != null) {
+                    unitPrice = product.getPriceSolo();
+                }
+
                 OrderItem item = new OrderItem();
                 item.setOrder(order);
                 item.setProduct(product);
+                item.setVariant(variant);
                 item.setQuantity(quantity);
-                item.setUnitPrice(product.getPrice());
-                item.setSubtotal(product.getPrice() * quantity);
+                item.setUnitPrice(unitPrice);
+                item.setSubtotal(unitPrice * quantity);
 
                 order.getItems().add(item);
                 totalAmount += item.getSubtotal();

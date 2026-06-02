@@ -13,8 +13,13 @@ public class Product {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
     private String name;
-    private Double price;
+    private Double priceSolo;
+    private Double priceALaCarte;
+    private Double price1Liter;
+    private Double price1Point5Liter;
+    private Double price2Liter;
     private String description;
     private String imageUrl;
     private String category;
+    private String flavors;
 }

@@ -70,12 +70,8 @@ const Home = () => {
         });
     };
 
-    // Redirect admins to dashboard if they land on Home
-    useEffect(() => {
-        if (isAuthenticated && user?.role === 'ADMIN') {
-            navigate('/admin', { replace: true });
-        }
-    }, [isAuthenticated, user, navigate]);
+    // Admins are no longer forcefully redirected to the dashboard.
+    // They can browse the homepage and use the 'Admin' button in the navbar to access the dashboard.
 
     useEffect(() => {
         if (location.state?.alert) {
