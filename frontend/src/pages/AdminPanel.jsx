@@ -20,8 +20,33 @@ const AdminPanel = () => {
     const [showProductForm, setShowProductForm] = useState(false);
     const [editingProduct, setEditingProduct] = useState(null);
     const [productForm, setProductForm] = useState({
-        name: '', priceSolo: '', priceALaCarte: '', price1Liter: '', price1Point5Liter: '', price2Liter: '', description: '', imageUrl: '', category: 'Rice Meals', flavors: ''
+        name: '', priceSolo: '', priceALaCarte: '', priceALaCarte2: '', price1Liter: '', price1Point5Liter: '', price2Liter: '', description: '', imageUrl: '', category: 'Rice Meals', flavors: '', customCombos: []
     });
+
+    const addCombo = (e) => {
+        e.preventDefault();
+        setProductForm(prev => ({
+            ...prev,
+            customCombos: [...(prev.customCombos || []), { name: '', price: '' }]
+        }));
+    };
+
+    const updateCombo = (index, field, value) => {
+        setProductForm(prev => {
+            const updatedCombos = [...(prev.customCombos || [])];
+            updatedCombos[index] = { ...updatedCombos[index], [field]: value };
+            return { ...prev, customCombos: updatedCombos };
+        });
+    };
+
+    const removeCombo = (e, index) => {
+        e.preventDefault();
+        setProductForm(prev => {
+            const updatedCombos = [...(prev.customCombos || [])];
+            updatedCombos.splice(index, 1);
+            return { ...prev, customCombos: updatedCombos };
+        });
+    };
 
     const categories = ['Rice Meals', 'Sizzling Meals', 'Duyanan Specials', 'Burger', 'French Fries', 'Nachos', 'Home-Made Siomai', 'Drinks', 'Soup', 'Milk Shakes', 'Sandwich', 'Student Meals', 'Extras'];
 
@@ -31,8 +56,8 @@ const AdminPanel = () => {
     });
 
     // ── Fetch Data ────────────────────────────────────────
-    const fetchData = async () => {
-        setIsLoading(true);
+    const fetchData = async (showLoading = true) => {
+        if (showLoading) setIsLoading(true);
         try {
             const [usersRes, productsRes, ordersRes, resRes] = await Promise.all([
                 fetch(`${API_URL}/api/admin/users`, { headers: authHeaders() }),
@@ -48,7 +73,7 @@ const AdminPanel = () => {
         } catch (e) {
             console.error("Failed to fetch admin data", e);
         }
-        setIsLoading(false);
+        if (showLoading) setIsLoading(false);
     };
 
     const [isAlertVisible, setIsAlertVisible] = useState(false);
@@ -57,6 +82,12 @@ const AdminPanel = () => {
         fetchData();
         setMessage(`Welcome, ${user?.firstName || 'Admin'}! You have securely accessed the Admin Panel.`);
         setIsAlertVisible(true);
+        
+        // Auto-refresh data every 10 seconds
+        const interval = setInterval(() => {
+            fetchData(false); // silent fetch
+        }, 10000);
+        return () => clearInterval(interval);
     }, []);
 
     useEffect(() => {
@@ -73,7 +104,7 @@ const AdminPanel = () => {
 
     // ── Products CRUD ─────────────────────────────────────
     const resetProductForm = () => {
-        setProductForm({ name: '', priceSolo: '', priceALaCarte: '', price1Liter: '', price1Point5Liter: '', price2Liter: '', description: '', imageUrl: '', category: 'Rice Meals', flavors: '' });
+        setProductForm({ name: '', priceSolo: '', priceALaCarte: '', priceALaCarte2: '', price1Liter: '', price1Point5Liter: '', price2Liter: '', description: '', imageUrl: '', category: 'Rice Meals', flavors: '', customCombos: [] });
         setEditingProduct(null);
         setShowProductForm(false);
     };
@@ -86,9 +117,11 @@ const AdminPanel = () => {
             name: productForm.category === 'Milk Shakes' ? 'Milk Shake' : productForm.name,
             priceSolo: productForm.priceSolo ? parseFloat(productForm.priceSolo) : 0,
             priceALaCarte: productForm.priceALaCarte ? parseFloat(productForm.priceALaCarte) : 0,
+            priceALaCarte2: productForm.priceALaCarte2 ? parseFloat(productForm.priceALaCarte2) : 0,
             price1Liter: productForm.price1Liter ? parseFloat(productForm.price1Liter) : 0,
             price1Point5Liter: productForm.price1Point5Liter ? parseFloat(productForm.price1Point5Liter) : 0,
-            price2Liter: productForm.price2Liter ? parseFloat(productForm.price2Liter) : 0
+            price2Liter: productForm.price2Liter ? parseFloat(productForm.price2Liter) : 0,
+            customCombos: (productForm.customCombos || []).map(c => ({ name: c.name, price: parseFloat(c.price) || 0 })).filter(c => c.name && c.price > 0)
         };
 
         try {
@@ -135,13 +168,15 @@ const AdminPanel = () => {
             name: product.name,
             priceSolo: product.priceSolo || '',
             priceALaCarte: product.priceALaCarte || '',
+            priceALaCarte2: product.priceALaCarte2 || '',
             price1Liter: product.price1Liter || '',
             price1Point5Liter: product.price1Point5Liter || '',
             price2Liter: product.price2Liter || '',
             description: product.description || '',
             imageUrl: product.imageUrl || '',
             category: product.category || 'Rice Meals',
-            flavors: product.flavors || ''
+            flavors: product.flavors || '',
+            customCombos: product.customCombos || []
         });
         setEditingProduct(product);
         setShowProductForm(true);
@@ -413,7 +448,8 @@ const AdminPanel = () => {
                                             <thead style={{ backgroundColor: '#8B3A0F', color: '#fff' }}>
                                                 <tr>
                                                     <th className="py-3 px-4 border-0 text-center">Order ID</th>
-                                                    <th className="py-3 px-4 border-0 text-start">Customer Info</th>
+                                                    <th className="py-3 px-4 border-0 text-center">Customer Info</th>
+                                                    <th className="py-3 px-4 border-0 text-center">Items</th>
                                                     <th className="py-3 px-4 border-0 text-center">Timestamp</th>
                                                     <th className="py-3 px-4 border-0 text-center">Price</th>
                                                     <th className="py-3 px-4 border-0 text-center">Status</th>
@@ -430,8 +466,7 @@ const AdminPanel = () => {
                                                             <div className="small text-muted text-truncate" style={{ maxWidth: '200px', lineHeight: '1.2' }} title={o.user?.address || 'N/A'}><i className="bi bi-geo-alt-fill me-1" style={{ fontSize: '0.75rem' }}></i>{o.user?.address || 'N/A'}</div>
                                                         </td>
                                                         <td className="px-4 text-center">
-                                                            <div>{new Date(o.orderDate || Date.now()).toLocaleString()}</div>
-                                                            <div className="mt-2 text-start bg-light p-2 rounded" style={{ fontSize: '0.8rem' }}>
+                                                            <div className="bg-light p-2 rounded mx-auto text-start" style={{ fontSize: '0.8rem', width: 'max-content' }}>
                                                                 <div className="fw-bold mb-1">Items:</div>
                                                                 {o.items?.map((item, idx) => (
                                                                     <div key={idx} className="text-truncate" style={{ maxWidth: '200px' }} title={`${item.quantity}x ${item.product?.name} ${item.variant ? `(${item.variant})` : ''}`}>
@@ -439,6 +474,9 @@ const AdminPanel = () => {
                                                                     </div>
                                                                 ))}
                                                             </div>
+                                                        </td>
+                                                        <td className="px-4 text-center">
+                                                            <div className="small">{new Date(o.orderDate || Date.now()).toLocaleString()}</div>
                                                         </td>
                                                         <td className="px-4 fw-bold text-center">₱{o.totalAmount?.toFixed(2)}</td>
                                                         <td className="px-4 text-center">
@@ -586,7 +624,7 @@ const AdminPanel = () => {
                                                                 </>
                                                             )}
 
-                                                            {['Duyanan Specials'].includes(productForm.category) && (
+                                                            {['Duyanan Specials', 'Burger', 'French Fries', 'Home-Made Siomai', 'Soup'].includes(productForm.category) && (
                                                                 <>
                                                                     <div className="col-md-6">
                                                                         <label className="form-label small fw-bold text-muted">Price 1 (₱)</label>
@@ -603,7 +641,7 @@ const AdminPanel = () => {
                                                                 </>
                                                             )}
 
-                                                            {['French Fries', 'Nachos', 'Home-Made Siomai', 'Soup'].includes(productForm.category) && (
+                                                            {['Nachos'].includes(productForm.category) && (
                                                                 <>
                                                                     <div className="col-md-12">
                                                                         <label className="form-label small fw-bold text-muted">Price (₱)</label>
@@ -623,15 +661,19 @@ const AdminPanel = () => {
                                                                 </div>
                                                             )}
 
-                                                            {!['Milk Shakes', 'Drinks', 'Sandwich', 'Student Meals', 'Duyanan Specials', 'French Fries', 'Nachos', 'Home-Made Siomai', 'Soup'].includes(productForm.category) && (
+                                                            {!['Milk Shakes', 'Drinks', 'Sandwich', 'Student Meals', 'Duyanan Specials', 'Burger', 'French Fries', 'Nachos', 'Home-Made Siomai', 'Soup'].includes(productForm.category) && (
                                                                 <>
-                                                                    <div className="col-md-6">
+                                                                    <div className="col-md-4">
                                                                         <label className="form-label small fw-bold text-muted">Solo Price (₱)</label>
                                                                         <input type="number" step="0.01" className="form-control bg-white" value={productForm.priceSolo} onChange={e => setProductForm(p => ({ ...p, priceSolo: e.target.value }))} />
                                                                     </div>
-                                                                    <div className="col-md-6">
-                                                                        <label className="form-label small fw-bold text-muted">A La Carte (₱)</label>
+                                                                    <div className="col-md-4">
+                                                                        <label className="form-label small fw-bold text-muted">A La Carte 1 (₱)</label>
                                                                         <input type="number" step="0.01" className="form-control bg-white" value={productForm.priceALaCarte} onChange={e => setProductForm(p => ({ ...p, priceALaCarte: e.target.value }))} />
+                                                                    </div>
+                                                                    <div className="col-md-4">
+                                                                        <label className="form-label small fw-bold text-muted">A La Carte 2 (₱)</label>
+                                                                        <input type="number" step="0.01" className="form-control bg-white" value={productForm.priceALaCarte2} onChange={e => setProductForm(p => ({ ...p, priceALaCarte2: e.target.value }))} />
                                                                     </div>
                                                                     <div className="col-md-12">
                                                                         <label className="form-label small fw-bold text-muted">Description</label>
@@ -640,7 +682,34 @@ const AdminPanel = () => {
                                                                 </>
                                                             )}
                                                             
-                                                            <div className="col-md-12">
+                                                            {['Duyanan Specials', 'Burger', 'French Fries', 'Home-Made Siomai', 'Soup'].includes(productForm.category) && (
+                                                                <>
+                                                                    <div className="col-12 mt-3 mb-1">
+                                                                        <hr className="m-0 border-secondary opacity-25" />
+                                                                        <div className="text-muted fw-bold small mt-2">Custom Combos (Optional)</div>
+                                                                    </div>
+                                                                    {(productForm.customCombos || []).map((combo, index) => (
+                                                                        <React.Fragment key={index}>
+                                                                            <div className="col-md-7">
+                                                                                <label className="form-label small fw-bold text-muted">Combo {index + 1} Name</label>
+                                                                                <input type="text" className="form-control bg-white" placeholder="e.g. Spag with Fries" value={combo.name} onChange={e => updateCombo(index, 'name', e.target.value)} />
+                                                                            </div>
+                                                                            <div className="col-md-3">
+                                                                                <label className="form-label small fw-bold text-muted">Price (₱)</label>
+                                                                                <input type="number" step="0.01" className="form-control bg-white" placeholder="0.00" value={combo.price} onChange={e => updateCombo(index, 'price', e.target.value)} />
+                                                                            </div>
+                                                                            <div className="col-md-2 d-flex align-items-end">
+                                                                                <button className="btn btn-outline-danger w-100" onClick={(e) => removeCombo(e, index)}><i className="bi bi-trash"></i></button>
+                                                                            </div>
+                                                                        </React.Fragment>
+                                                                    ))}
+                                                                    <div className="col-12 mt-2">
+                                                                        <button className="btn btn-sm btn-outline-secondary" onClick={addCombo}>+ Add Combo Option</button>
+                                                                    </div>
+                                                                </>
+                                                            )}
+
+                                                            <div className="col-md-12 mt-3">
                                                                 <label className="form-label small fw-bold text-muted">Image URL</label>
                                                                 <input type="text" className="form-control bg-white" value={productForm.imageUrl} onChange={e => setProductForm(p => ({ ...p, imageUrl: e.target.value }))} />
                                                             </div>
@@ -668,8 +737,8 @@ const AdminPanel = () => {
                                             <thead style={{ backgroundColor: '#8B3A0F', color: '#fff' }}>
                                                 <tr>
                                                     <th className="py-3 px-4 border-0">Item</th>
-                                                    <th className="py-3 px-4 border-0">Category</th>
-                                                    <th className="py-3 px-4 border-0">Price</th>
+                                                    <th className="py-3 px-4 border-0 text-center">Category</th>
+                                                    <th className="py-3 px-4 border-0 text-center">Price</th>
                                                     <th className="py-3 px-4 border-0 text-end">Action</th>
                                                 </tr>
                                             </thead>
@@ -679,11 +748,11 @@ const AdminPanel = () => {
                                                         <td className="px-4">
                                                             <div className="d-flex align-items-center">
                                                                 {p.imageUrl ? <img src={p.imageUrl.startsWith('http') || p.imageUrl.startsWith('/') || p.imageUrl.startsWith('data:') ? p.imageUrl : `/img/${p.imageUrl}`} alt={p.name} className="rounded-2 me-3 object-fit-cover" style={{ width: '40px', height: '40px' }} /> : <div className="bg-light rounded-2 me-3 d-flex align-items-center justify-content-center text-muted" style={{ width: '40px', height: '40px' }}><i className="bi bi-image"></i></div>}
-                                                                <span className="fw-bold">{p.category === 'Milk Shakes' && p.flavors ? p.flavors : p.name}</span>
+                                                                <span className="fw-bold">{p.name}</span>
                                                             </div>
                                                         </td>
-                                                        <td className="px-4">{p.category}</td>
-                                                        <td className="px-4 text-muted small">
+                                                        <td className="px-4 text-center">{p.category}</td>
+                                                        <td className="px-4 text-center text-muted small">
                                                             {p.category === 'Milk Shakes' ? (
                                                                 <>
                                                                     {p.flavors && <div><span className="fw-bold">Flavors:</span> {p.flavors}</div>}
@@ -701,13 +770,13 @@ const AdminPanel = () => {
                                                                     {p.price1Point5Liter > 0 && <div>1.5 Liters: ₱{p.price1Point5Liter.toFixed(2)}</div>}
                                                                     {p.price2Liter > 0 && <div>2 Liters: ₱{p.price2Liter.toFixed(2)}</div>}
                                                                 </>
-                                                            ) : ['Duyanan Specials'].includes(p.category) ? (
+                                                            ) : ['Duyanan Specials', 'Burger', 'French Fries', 'Home-Made Siomai', 'Soup'].includes(p.category) ? (
                                                                 <div>
                                                                     {p.priceSolo > 0 && p.priceALaCarte > 0 
                                                                         ? `₱${p.priceSolo.toFixed(2)} - ₱${p.priceALaCarte.toFixed(2)}` 
                                                                         : `₱${(p.priceSolo || p.priceALaCarte || 0).toFixed(2)}`}
                                                                 </div>
-                                                            ) : ['French Fries', 'Nachos', 'Home-Made Siomai', 'Soup', 'Sandwich', 'Student Meals'].includes(p.category) ? (
+                                                            ) : ['Nachos', 'Sandwich', 'Student Meals'].includes(p.category) ? (
                                                                 <div>Price: ₱{(p.priceSolo || 0).toFixed(2)}</div>
                                                             ) : (
                                                                 <>

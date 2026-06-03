@@ -1,34 +1,109 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import Swal from 'sweetalert2';
 import 'bootstrap-icons/font/bootstrap-icons.css';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8080';
 
 const Profile = () => {
-    // Current active tab in the sidebar
     const [activeTab, setActiveTab] = useState('profile');
-    const { user } = useAuth();
+    const { user, login } = useAuth(); // We might need to update auth context if email/name changes
     
     const [myOrders, setMyOrders] = useState([]);
     const [loadingOrders, setLoadingOrders] = useState(false);
-
-    // Use real user data from AuthContext
-    const [profileData] = useState({
-        fullName: user ? `${user.firstName} ${user.lastName}` : 'Guest',
-        email: user?.email || 'N/A',
-        phone: '+63 912 345 6789',
-        address: '123 Main St, Apt 4B, Springfield',
-        dob: '01 January'
+    const [loadingProfile, setLoadingProfile] = useState(true);
+    
+    // Profile Edit State
+    const [isEditing, setIsEditing] = useState(false);
+    const [profileData, setProfileData] = useState({
+        firstName: '',
+        lastName: '',
+        email: '',
+        phone: '',
+        address: ''
     });
 
-    // Mock Communication Preferences state
     const [commPrefs, setCommPrefs] = useState({
         offersPush: false,
         offersEmail: false,
         offersSms: false,
         updatesPush: true
     });
+
+    useEffect(() => {
+        if (user?.token) {
+            fetchUserProfile();
+        } else {
+            setLoadingProfile(false);
+        }
+    }, [user?.token]);
+
+    const fetchUserProfile = () => {
+        setLoadingProfile(true);
+        fetch(`${API_URL}/api/auth/me`, {
+            headers: { 'Authorization': `Bearer ${user.token}` }
+        })
+        .then(res => {
+            if (!res.ok) throw new Error("Failed to fetch profile");
+            return res.json();
+        })
+        .then(data => {
+            setProfileData({
+                firstName: data.firstName || '',
+                lastName: data.lastName || '',
+                email: data.email || '',
+                phone: data.phone || '',
+                address: data.address || ''
+            });
+        })
+        .catch(err => console.error("Error fetching profile:", err))
+        .finally(() => setLoadingProfile(false));
+    };
+
+    const handleProfileChange = (e) => {
+        const { name, value } = e.target;
+        setProfileData(prev => ({ ...prev, [name]: value }));
+    };
+
+    const handleSaveProfile = () => {
+        if (!profileData.firstName || !profileData.lastName) {
+            Swal.fire('Error', 'First Name and Last Name are required.', 'error');
+            return;
+        }
+
+        fetch(`${API_URL}/api/auth/me`, {
+            method: 'PUT',
+            headers: { 
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${user.token}` 
+            },
+            body: JSON.stringify(profileData)
+        })
+        .then(res => res.json())
+        .then(data => {
+            if (data.error) {
+                Swal.fire('Error', data.error, 'error');
+            } else {
+                Swal.fire({
+                    icon: 'success',
+                    title: 'Profile Updated',
+                    text: 'Your information has been successfully updated.',
+                    confirmButtonColor: '#8B3A0F'
+                });
+                setIsEditing(false);
+                // Update context if name changed
+                if (login && user) {
+                    const updatedUser = { ...user, firstName: data.firstName, lastName: data.lastName };
+                    login(updatedUser);
+                }
+            }
+        })
+        .catch(err => {
+            console.error(err);
+            Swal.fire('Error', 'An unexpected error occurred.', 'error');
+        });
+    };
 
     const handleToggle = (key) => {
         setCommPrefs(prev => ({ ...prev, [key]: !prev[key] }));
@@ -42,9 +117,7 @@ const Profile = () => {
             })
             .then(res => res.json())
             .then(data => {
-                if (Array.isArray(data)) {
-                    setMyOrders(data);
-                }
+                if (Array.isArray(data)) setMyOrders(data);
             })
             .catch(err => console.error("Error fetching orders:", err))
             .finally(() => setLoadingOrders(false));
@@ -52,9 +125,7 @@ const Profile = () => {
     };
 
     useEffect(() => {
-        if (activeTab === 'orders') {
-            fetchOrders();
-        }
+        if (activeTab === 'orders') fetchOrders();
     }, [activeTab, user?.token]);
 
     const getStatusInfo = (status) => {
@@ -71,69 +142,84 @@ const Profile = () => {
         if (activeTab === 'profile') {
             return (
                 <>
-                    <div className="mb-0">
-                        <h4 className="fw-bold mb-1" style={{ color: 'var(--text-dark)' }}>My Profile</h4>
-                        <p className="text-muted small mb-4">Edit your personal details</p>
-                        <hr style={{ borderColor: '#e9ecef', opacity: 1, margin: 0 }} />
-                    </div>
-
-                    <div className="profile-details-container">
-                        {/* Detail Row: Name */}
-                        <div className="info-row d-flex justify-content-between align-items-center">
-                            <div className="d-flex flex-column flex-sm-row flex-grow-1 align-items-start align-items-sm-center">
-                                <div className="info-label">Name</div>
-                                <div className="info-value pr-3">{profileData.fullName}</div>
-                            </div>
-                            <i className="bi bi-pencil-square info-action" title="Edit Name"></i>
-                        </div>
-
-                        {/* Detail Row: Email */}
-                        <div className="info-row d-flex justify-content-between align-items-center">
-                            <div className="d-flex flex-column flex-sm-row flex-grow-1 align-items-start align-items-sm-center">
-                                <div className="info-label d-flex align-items-center gap-2">
-                                    Email Address 
-                                </div>
-                                <div className="info-value pr-3">{profileData.email}</div>
-                            </div>
-                            <div style={{ width: '32px' }}></div> 
-                        </div>
-
-                        {/* Detail Row: Mobile */}
-                        <div className="info-row d-flex justify-content-between align-items-center">
-                            <div className="d-flex flex-column flex-sm-row flex-grow-1 align-items-start align-items-sm-center">
-                                <div className="info-label">Mobile Number</div>
-                                <div className="info-value pr-3">{profileData.phone}</div>
-                            </div>
-                            <i className="bi bi-pencil-square info-action" title="Edit Mobile"></i>
-                        </div>
-
-
-                    </div>
-                </>
-            );
-        }
-
-        if (activeTab === 'addresses') {
-            return (
-                <>
-                    <div className="mb-5 d-flex justify-content-between align-items-start">
+                    <div className="mb-4 d-flex justify-content-between align-items-end">
                         <div>
-                            <h4 className="fw-bold mb-1" style={{ color: 'var(--text-dark)' }}>Saved Addresses</h4>
-                            <p className="text-muted small">Keep your delivery destinations organized</p>
+                            <h4 className="fw-bold mb-1" style={{ color: 'var(--text-dark)' }}>My Profile</h4>
+                            <p className="text-muted small mb-0">Manage your personal information</p>
                         </div>
-                        <button className="btn btn-sm shadow-sm" style={{ backgroundColor: '#dc3545', color: '#fff', borderRadius: '50px', padding: '8px 20px', fontWeight: 'bold' }}>
-                            Add New Address
-                        </button>
+                        {!isEditing ? (
+                            <button onClick={() => setIsEditing(true)} className="btn btn-sm text-white px-3 py-2 fw-bold shadow-sm" style={{ backgroundColor: 'var(--accent-orange)', borderRadius: '8px' }}>
+                                <i className="bi bi-pencil-square me-1"></i> Edit Profile
+                            </button>
+                        ) : (
+                            <div className="d-flex gap-2">
+                                <button onClick={() => { setIsEditing(false); fetchUserProfile(); }} className="btn btn-sm btn-light px-3 py-2 fw-bold shadow-sm" style={{ borderRadius: '8px' }}>
+                                    Cancel
+                                </button>
+                                <button onClick={handleSaveProfile} className="btn btn-sm text-white px-3 py-2 fw-bold shadow-sm" style={{ backgroundColor: '#2ecc71', borderRadius: '8px' }}>
+                                    <i className="bi bi-check-circle me-1"></i> Save Changes
+                                </button>
+                            </div>
+                        )}
                     </div>
 
-                    <div className="text-center py-5" style={{ marginTop: '50px' }}>
-                        <i className="bi bi-geo-alt text-muted" style={{ fontSize: '3rem', opacity: 0.5 }}></i>
-                        <h5 className="fw-bold mt-3 mb-2" style={{ color: 'var(--text-dark)' }}>You haven't saved any address yet</h5>
-                        <p className="text-muted small">Add a new address to checkout in a breeze</p>
-                    </div>
+                    {loadingProfile ? (
+                        <div className="text-center py-5">
+                            <div className="spinner-border text-secondary" role="status"></div>
+                            <p className="text-muted mt-3 small">Loading profile...</p>
+                        </div>
+                    ) : (
+                        <div className="card border-0 bg-white" style={{ borderRadius: '16px', boxShadow: '0 4px 20px rgba(0,0,0,0.05)', border: '1px solid rgba(0,0,0,0.04)' }}>
+                            <div className="card-body p-4 p-md-5">
+                                
+                                <div className="row g-4">
+                                    <div className="col-md-6">
+                                        <label className="form-label text-muted small fw-bold text-uppercase tracking-wide"><i className="bi bi-person me-2"></i>First Name</label>
+                                        {isEditing ? (
+                                            <input type="text" className="form-control form-control-lg bg-light border-0" name="firstName" value={profileData.firstName} onChange={handleProfileChange} />
+                                        ) : (
+                                            <p className="fs-5 fw-medium mb-0">{profileData.firstName || <span className="text-muted fst-italic fs-6">Not provided</span>}</p>
+                                        )}
+                                    </div>
+                                    <div className="col-md-6">
+                                        <label className="form-label text-muted small fw-bold text-uppercase tracking-wide"><i className="bi bi-person me-2"></i>Last Name</label>
+                                        {isEditing ? (
+                                            <input type="text" className="form-control form-control-lg bg-light border-0" name="lastName" value={profileData.lastName} onChange={handleProfileChange} />
+                                        ) : (
+                                            <p className="fs-5 fw-medium mb-0">{profileData.lastName || <span className="text-muted fst-italic fs-6">Not provided</span>}</p>
+                                        )}
+                                    </div>
+                                    <div className="col-md-6">
+                                        <label className="form-label text-muted small fw-bold text-uppercase tracking-wide"><i className="bi bi-envelope me-2"></i>Email Address</label>
+                                        <p className="fs-5 fw-medium mb-0 text-muted">{profileData.email}</p>
+                                        {isEditing && <small className="text-muted d-block mt-1"><i className="bi bi-info-circle me-1"></i>Email cannot be changed.</small>}
+                                    </div>
+                                    <div className="col-md-6">
+                                        <label className="form-label text-muted small fw-bold text-uppercase tracking-wide"><i className="bi bi-telephone me-2"></i>Mobile Number</label>
+                                        {isEditing ? (
+                                            <input type="text" className="form-control form-control-lg bg-light border-0" name="phone" value={profileData.phone} onChange={handleProfileChange} placeholder="+63 9XX XXX XXXX" />
+                                        ) : (
+                                            <p className="fs-5 fw-medium mb-0">{profileData.phone || <span className="text-muted fst-italic fs-6">Not provided</span>}</p>
+                                        )}
+                                    </div>
+                                    <div className="col-12 mt-4 pt-3 border-top">
+                                        <label className="form-label text-muted small fw-bold text-uppercase tracking-wide"><i className="bi bi-geo-alt me-2"></i>Delivery Address</label>
+                                        {isEditing ? (
+                                            <textarea className="form-control bg-light border-0" rows="3" name="address" value={profileData.address} onChange={handleProfileChange} placeholder="Enter your full delivery address..."></textarea>
+                                        ) : (
+                                            <p className="fs-5 fw-medium mb-0">{profileData.address || <span className="text-muted fst-italic fs-6">Not provided</span>}</p>
+                                        )}
+                                    </div>
+                                </div>
+
+                            </div>
+                        </div>
+                    )}
                 </>
             );
         }
+
+
 
         if (activeTab === 'orders') {
             return (
@@ -147,7 +233,6 @@ const Profile = () => {
                             <i className="bi bi-arrow-clockwise me-1"></i> Refresh Status
                         </button>
                     </div>
-                    <hr style={{ borderColor: '#e9ecef', opacity: 1, margin: 0, marginBottom: '20px' }} />
 
                     {loadingOrders ? (
                         <div className="text-center py-5">
@@ -155,13 +240,15 @@ const Profile = () => {
                             <p className="text-muted mt-3 small">Fetching your orders...</p>
                         </div>
                     ) : myOrders.length === 0 ? (
-                        <div className="text-center py-5" style={{ marginTop: '30px' }}>
-                            <i className="bi bi-bag text-muted mb-3 d-block" style={{ fontSize: '3rem', opacity: 0.5 }}></i>
+                        <div className="card border-0 bg-white text-center py-5" style={{ borderRadius: '16px', boxShadow: '0 4px 20px rgba(0,0,0,0.05)', border: '1px solid rgba(0,0,0,0.04)' }}>
+                            <i className="bi bi-bag text-muted mb-3 d-block" style={{ fontSize: '3rem', opacity: 0.3 }}></i>
                             <h5 className="fw-bold mb-2" style={{ color: 'var(--text-dark)' }}>Your order history is empty</h5>
                             <p className="text-muted small mb-4">You haven't placed any orders yet.</p>
-                            <Link to="/menu" className="btn btn-sm shadow-sm" style={{ backgroundColor: 'var(--accent-orange)', color: '#fff', borderRadius: '50px', padding: '10px 30px', fontWeight: 'bold' }}>
-                                Order Now
-                            </Link>
+                            <div>
+                                <Link to="/menu" className="btn btn-sm shadow-sm" style={{ backgroundColor: 'var(--accent-orange)', color: '#fff', borderRadius: '50px', padding: '10px 30px', fontWeight: 'bold' }}>
+                                    Order Now
+                                </Link>
+                            </div>
                         </div>
                     ) : (
                         <div className="orders-list d-flex flex-column gap-4">
@@ -185,7 +272,6 @@ const Profile = () => {
                                             </div>
                                         </div>
                                         <div className="card-body px-4 py-3">
-                                            {/* Tracking Timeline */}
                                             {order.status !== 'CANCELLED' && (
                                                 <div className="mb-4 mt-2">
                                                     <div className="progress" style={{ height: '6px', borderRadius: '10px', backgroundColor: '#f0f0f0' }}>
@@ -199,13 +285,11 @@ const Profile = () => {
                                                     </div>
                                                 </div>
                                             )}
-
-                                            {/* Order Items */}
                                             <div className="order-items-preview bg-light rounded-3 p-3 mt-3">
                                                 {order.items?.map((item, idx) => (
                                                     <div key={idx} className="d-flex justify-content-between mb-2 small">
-                                                        <span><span className="fw-bold me-2">{item.quantity}x</span> {item.product?.name || 'Item'}</span>
-                                                        <span className="text-muted">₱{item.subtotal.toFixed(2)}</span>
+                                                        <span><span className="fw-bold me-2 text-primary">{item.quantity}x</span> {item.product?.name || 'Item'}</span>
+                                                        <span className="fw-medium">₱{item.subtotal.toFixed(2)}</span>
                                                     </div>
                                                 ))}
                                                 {order.notes && (
@@ -227,83 +311,75 @@ const Profile = () => {
         if (activeTab === 'communications') {
             return (
                 <>
-                    <div className="mb-0">
+                    <div className="mb-4">
                         <h4 className="fw-bold mb-1" style={{ color: 'var(--text-dark)' }}>Communications</h4>
-                        <p className="text-muted small mb-4">Manage your communication preferences and notifications</p>
-                        <hr style={{ borderColor: '#e9ecef', opacity: 1, margin: 0 }} />
+                        <p className="text-muted small mb-0">Manage your communication preferences and notifications</p>
                     </div>
 
-                    <div className="profile-details-container">
-                        {/* Offers & Deals Section */}
-                        <div className="info-row py-4">
-                            <div className="row">
+                    <div className="card border-0 bg-white" style={{ borderRadius: '16px', boxShadow: '0 4px 20px rgba(0,0,0,0.05)', border: '1px solid rgba(0,0,0,0.04)' }}>
+                        <div className="card-body p-4 p-md-5">
+                            
+                            <div className="row mb-5">
                                 <div className="col-12 col-md-6 mb-3 mb-md-0">
                                     <h6 className="fw-bold" style={{ color: 'var(--text-dark)' }}>Offers & Deals</h6>
                                     <p className="text-muted small mb-0 pe-md-4">Get notified and be the first to know about Duyanan exclusive offers and marketing communications.</p>
                                 </div>
                                 <div className="col-12 col-md-6 d-flex flex-column justify-content-center gap-3">
-                                    
                                     <div className="form-check form-switch d-flex align-items-center gap-2 m-0 p-0">
                                         <input className="form-check-input m-0 toggle-switch" type="checkbox" role="switch" id="offersPush" 
                                             checked={commPrefs.offersPush} onChange={() => handleToggle('offersPush')} 
                                             style={{ cursor: 'pointer', height: '1.2rem', width: '2.4rem' }}/>
                                         <label className="form-check-label small fw-medium" htmlFor="offersPush" style={{ cursor: 'pointer', color: 'var(--text-dark)' }}>Push notification</label>
                                     </div>
-                                    
                                     <div className="form-check form-switch d-flex align-items-center gap-2 m-0 p-0">
                                         <input className="form-check-input m-0 toggle-switch" type="checkbox" role="switch" id="offersEmail" 
                                             checked={commPrefs.offersEmail} onChange={() => handleToggle('offersEmail')} 
                                             style={{ cursor: 'pointer', height: '1.2rem', width: '2.4rem' }}/>
                                         <label className="form-check-label small fw-medium" htmlFor="offersEmail" style={{ cursor: 'pointer', color: 'var(--text-dark)' }}>Email</label>
                                     </div>
-                                    
                                     <div className="form-check form-switch d-flex align-items-center gap-2 m-0 p-0">
                                         <input className="form-check-input m-0 toggle-switch" type="checkbox" role="switch" id="offersSms" 
                                             checked={commPrefs.offersSms} onChange={() => handleToggle('offersSms')} 
                                             style={{ cursor: 'pointer', height: '1.2rem', width: '2.4rem' }}/>
                                         <label className="form-check-label small fw-medium" htmlFor="offersSms" style={{ cursor: 'pointer', color: 'var(--text-dark)' }}>SMS</label>
                                     </div>
-
                                 </div>
                             </div>
-                        </div>
+                            
+                            <hr style={{ opacity: 0.1 }} />
 
-                        {/* Important Updates Section */}
-                        <div className="info-row py-4 border-bottom-0">
-                            <div className="row">
+                            <div className="row mt-4">
                                 <div className="col-12 col-md-6 mb-3 mb-md-0">
                                     <h6 className="fw-bold" style={{ color: 'var(--text-dark)' }}>Important Updates</h6>
                                     <p className="text-muted small mb-0 pe-md-4">Receive important updates on your orders and new features via push notification, email, and SMS.</p>
                                 </div>
                                 <div className="col-12 col-md-6 d-flex align-items-center">
-                                    
                                     <div className="form-check form-switch d-flex align-items-center gap-2 m-0 p-0">
                                         <input className="form-check-input m-0 toggle-switch" type="checkbox" role="switch" id="updatesPush" 
                                             checked={commPrefs.updatesPush} onChange={() => handleToggle('updatesPush')} 
                                             style={{ cursor: 'pointer', height: '1.2rem', width: '2.4rem' }}/>
+                                        <label className="form-check-label small fw-medium" htmlFor="updatesPush" style={{ cursor: 'pointer', color: 'var(--text-dark)' }}>Enabled</label>
                                     </div>
-
                                 </div>
                             </div>
-                        </div>
 
+                        </div>
                     </div>
                 </>
             );
         }
 
-        // Default placeholder for other tabs
         return (
-            <div className="text-center py-5 text-muted">
-                <i className="bi bi-tools fs-1 mb-3"></i>
-                <h5>This section is under construction.</h5>
+            <div className="card border-0 bg-white text-center py-5" style={{ borderRadius: '16px', boxShadow: '0 4px 20px rgba(0,0,0,0.05)' }}>
+                <i className="bi bi-tools text-muted mb-3 d-block" style={{ fontSize: '3rem', opacity: 0.3 }}></i>
+                <h5 className="fw-bold mb-2" style={{ color: 'var(--text-dark)' }}>Under Construction</h5>
+                <p className="text-muted small mb-0">This section is currently being updated.</p>
             </div>
         );
     };
 
     return (
         <div className="container" style={{ marginTop: 'calc(var(--nav-height) + 40px)', marginBottom: '60px', minHeight: '60vh' }}>
-            {/* Header / Breadcrumb */}
             <div className="mb-4 d-flex align-items-center">
                 <Link to="/" className="text-decoration-none me-2" style={{ color: 'var(--text-dark)' }}>
                     <i className="bi bi-arrow-left fs-5"></i>
@@ -314,50 +390,82 @@ const Profile = () => {
             <div className="row g-5">
                 {/* Sidebar Navigation */}
                 <div className="col-12 col-md-3">
+                    <style>
+                        {`
+                        .profile-sidebar-btn {
+                            display: flex;
+                            align-items: center;
+                            gap: 12px;
+                            width: 100%;
+                            padding: 12px 16px;
+                            margin-bottom: 8px;
+                            border: none;
+                            background: transparent;
+                            border-radius: 10px;
+                            color: #6c757d;
+                            font-weight: 500;
+                            text-align: left;
+                            transition: all 0.2s ease;
+                        }
+                        .profile-sidebar-btn i {
+                            font-size: 1.1rem;
+                            transition: transform 0.2s ease;
+                        }
+                        .profile-sidebar-btn:hover {
+                            background-color: rgba(139, 58, 15, 0.05);
+                            color: var(--primary-brown);
+                            transform: translateX(4px);
+                        }
+                        .profile-sidebar-btn.active {
+                            background-color: var(--accent-orange);
+                            color: white;
+                            box-shadow: 0 4px 12px rgba(230, 126, 34, 0.2);
+                        }
+                        .profile-sidebar-btn.active:hover {
+                            transform: none;
+                        }
+                        .profile-sidebar-btn.active i {
+                            color: white;
+                        }
+                        .sidebar-heading {
+                            font-size: 0.75rem;
+                            font-weight: 700;
+                            text-transform: uppercase;
+                            letter-spacing: 1px;
+                            color: #adb5bd;
+                            margin-bottom: 12px;
+                            margin-top: 24px;
+                            padding-left: 16px;
+                        }
+                        .sidebar-heading:first-child {
+                            margin-top: 0;
+                        }
+                        `}
+                    </style>
+
                     <div className="sidebar-heading">Account</div>
                     <div className="d-flex flex-column mb-3">
-                        <button 
-                            className={`btn text-start sidebar-link ${activeTab === 'profile' ? 'active' : ''}`}
-                            onClick={() => setActiveTab('profile')}
-                        >
+                        <button className={`profile-sidebar-btn ${activeTab === 'profile' ? 'active' : ''}`} onClick={() => setActiveTab('profile')}>
                             <i className="bi bi-person"></i> My Profile
                         </button>
-                        <button 
-                            className={`btn text-start sidebar-link ${activeTab === 'addresses' ? 'active' : ''}`}
-                            onClick={() => setActiveTab('addresses')}
-                        >
-                            <i className="bi bi-geo-alt"></i> Saved Addresses
-                        </button>
-                        <button 
-                            className={`btn text-start sidebar-link ${activeTab === 'payment' ? 'active' : ''}`}
-                            onClick={() => setActiveTab('payment')}
-                        >
+                        <button className={`profile-sidebar-btn ${activeTab === 'payment' ? 'active' : ''}`} onClick={() => setActiveTab('payment')}>
                             <i className="bi bi-credit-card"></i> Payment Methods
                         </button>
-                        <button 
-                            className={`btn text-start sidebar-link ${activeTab === 'orders' ? 'active' : ''}`}
-                            onClick={() => setActiveTab('orders')}
-                        >
+                        <button className={`profile-sidebar-btn ${activeTab === 'orders' ? 'active' : ''}`} onClick={() => setActiveTab('orders')}>
                             <i className="bi bi-receipt"></i> My Orders
                         </button>
                     </div>
 
                     <div className="sidebar-heading">Settings</div>
                     <div className="d-flex flex-column mb-3">
-                        <button 
-                            className={`btn text-start sidebar-link ${activeTab === 'communications' ? 'active' : ''}`}
-                            onClick={() => setActiveTab('communications')}
-                        >
+                        <button className={`profile-sidebar-btn ${activeTab === 'communications' ? 'active' : ''}`} onClick={() => setActiveTab('communications')}>
                             <i className="bi bi-arrow-left-right"></i> Communications
                         </button>
                     </div>
 
                     <div className="sidebar-heading">Support</div>
                     <div className="d-flex flex-column mb-4">
-                        <button 
-                            className={`btn text-start sidebar-link ${activeTab === 'help' ? 'active' : ''}`}
-                            onClick={() => setActiveTab('help')}
-                        >
+                        <button className={`profile-sidebar-btn ${activeTab === 'help' ? 'active' : ''}`} onClick={() => setActiveTab('help')}>
                             <i className="bi bi-question-circle"></i> Help Center
                         </button>
                     </div>
@@ -367,15 +475,13 @@ const Profile = () => {
                 <div className="col-12 col-md-9">
                     <style>
                         {`
-                        @keyframes fadeIn {
-                            from { opacity: 0; transform: translateY(10px); }
+                        @keyframes slideFadeIn {
+                            from { opacity: 0; transform: translateY(15px); }
                             to { opacity: 1; transform: translateY(0); }
                         }
                         .fade-in-content {
-                            animation: fadeIn 0.4s ease-out forwards;
+                            animation: slideFadeIn 0.3s cubic-bezier(0.4, 0, 0.2, 1) forwards;
                         }
-                        .sidebar-link { transition: all 0.2s ease; }
-                        .sidebar-link:hover { transform: translateX(5px); }
                         `}
                     </style>
                     <div className="fade-in-content" key={activeTab}>

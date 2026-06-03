@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import 'bootstrap-icons/font/bootstrap-icons.css';
@@ -11,9 +11,6 @@ const Login = () => {
     const [showPassword, setShowPassword] = useState(false);
     const [loginError, setLoginError] = useState('');
     const [isLoading, setIsLoading] = useState(false);
-    const [isLockedOut, setIsLockedOut] = useState(false);
-    const [lockoutSeconds, setLockoutSeconds] = useState(0);
-    const timerRef = useRef(null);
     const navigate = useNavigate();
     const { login, isAuthenticated, user } = useAuth();
 
@@ -28,33 +25,6 @@ const Login = () => {
         }
     }, [isAuthenticated, navigate, user]);
 
-    // Countdown timer effect
-    useEffect(() => {
-        if (lockoutSeconds <= 0) {
-            setIsLockedOut(false);
-            clearInterval(timerRef.current);
-            return;
-        }
-        timerRef.current = setInterval(() => {
-            setLockoutSeconds(prev => {
-                if (prev <= 1) {
-                    clearInterval(timerRef.current);
-                    setIsLockedOut(false);
-                    setLoginError('');
-                    return 0;
-                }
-                return prev - 1;
-            });
-        }, 1000);
-        return () => clearInterval(timerRef.current);
-    }, [isLockedOut]);
-
-    const formatCountdown = (secs) => {
-        const m = Math.floor(secs / 60);
-        const s = secs % 60;
-        return m > 0 ? `${m}m ${s}s` : `${s}s`;
-    };
-
     const handleChange = (e) => {
         const { name, value, type, checked } = e.target;
         setCredentials(prev => ({
@@ -65,7 +35,6 @@ const Login = () => {
 
     const handleSubmit = async (e) => {
         e.preventDefault();
-        if (isLockedOut) return;
         setLoginError('');
         setIsLoading(true);
         try {
@@ -79,10 +48,6 @@ const Login = () => {
             });
             const data = await response.json();
             if (!response.ok) {
-                if (data.lockedOut) {
-                    setIsLockedOut(true);
-                    setLockoutSeconds(Number(data.secondsLeft) || 900);
-                }
                 setLoginError(data.error || 'Login failed. Please try again.');
             } else {
                 // Save user session via AuthContext
@@ -283,39 +248,27 @@ const Login = () => {
                             <div
                                 className="mb-3 d-flex align-items-center gap-2"
                                 style={{
-                                    background: isLockedOut ? 'rgba(255,150,30,0.18)' : 'rgba(220,53,69,0.18)',
-                                    border: isLockedOut ? '1px solid rgba(255,150,30,0.5)' : '1px solid rgba(220,53,69,0.4)',
+                                    background: 'rgba(220,53,69,0.18)',
+                                    border: '1px solid rgba(220,53,69,0.4)',
                                     borderRadius: '10px',
                                     padding: '10px 14px',
-                                    color: isLockedOut ? '#ffc060' : '#ffaaaa',
+                                    color: '#ffaaaa',
                                     fontSize: '0.85rem',
-                                    flexDirection: 'column',
-                                    alignItems: 'flex-start',
                                 }}
                             >
-                                <div className="d-flex align-items-center gap-2">
-                                    <i className={`bi ${isLockedOut ? 'bi-shield-lock-fill' : 'bi-exclamation-circle-fill'}`}></i>
-                                    <span>{loginError}</span>
-                                </div>
-                                {isLockedOut && lockoutSeconds > 0 && (
-                                    <div style={{ marginTop: '6px', fontSize: '0.8rem', opacity: 0.85 }}>
-                                        <i className="bi bi-clock me-1"></i>
-                                        Try again in <strong>{formatCountdown(lockoutSeconds)}</strong>
-                                    </div>
-                                )}
+                                <i className="bi bi-exclamation-circle-fill"></i>
+                                <span>{loginError}</span>
                             </div>
                         )}
                         <button
                             type="submit"
                             className="btn-brand w-100"
-                            style={{ borderRadius: '50px', padding: '13px', opacity: isLockedOut ? 0.55 : 1, cursor: isLockedOut ? 'not-allowed' : 'pointer' }}
-                            disabled={isLoading || isLockedOut}
+                            style={{ borderRadius: '50px', padding: '13px' }}
+                            disabled={isLoading}
                         >
                             {isLoading
                                 ? <><span className="spinner-border spinner-border-sm me-2" role="status"></span>Logging in...</>
-                                : isLockedOut
-                                    ? <><i className="bi bi-lock-fill me-2"></i>Try again in {formatCountdown(lockoutSeconds)}</>
-                                    : 'Login Now'
+                                : 'Login Now'
                             }
                         </button>
                     </form>
@@ -339,3 +292,4 @@ const Login = () => {
 };
 
 export default Login;
+

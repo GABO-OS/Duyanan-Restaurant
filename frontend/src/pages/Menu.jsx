@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 import sfcImg from '../assets/img/sfc.png';
@@ -20,6 +20,14 @@ const Menu = () => {
     const [searchQuery, setSearchQuery] = useState('');
 
     const categories = ['All', 'Rice Meals', 'Sizzling Meals', 'Duyanan Specials', 'Burger', 'French Fries', 'Nachos', 'Home-Made Siomai', 'Drinks', 'Soup', 'Milk Shakes', 'Sandwich', 'Student Meals', 'Extras'];
+
+    const categoryScrollRef = useRef(null);
+    const scrollCategories = (direction) => {
+        if (categoryScrollRef.current) {
+            const scrollAmount = 200;
+            categoryScrollRef.current.scrollBy({ left: direction === 'left' ? -scrollAmount : scrollAmount, behavior: 'smooth' });
+        }
+    };
 
     useEffect(() => {
         axios.get(`${API_URL}/api/products`)
@@ -113,7 +121,8 @@ const Menu = () => {
             });
         };
 
-        const activePrices = [product.priceSolo, product.priceALaCarte, product.price1Liter, product.price1Point5Liter, product.price2Liter].filter(p => p > 0);
+        const comboPrices = (product.customCombos || []).map(c => c.price);
+        const activePrices = [product.priceSolo, product.priceALaCarte, product.priceALaCarte2, product.price1Liter, product.price1Point5Liter, product.price2Liter, ...comboPrices].filter(p => p > 0);
         const hasVariants = activePrices.length > 1 || (product.category === 'Milk Shakes' && product.flavors && product.flavors.length > 0);
 
         if (hasVariants) {
@@ -140,7 +149,7 @@ const Menu = () => {
                         }
                         .swal2-html-container {
                             overflow: hidden !important;
-                            padding: 0 16px 16px 16px !important;
+                            padding: 24px !important;
                         }
                         .variant-btn {
                             transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
@@ -188,7 +197,7 @@ const Menu = () => {
                             transform: translateY(-2px);
                         }
                     </style>
-                    <div class="d-flex align-items-center mb-2 text-start pb-2" style="border-bottom: 2px solid rgba(0,0,0,0.05);">
+                    <div class="d-flex align-items-center mb-3 text-start pb-3" style="border-bottom: 2px solid rgba(0,0,0,0.05);">
                         <div style="width: 45px; height: 45px; flex-shrink: 0; border-radius: 8px; overflow: hidden; box-shadow: 0 2px 6px rgba(0,0,0,0.08); margin-right: 12px;">
                             <img src="${product.imageUrl || 'https://placehold.co/300x200?text=No+Image'}" alt="${product.name}" style="width: 100%; height: 100%; object-fit: cover;" />
                         </div>
@@ -199,35 +208,53 @@ const Menu = () => {
                     </div>
                     ${flavorDropdownHtml}
 
-                    <div class="d-flex flex-column gap-1 mb-1 px-1">
+                    <div class="d-flex flex-column px-2">
                         ${product.priceSolo > 0 ? `
-                            <button id="btn-solo" class="variant-btn btn text-white py-1 fw-bold shadow-sm d-flex justify-content-between align-items-center px-3" style="background: linear-gradient(135deg, #8B3A0F, #5C1F00); border-radius: 8px; font-size: 0.9rem; min-height: 38px;">
-                                <span>${['Drinks', 'Milk Shakes'].includes(product.category) ? 'Glass' : product.category === 'Duyanan Specials' ? 'Price 1' : 'Solo'}</span>
+                            <button id="btn-solo" class="variant-btn btn text-white py-2 fw-bold shadow-sm d-flex justify-content-between align-items-center px-3" style="background: linear-gradient(135deg, #8B3A0F, #5C1F00); border-radius: 12px !important; font-size: 0.95rem; min-height: 48px; margin-bottom: 12px !important; border: 2px solid transparent;">
+                                <span>${['Drinks', 'Milk Shakes'].includes(product.category) ? 'Glass' : ['Duyanan Specials', 'Burger', 'French Fries', 'Home-Made Siomai', 'Soup'].includes(product.category) ? 'Price 1' : 'Solo'}</span>
                                 <span style="color: rgba(255,255,255,0.9);">₱${product.priceSolo.toFixed(2)}</span>
                             </button>
                         ` : ''}
                         ${!['Drinks', 'Milk Shakes'].includes(product.category) && product.priceALaCarte > 0 ? `
-                            <button id="btn-alacarte" class="variant-btn btn text-white py-1 fw-bold shadow-sm d-flex justify-content-between align-items-center px-3" style="background: linear-gradient(135deg, #D35400, #A04000); border-radius: 8px; font-size: 0.9rem; min-height: 38px;">
-                                <span>${product.category === 'Duyanan Specials' ? 'Price 2' : 'A La Carte'}</span>
+                            <button id="btn-alacarte" class="variant-btn btn text-white py-2 fw-bold shadow-sm d-flex justify-content-between align-items-center px-3" style="background: linear-gradient(135deg, #D35400, #A04000); border-radius: 12px !important; font-size: 0.95rem; min-height: 48px; margin-bottom: 12px !important; border: 2px solid transparent;">
+                                <span>${['Duyanan Specials', 'Burger', 'French Fries', 'Home-Made Siomai', 'Soup'].includes(product.category) ? 'Price 2' : (product.priceALaCarte2 > 0 ? 'A La Carte 1' : 'A La Carte')}</span>
                                 <span style="color: rgba(255,255,255,0.9);">₱${product.priceALaCarte.toFixed(2)}</span>
                             </button>
                         ` : ''}
+                        ${!['Drinks', 'Milk Shakes'].includes(product.category) && product.priceALaCarte2 > 0 ? `
+                            <button id="btn-alacarte2" class="variant-btn btn text-white py-2 fw-bold shadow-sm d-flex justify-content-between align-items-center px-3" style="background: linear-gradient(135deg, #D35400, #A04000); border-radius: 12px !important; font-size: 0.95rem; min-height: 48px; margin-bottom: 12px !important; border: 2px solid transparent;">
+                                <span>A La Carte 2</span>
+                                <span style="color: rgba(255,255,255,0.9);">₱${product.priceALaCarte2.toFixed(2)}</span>
+                            </button>
+                        ` : ''}
                         ${['Drinks', 'Milk Shakes'].includes(product.category) && product.price1Liter > 0 ? `
-                            <button id="btn-1l" class="variant-btn btn text-white py-1 fw-bold shadow-sm d-flex justify-content-between align-items-center px-3" style="background: linear-gradient(135deg, #D35400, #A04000); border-radius: 8px; font-size: 0.9rem; min-height: 38px;">
+                            <button id="btn-1l" class="variant-btn btn text-white py-2 fw-bold shadow-sm d-flex justify-content-between align-items-center px-3" style="background: linear-gradient(135deg, #D35400, #A04000); border-radius: 12px !important; font-size: 0.95rem; min-height: 48px; margin-bottom: 12px !important; border: 2px solid transparent;">
                                 <span>1 Liter</span>
                                 <span style="color: rgba(255,255,255,0.9);">₱${product.price1Liter.toFixed(2)}</span>
                             </button>
                         ` : ''}
                         ${['Drinks', 'Milk Shakes'].includes(product.category) && product.price1Point5Liter > 0 ? `
-                            <button id="btn-15l" class="variant-btn btn text-white py-1 fw-bold shadow-sm d-flex justify-content-between align-items-center px-3" style="background: linear-gradient(135deg, #D35400, #A04000); border-radius: 8px; font-size: 0.9rem; min-height: 38px;">
+                            <button id="btn-15l" class="variant-btn btn text-white py-2 fw-bold shadow-sm d-flex justify-content-between align-items-center px-3" style="background: linear-gradient(135deg, #D35400, #A04000); border-radius: 12px !important; font-size: 0.95rem; min-height: 48px; margin-bottom: 12px !important; border: 2px solid transparent;">
                                 <span>1.5 Liters</span>
                                 <span style="color: rgba(255,255,255,0.9);">₱${product.price1Point5Liter.toFixed(2)}</span>
                             </button>
                         ` : ''}
                         ${['Drinks', 'Milk Shakes'].includes(product.category) && product.price2Liter > 0 ? `
-                            <button id="btn-2l" class="variant-btn btn text-white py-1 fw-bold shadow-sm d-flex justify-content-between align-items-center px-3" style="background: linear-gradient(135deg, #D35400, #A04000); border-radius: 8px; font-size: 0.9rem; min-height: 38px;">
+                            <button id="btn-2l" class="variant-btn btn text-white py-2 fw-bold shadow-sm d-flex justify-content-between align-items-center px-3" style="background: linear-gradient(135deg, #D35400, #A04000); border-radius: 12px !important; font-size: 0.95rem; min-height: 48px; margin-bottom: 12px !important; border: 2px solid transparent;">
                                 <span>2 Liters</span>
                                 <span style="color: rgba(255,255,255,0.9);">₱${product.price2Liter.toFixed(2)}</span>
+                            </button>
+                        ` : ''}
+                        ${product.combo1Name && product.combo1Price > 0 ? `
+                            <button id="btn-combo1" class="variant-btn btn text-white py-2 fw-bold shadow-sm d-flex justify-content-between align-items-center px-3" style="background: linear-gradient(135deg, #D35400, #A04000); border-radius: 12px !important; font-size: 0.95rem; min-height: 48px; margin-bottom: 12px !important; border: 2px solid transparent;">
+                                <span>Combo: ${product.combo1Name}</span>
+                                <span style="color: rgba(255,255,255,0.9);">₱${product.combo1Price.toFixed(2)}</span>
+                            </button>
+                        ` : ''}
+                        ${product.combo2Name && product.combo2Price > 0 ? `
+                            <button id="btn-combo2" class="variant-btn btn text-white py-2 fw-bold shadow-sm d-flex justify-content-between align-items-center px-3" style="background: linear-gradient(135deg, #D35400, #A04000); border-radius: 12px !important; font-size: 0.95rem; min-height: 48px; margin-bottom: 12px !important; border: 2px solid transparent;">
+                                <span>Combo: ${product.combo2Name}</span>
+                                <span style="color: rgba(255,255,255,0.9);">₱${product.combo2Price.toFixed(2)}</span>
                             </button>
                         ` : ''}
                     </div>
@@ -242,9 +269,12 @@ const Menu = () => {
                 didOpen: () => {
                     const btnSolo = document.getElementById('btn-solo');
                     const btnAlaCarte = document.getElementById('btn-alacarte');
+                    const btnAlaCarte2 = document.getElementById('btn-alacarte2');
                     const btn1L = document.getElementById('btn-1l');
                     const btn15L = document.getElementById('btn-15l');
                     const btn2L = document.getElementById('btn-2l');
+                    const btnCombo1 = document.getElementById('btn-combo1');
+                    const btnCombo2 = document.getElementById('btn-combo2');
                     const flavorSelect = document.getElementById('flavor-select');
                     const flavorError = document.getElementById('flavor-error');
                     
@@ -274,14 +304,27 @@ const Menu = () => {
 
                     if (btnSolo) {
                         btnSolo.addEventListener('click', () => {
-                            validateFlavorAndAdd(['Drinks', 'Milk Shakes'].includes(product.category) ? 'Glass' : product.category === 'Duyanan Specials' ? 'Price 1' : 'Solo', product.priceSolo);
+                            validateFlavorAndAdd(['Drinks', 'Milk Shakes'].includes(product.category) ? 'Glass' : ['Duyanan Specials', 'Burger', 'French Fries', 'Home-Made Siomai', 'Soup'].includes(product.category) ? 'Price 1' : 'Solo', product.priceSolo);
                         });
                     }
                     if (btnAlaCarte) {
                         btnAlaCarte.addEventListener('click', () => {
-                            validateFlavorAndAdd(product.category === 'Duyanan Specials' ? 'Price 2' : 'A La Carte', product.priceALaCarte);
+                            validateFlavorAndAdd(['Duyanan Specials', 'Burger', 'French Fries', 'Home-Made Siomai', 'Soup'].includes(product.category) ? 'Price 2' : (product.priceALaCarte2 > 0 ? 'A La Carte 1' : 'A La Carte'), product.priceALaCarte);
                         });
                     }
+                    if (btnAlaCarte2) {
+                        btnAlaCarte2.addEventListener('click', () => {
+                            validateFlavorAndAdd('A La Carte 2', product.priceALaCarte2);
+                        });
+                    }
+                    (product.customCombos || []).forEach((combo, idx) => {
+                        const btn = document.getElementById(`btn-combo-${idx}`);
+                        if (btn) {
+                            btn.addEventListener('click', () => {
+                                validateFlavorAndAdd(`Combo: ${combo.name}`, combo.price);
+                            });
+                        }
+                    });
                     if (btn1L) {
                         btn1L.addEventListener('click', () => {
                             validateFlavorAndAdd('1 Liter', product.price1Liter);
@@ -302,8 +345,9 @@ const Menu = () => {
         } else {
             let activeVariant = null;
             let activePrice = 0;
-            if (product.priceSolo > 0) { activeVariant = ['Drinks', 'Milk Shakes'].includes(product.category) ? 'Glass' : product.category === 'Duyanan Specials' ? 'Price 1' : 'Solo'; activePrice = product.priceSolo; }
-            else if (product.priceALaCarte > 0) { activeVariant = product.category === 'Drinks' ? null : product.category === 'Duyanan Specials' ? 'Price 2' : 'A La Carte'; activePrice = product.priceALaCarte; }
+            if (product.priceSolo > 0) { activeVariant = ['Drinks', 'Milk Shakes'].includes(product.category) ? 'Glass' : ['Duyanan Specials', 'Burger', 'French Fries', 'Home-Made Siomai', 'Soup'].includes(product.category) ? 'Price 1' : 'Solo'; activePrice = product.priceSolo; }
+            else if (product.priceALaCarte > 0) { activeVariant = product.category === 'Drinks' ? null : ['Duyanan Specials', 'Burger', 'French Fries', 'Home-Made Siomai', 'Soup'].includes(product.category) ? 'Price 2' : (product.priceALaCarte2 > 0 ? 'A La Carte 1' : 'A La Carte'); activePrice = product.priceALaCarte; }
+            else if (product.priceALaCarte2 > 0) { activeVariant = 'A La Carte 2'; activePrice = product.priceALaCarte2; }
             else if (product.price1Liter > 0) { activeVariant = '1 Liter'; activePrice = product.price1Liter; }
             else if (product.price1Point5Liter > 0) { activeVariant = '1.5 Liters'; activePrice = product.price1Point5Liter; }
             else if (product.price2Liter > 0) { activeVariant = '2 Liters'; activePrice = product.price2Liter; }
@@ -363,32 +407,42 @@ const Menu = () => {
                         />
                     </div>
 
-                    {/* Horizontal Scroller for Categories */}
-                    <div className="flex-grow-1 overflow-x-auto no-scrollbar d-flex align-items-center gap-2" style={{ whiteSpace: 'nowrap' }}>
-                        <button 
-                            className="btn rounded-pill border-0 fw-bold px-4 py-2"
-                            onClick={() => scrollToCategory('All')}
-                            style={{ 
-                                backgroundColor: activeCategory === 'All' ? 'var(--accent-orange)' : 'transparent', 
-                                color: activeCategory === 'All' ? '#fff' : '#6c757d', 
-                            }}
-                        >
-                            All
+                    {/* Horizontal Scroller for Categories with Arrows */}
+                    <div className="d-flex align-items-center flex-grow-1" style={{ minWidth: 0 }}>
+                        <button className="btn btn-sm border-0 text-muted px-1 me-1" onClick={() => scrollCategories('left')}>
+                            <i className="bi bi-chevron-left fs-5"></i>
                         </button>
-                        {categories.slice(1).map(cat => (
+                        
+                        <div ref={categoryScrollRef} className="overflow-x-auto no-scrollbar d-flex align-items-center gap-2 flex-grow-1 px-1" style={{ whiteSpace: 'nowrap', scrollBehavior: 'smooth' }}>
                             <button 
-                                key={cat}
                                 className="btn rounded-pill border-0 fw-bold px-4 py-2"
-                                onClick={() => scrollToCategory(cat)}
+                                onClick={() => scrollToCategory('All')}
                                 style={{ 
-                                    backgroundColor: activeCategory === cat ? 'var(--accent-orange)' : 'transparent', 
-                                    color: activeCategory === cat ? '#fff' : '#6c757d', 
-                                    whiteSpace: 'nowrap'
+                                    backgroundColor: activeCategory === 'All' ? 'var(--accent-orange)' : 'transparent', 
+                                    color: activeCategory === 'All' ? '#fff' : '#6c757d', 
                                 }}
                             >
-                                {cat}
+                                All
                             </button>
-                        ))}
+                            {categories.slice(1).map(cat => (
+                                <button 
+                                    key={cat}
+                                    className="btn rounded-pill border-0 fw-bold px-4 py-2"
+                                    onClick={() => scrollToCategory(cat)}
+                                    style={{ 
+                                        backgroundColor: activeCategory === cat ? 'var(--accent-orange)' : 'transparent', 
+                                        color: activeCategory === cat ? '#fff' : '#6c757d', 
+                                        whiteSpace: 'nowrap'
+                                    }}
+                                >
+                                    {cat}
+                                </button>
+                            ))}
+                        </div>
+
+                        <button className="btn btn-sm border-0 text-muted px-1 ms-1" onClick={() => scrollCategories('right')}>
+                            <i className="bi bi-chevron-right fs-5"></i>
+                        </button>
                     </div>
                 </div>
             </div>
@@ -476,7 +530,7 @@ const Menu = () => {
                                                                     </>
                                                                 )}
                                                                 
-                                                                {['Duyanan Specials'].includes(product.category) && (
+                                                                {['Duyanan Specials', 'Burger', 'French Fries', 'Home-Made Siomai', 'Soup'].includes(product.category) && (
                                                                     <span style={{ fontSize: '0.85rem', color: 'var(--accent-orange)', fontWeight: '700', lineHeight: '1.2', whiteSpace: 'nowrap' }}>
                                                                         {product.priceSolo > 0 && product.priceALaCarte > 0 
                                                                             ? `₱${product.priceSolo.toFixed(2)} - ₱${product.priceALaCarte.toFixed(2)}` 
@@ -484,13 +538,13 @@ const Menu = () => {
                                                                     </span>
                                                                 )}
 
-                                                                {['French Fries', 'Nachos', 'Home-Made Siomai', 'Soup', 'Sandwich', 'Student Meals'].includes(product.category) && (
+                                                                {['Nachos', 'Sandwich', 'Student Meals'].includes(product.category) && (
                                                                     <span style={{ fontSize: '0.85rem', color: 'var(--accent-orange)', fontWeight: '700', lineHeight: '1.2', whiteSpace: 'nowrap' }}>
                                                                         ₱{(product.priceSolo || 0).toFixed(2)}
                                                                     </span>
                                                                 )}
 
-                                                                {!['Milk Shakes', 'Drinks', 'Duyanan Specials', 'French Fries', 'Nachos', 'Home-Made Siomai', 'Soup', 'Sandwich', 'Student Meals'].includes(product.category) && (
+                                                                {!['Milk Shakes', 'Drinks', 'Duyanan Specials', 'Burger', 'French Fries', 'Home-Made Siomai', 'Soup', 'Nachos', 'Sandwich', 'Student Meals'].includes(product.category) && (
                                                                     <>
                                                                         {product.priceSolo > 0 && (
                                                                             <span style={{ fontSize: '0.72rem', color: '#555', fontWeight: '600', lineHeight: '1.2', whiteSpace: 'nowrap' }}>
@@ -499,7 +553,12 @@ const Menu = () => {
                                                                         )}
                                                                         {product.priceALaCarte > 0 && (
                                                                             <span style={{ fontSize: '0.72rem', color: '#555', fontWeight: '600', lineHeight: '1.2', whiteSpace: 'nowrap' }}>
-                                                                                A La Carte: <span style={{ color: 'var(--accent-orange)', fontSize: '0.82rem' }}>₱{product.priceALaCarte.toFixed(2)}</span>
+                                                                                {product.priceALaCarte2 > 0 ? 'A La Carte 1' : 'A La Carte'}: <span style={{ color: 'var(--accent-orange)', fontSize: '0.82rem' }}>₱{product.priceALaCarte.toFixed(2)}</span>
+                                                                            </span>
+                                                                        )}
+                                                                        {product.priceALaCarte2 > 0 && (
+                                                                            <span style={{ fontSize: '0.72rem', color: '#555', fontWeight: '600', lineHeight: '1.2', whiteSpace: 'nowrap' }}>
+                                                                                A La Carte 2: <span style={{ color: 'var(--accent-orange)', fontSize: '0.82rem' }}>₱{product.priceALaCarte2.toFixed(2)}</span>
                                                                             </span>
                                                                         )}
                                                                     </>

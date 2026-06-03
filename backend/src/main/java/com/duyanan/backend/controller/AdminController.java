@@ -58,6 +58,7 @@ public class AdminController {
             existing.setName(product.getName());
             existing.setPriceSolo(product.getPriceSolo());
             existing.setPriceALaCarte(product.getPriceALaCarte());
+            existing.setPriceALaCarte2(product.getPriceALaCarte2());
             existing.setPrice1Liter(product.getPrice1Liter());
             existing.setPrice1Point5Liter(product.getPrice1Point5Liter());
             existing.setPrice2Liter(product.getPrice2Liter());
@@ -65,6 +66,12 @@ public class AdminController {
             existing.setImageUrl(product.getImageUrl());
             existing.setCategory(product.getCategory());
             existing.setFlavors(product.getFlavors());
+            
+            if (product.getCustomCombos() != null) {
+                existing.getCustomCombos().clear();
+                existing.getCustomCombos().addAll(product.getCustomCombos());
+            }
+
             productRepository.save(existing);
             return ResponseEntity.ok(existing);
         }).orElse(ResponseEntity.notFound().build());

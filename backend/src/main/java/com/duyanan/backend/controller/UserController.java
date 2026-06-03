@@ -9,21 +9,11 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.client.RestTemplate;
 
-import java.time.Instant;
 import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
 
 @RestController
 @RequestMapping("/api/auth")
 public class UserController {
-
-    private static final int MAX_ATTEMPTS = 3;
-    private static final long LOCKOUT_DURATION = 15 * 60; // 15 minutes in seconds
-
-    // email -> number of failed attempts
-    private final ConcurrentHashMap<String, Integer> failedAttempts = new ConcurrentHashMap<>();
-    // email -> time when the lockout expires (epoch second)
-    private final ConcurrentHashMap<String, Long> lockoutExpiry = new ConcurrentHashMap<>();
 
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
@@ -81,32 +71,10 @@ public class UserController {
         String email = body.get("email");
         String password = body.get("password");
 
-        // 1. Check if currently locked out
-        Long expiry = lockoutExpiry.get(email);
-        long now = Instant.now().getEpochSecond();
-        if (expiry != null && now < expiry) {
-            long secondsLeft = expiry - now;
-            long minutes = secondsLeft / 60;
-            long seconds = secondsLeft % 60;
-            String timeMsg = minutes > 0
-                    ? minutes + " minute" + (minutes > 1 ? "s" : "") + " and " + seconds + " second"
-                            + (seconds != 1 ? "s" : "")
-                    : seconds + " second" + (seconds != 1 ? "s" : "");
-            return ResponseEntity.status(429).body(Map.of(
-                    "error", "Account temporarily blocked. Please try again in " + timeMsg + ".",
-                    "lockedOut", true,
-                    "secondsLeft", secondsLeft));
-        }
-
-        // 2. Attempt authentication
         java.util.Optional<User> userOpt = userRepository.findByEmail(email);
         boolean success = userOpt.map(u -> passwordEncoder.matches(password, u.getPassword())).orElse(false);
 
         if (success) {
-            // Clear any previous failure state
-            failedAttempts.remove(email);
-            lockoutExpiry.remove(email);
-
             User u = userOpt.get();
             String token = jwtUtil.generateToken(u.getId(), u.getEmail(), u.getRole());
 
@@ -116,26 +84,13 @@ public class UserController {
                     "lastName", u.getLastName(),
                     "email", u.getEmail(),
                     "role", u.getRole(),
+                    "phone", u.getPhone(),
+                    "address", u.getAddress(),
                     "token", token));
         }
 
-        // 3. Record failure
-        int attempts = failedAttempts.merge(email, 1, (a, b) -> a + b);
-
-        if (attempts >= MAX_ATTEMPTS) {
-            lockoutExpiry.put(email, now + LOCKOUT_DURATION);
-            failedAttempts.remove(email); // reset so counter starts fresh after lockout
-            return ResponseEntity.status(429).body(Map.of(
-                    "error", "Too many failed attempts. Account blocked for 15 minutes.",
-                    "lockedOut", true,
-                    "secondsLeft", LOCKOUT_DURATION));
-        }
-
-        int remaining = MAX_ATTEMPTS - attempts;
         return ResponseEntity.status(401).body(Map.of(
-                "error",
-                "Invalid email or password. " + remaining + " attempt" + (remaining == 1 ? "" : "s") + " remaining.",
-                "attemptsLeft", remaining));
+                "error", "Invalid email or password."));
     }
 
     // ── Facebook Login ────────────────────────────────────
@@ -185,6 +140,8 @@ public class UserController {
                     "lastName", user.getLastName(),
                     "email", user.getEmail(),
                     "role", user.getRole(),
+                    "phone", user.getPhone(),
+                    "address", user.getAddress(),
                     "token", token));
 
         } catch (Exception e) {
@@ -204,8 +161,41 @@ public class UserController {
                             "firstName", u.getFirstName(),
                             "lastName", u.getLastName(),
                             "email", u.getEmail(),
-                            "role", u.getRole())))
+                            "role", u.getRole(),
+                            "phone", u.getPhone() != null ? u.getPhone() : "",
+                            "address", u.getAddress() != null ? u.getAddress() : "")))
                     .orElse(ResponseEntity.notFound().build());
+        } catch (Exception e) {
+            return ResponseEntity.status(401).body(Map.of("error", "Invalid token"));
+        }
+    }
+
+    // ── Update Current User ───────────────────────────────
+    @PutMapping("/me")
+    public ResponseEntity<?> updateCurrentUser(@RequestHeader("Authorization") String authHeader, @RequestBody Map<String, String> body) {
+        try {
+            String token = authHeader.replace("Bearer ", "");
+            var claims = jwtUtil.validateToken(token);
+            String email = claims.getSubject();
+            
+            return userRepository.findByEmail(email).map(user -> {
+                if (body.containsKey("firstName")) user.setFirstName(body.get("firstName"));
+                if (body.containsKey("lastName")) user.setLastName(body.get("lastName"));
+                if (body.containsKey("phone")) user.setPhone(body.get("phone"));
+                if (body.containsKey("address")) user.setAddress(body.get("address"));
+                
+                userRepository.save(user);
+                
+                return ResponseEntity.ok(Map.of(
+                        "message", "Profile updated successfully",
+                        "firstName", user.getFirstName(),
+                        "lastName", user.getLastName(),
+                        "email", user.getEmail(),
+                        "phone", user.getPhone() != null ? user.getPhone() : "",
+                        "address", user.getAddress() != null ? user.getAddress() : "",
+                        "role", user.getRole()
+                ));
+            }).orElse(ResponseEntity.notFound().build());
         } catch (Exception e) {
             return ResponseEntity.status(401).body(Map.of("error", "Invalid token"));
         }
