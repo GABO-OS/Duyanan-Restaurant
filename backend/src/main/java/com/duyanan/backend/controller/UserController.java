@@ -84,8 +84,8 @@ public class UserController {
                     "lastName", u.getLastName(),
                     "email", u.getEmail(),
                     "role", u.getRole(),
-                    "phone", u.getPhone(),
-                    "address", u.getAddress(),
+                    "phone", u.getPhone() != null ? u.getPhone() : "",
+                    "address", u.getAddress() != null ? u.getAddress() : "",
                     "token", token));
         }
 
@@ -140,8 +140,8 @@ public class UserController {
                     "lastName", user.getLastName(),
                     "email", user.getEmail(),
                     "role", user.getRole(),
-                    "phone", user.getPhone(),
-                    "address", user.getAddress(),
+                    "phone", user.getPhone() != null ? user.getPhone() : "",
+                    "address", user.getAddress() != null ? user.getAddress() : "",
                     "token", token));
 
         } catch (Exception e) {

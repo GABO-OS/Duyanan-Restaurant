@@ -45,7 +45,8 @@ const Menu = () => {
                     }
                     return { ...p, imageUrl: finalImg };
                 });
-                setProducts(updatedProducts);
+                const filteredProducts = updatedProducts.filter(p => p.category !== 'Event Packages' && p.category !== 'Group Meals');
+                setProducts(filteredProducts);
             })
             .catch(error => {
                 console.error('Error fetching products:', error);

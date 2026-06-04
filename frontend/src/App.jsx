@@ -6,6 +6,8 @@ import Navigation from './components/Navigation';
 import ProtectedRoute from './components/ProtectedRoute';
 import Home from './pages/Home';
 import Menu from './pages/Menu'; // Was ProductList
+import EventPackages from './pages/EventPackages';
+import GroupMeals from './pages/GroupMeals';
 import CartPage from './pages/CartPage'; // Was Cart
 import Footer from './components/Footer';
 import Reservations from './pages/Reservations';
@@ -33,6 +35,8 @@ function App() {
                             {/* Public routes — visible to everyone including guests */}
                             <Route path="/" element={<Home />} />
                             <Route path="/menu" element={<Menu />} />
+                            <Route path="/event-packages" element={<EventPackages />} />
+                            <Route path="/group-meals" element={<GroupMeals />} />
                             <Route path="/about" element={<About />} />
                             <Route path="/reservations" element={<Reservations />} />
 

@@ -1,0 +1,63 @@
+DUYANAN RESTAURANT - SALES FORECASTING PROOF OF CALCULATION
+===========================================================
+Date: 2026-06-05
+Calculated Stat: Average Daily Sales
+Displayed Value: ₱9,366.07
+
+This document provides the mathematical proof and complete details of the calculations used to derive the Average Daily Sales value shown in the Administrator Dashboard.
+
+1. METHODOLOGY & DATA SOURCES
+-----------------------------
+The Average Daily Sales is calculated dynamically on the frontend using a hybrid data processor. It combines:
+A. The historical baseline (14 days of simulated sales to populate the chart profile).
+B. The real active orders fetched directly from the MySQL database (`duyanan_db.orders`).
+
+Formula:
+Average Daily Sales = (Sum of 14-Day Baseline + Sum of 14-Day Real Sales) / 14 Days
+
+2. INDIVIDUAL DATA BREAKDOWNS
+-----------------------------
+
+A. 14-DAY HISTORICAL BASELINE SALES (Defined in AdminPanel.jsx)
+   - Day 1 (Mon):  ₱6,800.00
+   - Day 2 (Tue):  ₱7,200.00
+   - Day 3 (Wed):  ₱6,500.00
+   - Day 4 (Thu):  ₱8,900.00
+   - Day 5 (Fri):  ₱11,500.00
+   - Day 6 (Sat):  ₱12,800.00
+   - Day 7 (Sun):  ₱10,200.00
+   - Day 8 (Mon):  ₱7,000.00
+   - Day 9 (Tue):  ₱7,500.00
+   - Day 10 (Wed): ₱6,800.00
+   - Day 11 (Thu): ₱9,200.00
+   - Day 12 (Fri): ₱12,000.00
+   - Day 13 (Sat): ₱13,500.00
+   - Day 14 (Sun): ₱11,000.00
+   -------------------------
+   Baseline Total = ₱130,900.00
+
+B. REAL DATABASE ORDERS (Queried from MySQL: duyanan_db.orders)
+   The database contains exactly 1 active order:
+   - Order ID: #1
+   - Customer ID: #2 (User)
+   - Order Date: 2026-06-04 04:05:34
+   - Status: PENDING
+   - Total Amount: ₱225.00
+   -------------------------
+   Real Sales Total = ₱225.00
+
+3. FINAL MATHEMATICAL CALCULATION
+---------------------------------
+
+Step 1: Combine the Baseline Total and Real Sales Total:
+   Combined Sales = ₱130,900.00 + ₱225.00
+                  = ₱131,125.00
+
+Step 2: Divide by the 14-day tracking window to get the daily average:
+   Average Daily Sales = ₱131,125.00 / 14
+                       = ₱9,366.07142857...
+
+Step 3: Format to two decimal places:
+   Average Daily Sales = ₱9,366.07
+
+This mathematically proves the value of ₱9,366.07 displayed on the Admin Panel dashboard.
