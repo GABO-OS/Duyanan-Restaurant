@@ -5,9 +5,54 @@ import Swal from 'sweetalert2';
 
 const API_URL = import.meta.env.VITE_API_URL;
 
+const parseGroupMealDescription = (desc) => {
+    if (!desc) {
+        return { inclusions: '', goodFor: '', savings: 0 };
+    }
+    try {
+        const parsed = JSON.parse(desc);
+        if (parsed && typeof parsed === 'object') {
+            return {
+                inclusions: parsed.inclusions || '',
+                goodFor: parsed.goodFor || '',
+                savings: parsed.savings || 0
+            };
+        }
+    } catch (e) {}
+
+    let goodFor = '';
+    let savings = 0;
+
+    const goodForMatch = desc.match(/\(?(Good\s+for\s+[^)]+)\)?/i) || desc.match(/(Good\s+for\s+\d+-\d+|Good\s+for\s+\d+)/i);
+    if (goodForMatch) {
+        goodFor = goodForMatch[1].replace(/Good\s+for\s+/i, '').trim();
+        goodFor = goodFor.replace(/[()]/g, '').trim();
+    }
+
+    const savingsMatch = desc.match(/Save\s+(?:up\s+to\s+)?(?:₱|PHP)?\s*(\d+)/i);
+    if (savingsMatch) {
+        savings = parseFloat(savingsMatch[1]) || 0;
+    }
+
+    let cleanInclusions = desc;
+    if (goodForMatch) {
+        cleanInclusions = cleanInclusions.replace(goodForMatch[0], '');
+    }
+    const savePattern = /Save\s+(?:up\s+to\s+)?(?:₱|PHP)?\s*\d+\s*!?/i;
+    cleanInclusions = cleanInclusions.replace(savePattern, '');
+    cleanInclusions = cleanInclusions.replace(/^[\s,.;:|[\]-]+|[\s,.;:|[\]-]+$/g, '').trim();
+
+    return {
+        inclusions: cleanInclusions || desc,
+        goodFor: goodFor,
+        savings: savings
+    };
+};
+
 const AdminPanel = () => {
     const { user, logout } = useAuth();
     const [activeTab, setActiveTab] = useState('dashboard');
+    const [menuSubTab, setMenuSubTab] = useState('menu'); // 'menu' | 'event-packages' | 'group-meals'
     const [users, setUsers] = useState([]);
     const [products, setProducts] = useState([]);
     const [orders, setOrders] = useState([]);
@@ -21,7 +66,8 @@ const AdminPanel = () => {
     const [showProductForm, setShowProductForm] = useState(false);
     const [editingProduct, setEditingProduct] = useState(null);
     const [productForm, setProductForm] = useState({
-        name: '', priceSolo: '', priceALaCarte: '', priceALaCarte2: '', price1Liter: '', price1Point5Liter: '', price2Liter: '', description: '', imageUrl: '', category: 'Rice Meals', flavors: '', customCombos: []
+        name: '', priceSolo: '', priceALaCarte: '', priceALaCarte2: '', price1Liter: '', price1Point5Liter: '', price2Liter: '', description: '', imageUrl: '', category: 'Rice Meals', flavors: '', customCombos: [],
+        groupMealInclusions: '', groupMealGoodFor: '', groupMealSavings: ''
     });
 
     const addCombo = (e) => {
@@ -49,7 +95,7 @@ const AdminPanel = () => {
         });
     };
 
-    const categories = ['Rice Meals', 'Sizzling Meals', 'Duyanan Specials', 'Burger', 'French Fries', 'Nachos', 'Home-Made Siomai', 'Drinks', 'Soup', 'Milk Shakes', 'Sandwich', 'Student Meals', 'Extras'];
+    const [categories, setCategories] = useState(['Rice Meals', 'Sizzling Meals', 'Duyanan Specials', 'Burger', 'French Fries', 'Nachos', 'Home-Made Siomai', 'Drinks', 'Soup', 'Milk Shakes', 'Sandwich', 'Student Meals', 'Extras']);
 
     const authHeaders = () => ({
         'Content-Type': 'application/json',
@@ -103,15 +149,29 @@ const AdminPanel = () => {
         }
     }, [message]);
 
+    useEffect(() => {
+        if (products.length > 0) {
+            const defaultCats = ['Rice Meals', 'Sizzling Meals', 'Duyanan Specials', 'Burger', 'French Fries', 'Nachos', 'Home-Made Siomai', 'Drinks', 'Soup', 'Milk Shakes', 'Sandwich', 'Student Meals', 'Extras'];
+            const productCats = products
+                .map(p => p.category)
+                .filter(cat => cat && cat !== 'Event Packages' && cat !== 'Group Meals');
+            const uniqueCats = Array.from(new Set([...defaultCats, ...productCats]));
+            setCategories(uniqueCats);
+        }
+    }, [products]);
+
     // ── Products CRUD ─────────────────────────────────────
     const resetProductForm = () => {
         let defaultCategory = 'Rice Meals';
-        if (activeTab === 'event-packages') {
+        if (menuSubTab === 'event-packages') {
             defaultCategory = 'Event Packages';
-        } else if (activeTab === 'group-meals') {
+        } else if (menuSubTab === 'group-meals') {
             defaultCategory = 'Group Meals';
         }
-        setProductForm({ name: '', priceSolo: '', priceALaCarte: '', priceALaCarte2: '', price1Liter: '', price1Point5Liter: '', price2Liter: '', description: '', imageUrl: '', category: defaultCategory, flavors: '', customCombos: [] });
+        setProductForm({ 
+            name: '', priceSolo: '', priceALaCarte: '', priceALaCarte2: '', price1Liter: '', price1Point5Liter: '', price2Liter: '', description: '', imageUrl: '', category: defaultCategory, flavors: '', customCombos: [],
+            groupMealInclusions: '', groupMealGoodFor: '', groupMealSavings: ''
+        });
         setEditingProduct(null);
         setShowProductForm(false);
     };
@@ -119,8 +179,19 @@ const AdminPanel = () => {
     const handleProductSubmit = async (e) => {
         e.preventDefault();
         setMessage('');
+        let finalDescription = productForm.description;
+        if (productForm.category === 'Group Meals') {
+            finalDescription = JSON.stringify({
+                inclusions: productForm.groupMealInclusions,
+                goodFor: productForm.groupMealGoodFor,
+                savings: parseFloat(productForm.groupMealSavings) || 0
+            });
+        }
+
+        const { groupMealInclusions, groupMealGoodFor, groupMealSavings, ...cleanForm } = productForm;
         const payload = { 
-            ...productForm, 
+            ...cleanForm, 
+            description: finalDescription,
             name: productForm.category === 'Milk Shakes' ? 'Milk Shake' : productForm.name,
             priceSolo: productForm.priceSolo ? parseFloat(productForm.priceSolo) : 0,
             priceALaCarte: productForm.priceALaCarte ? parseFloat(productForm.priceALaCarte) : 0,
@@ -171,6 +242,9 @@ const AdminPanel = () => {
     };
 
     const handleEditProduct = (product) => {
+        const isGroupMeal = product.category === 'Group Meals';
+        const gmDetails = isGroupMeal ? parseGroupMealDescription(product.description) : { inclusions: '', goodFor: '', savings: '' };
+
         setProductForm({
             name: product.name,
             priceSolo: product.priceSolo || '',
@@ -183,7 +257,10 @@ const AdminPanel = () => {
             imageUrl: product.imageUrl || '',
             category: product.category || 'Rice Meals',
             flavors: product.flavors || '',
-            customCombos: product.customCombos || []
+            customCombos: product.customCombos || [],
+            groupMealInclusions: gmDetails.inclusions,
+            groupMealGoodFor: gmDetails.goodFor,
+            groupMealSavings: gmDetails.savings
         });
         setEditingProduct(product);
         setShowProductForm(true);
@@ -409,8 +486,6 @@ const AdminPanel = () => {
         { id: 'orders', label: 'Orders', icon: 'bi-bag-check' },
         { id: 'reservations', label: 'Reservations', icon: 'bi-calendar-event' },
         { id: 'products', label: 'Menu', icon: 'bi-card-list' },
-        { id: 'event-packages', label: 'Event Packages', icon: 'bi-gift' },
-        { id: 'group-meals', label: 'Group Meals', icon: 'bi-people' },
         { id: 'sales', label: 'Sales', icon: 'bi-bar-chart' },
         { id: 'forecasting', label: 'Forecasting', icon: 'bi-graph-up-arrow' },
         { id: 'users', label: 'Users', icon: 'bi-people' }
@@ -794,19 +869,59 @@ const AdminPanel = () => {
                                                             )}
                                                             <div className={productForm.category === 'Milk Shakes' ? "col-md-12" : "col-md-6"}>
                                                                 <label className="form-label small fw-bold text-muted">Category</label>
-                                                                <input 
-                                                                    type="text" 
-                                                                    list={['Event Packages', 'Group Meals'].includes(productForm.category) ? undefined : "categoryOptions"} 
-                                                                    className={`form-control ${['Event Packages', 'Group Meals'].includes(productForm.category) ? 'bg-light' : 'bg-white'}`} 
-                                                                    value={productForm.category} 
-                                                                    onChange={e => setProductForm(p => ({ ...p, category: e.target.value }))} 
-                                                                    placeholder="Type or select category" 
-                                                                    required 
-                                                                    readOnly={['Event Packages', 'Group Meals'].includes(productForm.category)} 
-                                                                />
-                                                                <datalist id="categoryOptions">
-                                                                    {categories.map(c => <option key={c} value={c} />)}
-                                                                </datalist>
+                                                                <select
+                                                                    className="form-select bg-white"
+                                                                    value={productForm.category}
+                                                                    onChange={async (e) => {
+                                                                        const val = e.target.value;
+                                                                        if (val === 'ADD_NEW_CATEGORY') {
+                                                                            const { value: newCat } = await Swal.fire({
+                                                                                title: 'Add New Category',
+                                                                                input: 'text',
+                                                                                inputLabel: 'Category Name',
+                                                                                inputPlaceholder: 'Enter new category name (e.g. Desserts)',
+                                                                                showCancelButton: true,
+                                                                                confirmButtonColor: 'var(--accent-orange)',
+                                                                                inputValidator: (value) => {
+                                                                                    if (!value) {
+                                                                                        return 'You need to write something!';
+                                                                                    }
+                                                                                    const cleaned = value.trim();
+                                                                                    if (['Event Packages', 'Group Meals'].includes(cleaned)) {
+                                                                                        return 'Invalid category name!';
+                                                                                    }
+                                                                                    if (categories.some(c => c.toLowerCase() === cleaned.toLowerCase())) {
+                                                                                        return 'This category already exists!';
+                                                                                    }
+                                                                                }
+                                                                            });
+                                                                            if (newCat) {
+                                                                                const cleanedCat = newCat.trim();
+                                                                                setCategories(prev => [...prev, cleanedCat]);
+                                                                                setProductForm(p => ({ ...p, category: cleanedCat }));
+                                                                            } else {
+                                                                                setProductForm(p => ({ ...p, category: categories[0] }));
+                                                                            }
+                                                                        } else {
+                                                                            setProductForm(p => ({ ...p, category: val }));
+                                                                        }
+                                                                    }}
+                                                                    required
+                                                                    disabled={['Event Packages', 'Group Meals'].includes(productForm.category)}
+                                                                >
+                                                                    {['Event Packages', 'Group Meals'].includes(productForm.category) ? (
+                                                                        <option value={productForm.category}>{productForm.category}</option>
+                                                                    ) : (
+                                                                        <>
+                                                                            {categories.map(c => (
+                                                                                <option key={c} value={c}>{c}</option>
+                                                                            ))}
+                                                                            <option value="ADD_NEW_CATEGORY" style={{ fontWeight: 'bold', color: 'var(--accent-orange)' }}>
+                                                                                ➕ Add New Category...
+                                                                            </option>
+                                                                        </>
+                                                                    )}
+                                                                </select>
                                                             </div>
 
                                                             {['Event Packages', 'Group Meals'].includes(productForm.category) ? (
@@ -823,17 +938,56 @@ const AdminPanel = () => {
                                                                             placeholder="e.g. 1500.00" 
                                                                         />
                                                                     </div>
-                                                                    <div className="col-md-12">
-                                                                        <label className="form-label small fw-bold text-muted">Description</label>
-                                                                        <textarea 
-                                                                            className="form-control bg-white" 
-                                                                            rows="3" 
-                                                                            value={productForm.description} 
-                                                                            onChange={e => setProductForm(p => ({ ...p, description: e.target.value }))} 
-                                                                            required 
-                                                                            placeholder="Describe inclusions/items" 
-                                                                        />
-                                                                    </div>
+                                                                    {productForm.category === 'Group Meals' ? (
+                                                                        <>
+                                                                            <div className="col-md-12">
+                                                                                <label className="form-label small fw-bold text-muted">Inclusions / Meal Items</label>
+                                                                                <textarea 
+                                                                                    className="form-control bg-white" 
+                                                                                    rows="3" 
+                                                                                    value={productForm.groupMealInclusions} 
+                                                                                    onChange={e => setProductForm(p => ({ ...p, groupMealInclusions: e.target.value }))} 
+                                                                                    required 
+                                                                                    placeholder="e.g. 1 Fried Chicken (Platter), 1 Pancit Canton, 4 Rice, 1 Pitcher Iced Tea" 
+                                                                                />
+                                                                            </div>
+                                                                            <div className="col-md-6">
+                                                                                <label className="form-label small fw-bold text-muted">Good For (No. of people)</label>
+                                                                                <input 
+                                                                                    type="text" 
+                                                                                    className="form-control bg-white" 
+                                                                                    value={productForm.groupMealGoodFor} 
+                                                                                    onChange={e => setProductForm(p => ({ ...p, groupMealGoodFor: e.target.value }))} 
+                                                                                    required 
+                                                                                    placeholder="e.g. 4-6" 
+                                                                                />
+                                                                            </div>
+                                                                            <div className="col-md-6">
+                                                                                <label className="form-label small fw-bold text-muted">Money Saved (₱)</label>
+                                                                                <input 
+                                                                                    type="number" 
+                                                                                    step="0.01" 
+                                                                                    className="form-control bg-white" 
+                                                                                    value={productForm.groupMealSavings} 
+                                                                                    onChange={e => setProductForm(p => ({ ...p, groupMealSavings: e.target.value }))} 
+                                                                                    required 
+                                                                                    placeholder="e.g. 175.00" 
+                                                                                />
+                                                                            </div>
+                                                                        </>
+                                                                    ) : (
+                                                                        <div className="col-md-12">
+                                                                            <label className="form-label small fw-bold text-muted">Description</label>
+                                                                            <textarea 
+                                                                                className="form-control bg-white" 
+                                                                                rows="3" 
+                                                                                value={productForm.description} 
+                                                                                onChange={e => setProductForm(p => ({ ...p, description: e.target.value }))} 
+                                                                                required 
+                                                                                placeholder="Describe inclusions/items" 
+                                                                            />
+                                                                        </div>
+                                                                    )}
                                                                 </>
                                                             ) : (
                                                                 <>
@@ -978,167 +1132,221 @@ const AdminPanel = () => {
                                     )}
 
                                     <div className="fade-in">
-                                        <div className="d-flex justify-content-between align-items-center mb-4">
+                                        <div className="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-start mb-4 gap-3">
                                             <h3 className="fw-bold m-0" style={{ color: 'var(--primary-brown)' }}>Menu Management</h3>
-                                            <button className="btn text-white shadow-sm px-4 py-2 fw-bold" style={{ backgroundColor: 'var(--accent-orange)' }} onClick={() => { resetProductForm(); setShowProductForm(true); }}>
-                                                <i className="bi bi-plus-lg me-2"></i> Add New Item
-                                            </button>
+                                            
+                                            <div className="d-flex flex-column align-items-end gap-2">
+                                                {/* Sub Tab Switcher */}
+                                                <div className="d-flex p-1 bg-light rounded-pill border" style={{ gap: '4px' }}>
+                                                    {[
+                                                        { id: 'menu', label: 'Menu', icon: 'bi-book' },
+                                                        { id: 'event-packages', label: 'Event Packages', icon: 'bi-gift' },
+                                                        { id: 'group-meals', label: 'Group Meals', icon: 'bi-people' }
+                                                    ].map((subTab) => (
+                                                        <button
+                                                            key={subTab.id}
+                                                            type="button"
+                                                            className="btn rounded-pill border-0 px-3 py-1.5 fw-bold text-nowrap"
+                                                            style={{
+                                                                backgroundColor: menuSubTab === subTab.id ? 'var(--accent-orange)' : 'transparent',
+                                                                color: menuSubTab === subTab.id ? '#fff' : '#6c757d',
+                                                                boxShadow: menuSubTab === subTab.id ? '0 4px 10px rgba(211, 84, 0, 0.2)' : 'none',
+                                                                transition: 'all 0.25s ease',
+                                                                fontSize: '0.85rem'
+                                                            }}
+                                                            onClick={() => setMenuSubTab(subTab.id)}
+                                                        >
+                                                            <i className={`bi ${subTab.icon} me-1`}></i>
+                                                            {subTab.label}
+                                                        </button>
+                                                    ))}
+                                                </div>
+                                                <button className="btn text-white shadow-sm px-4 py-2 fw-bold" style={{ backgroundColor: 'var(--accent-orange)', borderRadius: '10px' }} onClick={() => { resetProductForm(); setShowProductForm(true); }}>
+                                                    <i className="bi bi-plus-lg me-2"></i> {menuSubTab === 'event-packages' ? 'Add Event Package' : menuSubTab === 'group-meals' ? 'Add Group Meal' : 'Add New Item'}
+                                                </button>
+                                            </div>
                                         </div>
 
-                                    <div className="card border-0 shadow-sm rounded-4 overflow-hidden">
-                                        <table className="table table-hover align-middle mb-0">
-                                            <thead style={{ backgroundColor: '#8B3A0F', color: '#fff' }}>
-                                                <tr>
-                                                    <th className="py-3 px-4 border-0">Item</th>
-                                                    <th className="py-3 px-4 border-0 text-center">Category</th>
-                                                    <th className="py-3 px-4 border-0 text-center">Price</th>
-                                                    <th className="py-3 px-4 border-0 text-end">Action</th>
-                                                </tr>
-                                            </thead>
-                                            <tbody>
-                                                {products.filter(p => p.category !== 'Event Packages' && p.category !== 'Group Meals').map(p => (
-                                                    <tr key={p.id}>
-                                                        <td className="px-4">
-                                                            <div className="d-flex align-items-center">
-                                                                {p.imageUrl ? <img src={p.imageUrl.startsWith('http') || p.imageUrl.startsWith('/') || p.imageUrl.startsWith('data:') ? p.imageUrl : `/img/${p.imageUrl}`} alt={p.name} className="rounded-2 me-3 object-fit-cover" style={{ width: '40px', height: '40px' }} /> : <div className="bg-light rounded-2 me-3 d-flex align-items-center justify-content-center text-muted" style={{ width: '40px', height: '40px' }}><i className="bi bi-image"></i></div>}
-                                                                <span className="fw-bold">{p.name}</span>
+                                        {/* Conditionally Rendered Content based on menuSubTab */}
+                                        {menuSubTab === 'menu' && (
+                                            <>
+                                                {categories.map(category => {
+                                                    const categoryProducts = products.filter(p => p.category === category);
+                                                    if (categoryProducts.length === 0) return null;
+                                                    return (
+                                                        <div key={category} className="mb-5 bg-white rounded-4 shadow-sm border overflow-hidden">
+                                                            <div className="px-4 py-3 border-bottom d-flex align-items-center justify-content-between" style={{ backgroundColor: 'rgba(139, 58, 15, 0.02)' }}>
+                                                                <h5 className="m-0 fw-bold" style={{ color: 'var(--primary-brown)', fontSize: '1.1rem' }}>{category}</h5>
+                                                                <span className="badge rounded-pill bg-light text-dark border fw-bold px-3">{categoryProducts.length} {categoryProducts.length === 1 ? 'item' : 'items'}</span>
                                                             </div>
-                                                        </td>
-                                                        <td className="px-4 text-center">{p.category}</td>
-                                                        <td className="px-4 text-center text-muted small">
-                                                            {p.category === 'Milk Shakes' ? (
-                                                                <>
-                                                                    {p.flavors && <div><span className="fw-bold">Flavors:</span> {p.flavors}</div>}
-                                                                    {p.priceSolo > 0 && <div>Glass: ₱{p.priceSolo.toFixed(2)}</div>}
-                                                                    {p.priceALaCarte > 0 && <div>Price: ₱{p.priceALaCarte.toFixed(2)}</div>}
-                                                                    {p.price1Liter > 0 && <div>1 Liter: ₱{p.price1Liter.toFixed(2)}</div>}
-                                                                    {p.price1Point5Liter > 0 && <div>1.5 Liters: ₱{p.price1Point5Liter.toFixed(2)}</div>}
-                                                                    {p.price2Liter > 0 && <div>2 Liters: ₱{p.price2Liter.toFixed(2)}</div>}
-                                                                </>
-                                                            ) : p.category === 'Drinks' ? (
-                                                                <>
-                                                                    {p.priceSolo > 0 && <div>Glass: ₱{p.priceSolo.toFixed(2)}</div>}
-                                                                    {p.priceALaCarte > 0 && <div>Price: ₱{p.priceALaCarte.toFixed(2)}</div>}
-                                                                    {p.price1Liter > 0 && <div>1 Liter: ₱{p.price1Liter.toFixed(2)}</div>}
-                                                                    {p.price1Point5Liter > 0 && <div>1.5 Liters: ₱{p.price1Point5Liter.toFixed(2)}</div>}
-                                                                    {p.price2Liter > 0 && <div>2 Liters: ₱{p.price2Liter.toFixed(2)}</div>}
-                                                                </>
-                                                            ) : ['Duyanan Specials', 'Burger', 'French Fries', 'Home-Made Siomai', 'Soup'].includes(p.category) ? (
-                                                                <div>
-                                                                    {p.priceSolo > 0 && p.priceALaCarte > 0 
-                                                                        ? `₱${p.priceSolo.toFixed(2)} - ₱${p.priceALaCarte.toFixed(2)}` 
-                                                                        : `₱${(p.priceSolo || p.priceALaCarte || 0).toFixed(2)}`}
-                                                                </div>
-                                                            ) : ['Nachos', 'Sandwich', 'Student Meals'].includes(p.category) ? (
-                                                                <div>Price: ₱{(p.priceSolo || 0).toFixed(2)}</div>
-                                                            ) : (
-                                                                <>
-                                                                    <div>Solo: ₱{(p.priceSolo || 0).toFixed(2)}</div>
-                                                                    {p.priceALaCarte > 0 && <div>A La Carte: ₱{p.priceALaCarte.toFixed(2)}</div>}
-                                                                </>
-                                                            )}
-                                                        </td>
-                                                        <td className="px-4 text-end">
-                                                            <button className="btn btn-sm text-primary p-2 me-2" onClick={() => handleEditProduct(p)}><i className="bi bi-pencil-square fs-5"></i></button>
-                                                            <button className="btn btn-sm text-danger p-2" onClick={() => handleDeleteProduct(p.id)}><i className="bi bi-trash fs-5"></i></button>
-                                                        </td>
-                                                    </tr>
-                                                ))}
-                                                {products.filter(p => p.category !== 'Event Packages' && p.category !== 'Group Meals').length === 0 && <tr><td colSpan="4" className="text-center py-5">No items found.</td></tr>}
-                                            </tbody>
-                                        </table>
+                                                            <div className="table-responsive">
+                                                                <table className="table table-hover align-middle mb-0">
+                                                                    <thead style={{ backgroundColor: '#faf9f6' }}>
+                                                                        <tr style={{ fontSize: '0.88rem' }}>
+                                                                            <th className="py-3 px-4 border-0 w-50">Item Name</th>
+                                                                            <th className="py-3 px-4 border-0 text-center">Pricing Options / Variants</th>
+                                                                            <th className="py-3 px-4 border-0 text-end">Action</th>
+                                                                        </tr>
+                                                                    </thead>
+                                                                    <tbody>
+                                                                        {categoryProducts.map(p => (
+                                                                            <tr key={p.id}>
+                                                                                <td className="px-4 py-3">
+                                                                                    <div className="d-flex align-items-center">
+                                                                                        {p.imageUrl ? (
+                                                                                            <img 
+                                                                                                src={p.imageUrl.startsWith('http') || p.imageUrl.startsWith('/') || p.imageUrl.startsWith('data:') ? p.imageUrl : `/img/${p.imageUrl}`} 
+                                                                                                alt={p.name} 
+                                                                                                className="rounded-3 me-3 object-fit-cover shadow-sm" 
+                                                                                                style={{ width: '42px', height: '42px', border: '1px solid rgba(0,0,0,0.08)' }} 
+                                                                                            />
+                                                                                        ) : (
+                                                                                            <div className="bg-light rounded-3 me-3 d-flex align-items-center justify-content-center text-muted border" style={{ width: '42px', height: '42px' }}>
+                                                                                                <i className="bi bi-image"></i>
+                                                                                            </div>
+                                                                                        )}
+                                                                                        <div>
+                                                                                            <span className="fw-bold text-dark">{p.name}</span>
+                                                                                            {p.description && <div className="text-muted small text-truncate" style={{ maxWidth: '300px' }}>{p.description}</div>}
+                                                                                        </div>
+                                                                                    </div>
+                                                                                </td>
+                                                                                <td className="px-4 text-center py-3 text-muted small">
+                                                                                    {p.category === 'Milk Shakes' ? (
+                                                                                        <div className="d-flex flex-column gap-1">
+                                                                                            {p.flavors && <div><span className="fw-bold">Flavors:</span> {p.flavors}</div>}
+                                                                                            <div className="d-flex flex-wrap justify-content-center gap-2">
+                                                                                                {p.priceSolo > 0 && <span className="badge bg-light text-dark border">Glass: ₱{p.priceSolo.toFixed(2)}</span>}
+                                                                                                {p.priceALaCarte > 0 && <span className="badge bg-light text-dark border">Price: ₱{p.priceALaCarte.toFixed(2)}</span>}
+                                                                                                {p.price1Liter > 0 && <span className="badge bg-light text-dark border">1L: ₱{p.price1Liter.toFixed(2)}</span>}
+                                                                                                {p.price1Point5Liter > 0 && <span className="badge bg-light text-dark border">1.5L: ₱{p.price1Point5Liter.toFixed(2)}</span>}
+                                                                                                {p.price2Liter > 0 && <span className="badge bg-light text-dark border">2L: ₱{p.price2Liter.toFixed(2)}</span>}
+                                                                                            </div>
+                                                                                        </div>
+                                                                                    ) : p.category === 'Drinks' ? (
+                                                                                        <div className="d-flex flex-wrap justify-content-center gap-2">
+                                                                                            {p.priceSolo > 0 && <span className="badge bg-light text-dark border">Glass: ₱{p.priceSolo.toFixed(2)}</span>}
+                                                                                            {p.priceALaCarte > 0 && <span className="badge bg-light text-dark border">Price: ₱{p.priceALaCarte.toFixed(2)}</span>}
+                                                                                            {p.price1Liter > 0 && <span className="badge bg-light text-dark border">1L: ₱{p.price1Liter.toFixed(2)}</span>}
+                                                                                            {p.price1Point5Liter > 0 && <span className="badge bg-light text-dark border">1.5L: ₱{p.price1Point5Liter.toFixed(2)}</span>}
+                                                                                            {p.price2Liter > 0 && <span className="badge bg-light text-dark border">2L: ₱{p.price2Liter.toFixed(2)}</span>}
+                                                                                        </div>
+                                                                                    ) : ['Duyanan Specials', 'Burger', 'French Fries', 'Home-Made Siomai', 'Soup'].includes(p.category) ? (
+                                                                                        <span className="fw-bold text-dark">
+                                                                                            {p.priceSolo > 0 && p.priceALaCarte > 0 
+                                                                                                ? `₱${p.priceSolo.toFixed(2)} - ₱${p.priceALaCarte.toFixed(2)}` 
+                                                                                                : `₱${(p.priceSolo || p.priceALaCarte || 0).toFixed(2)}`}
+                                                                                        </span>
+                                                                                    ) : ['Nachos', 'Sandwich', 'Student Meals'].includes(p.category) ? (
+                                                                                        <span className="fw-bold text-dark">₱{(p.priceSolo || 0).toFixed(2)}</span>
+                                                                                    ) : (
+                                                                                        <div className="d-flex flex-wrap justify-content-center gap-2">
+                                                                                            <span className="badge bg-light text-dark border">Solo: ₱{(p.priceSolo || 0).toFixed(2)}</span>
+                                                                                            {p.priceALaCarte > 0 && <span className="badge bg-light text-dark border">A La Carte: ₱{p.priceALaCarte.toFixed(2)}</span>}
+                                                                                        </div>
+                                                                                    )}
+                                                                                </td>
+                                                                                <td className="px-4 text-end py-3 text-nowrap">
+                                                                                    <button className="btn btn-sm text-primary p-2 me-2" onClick={() => handleEditProduct(p)} title="Edit Item"><i className="bi bi-pencil-square fs-5"></i></button>
+                                                                                    <button className="btn btn-sm text-danger p-2" onClick={() => handleDeleteProduct(p.id)} title="Delete Item"><i className="bi bi-trash fs-5"></i></button>
+                                                                                </td>
+                                                                            </tr>
+                                                                        ))}
+                                                                    </tbody>
+                                                                </table>
+                                                            </div>
+                                                        </div>
+                                                    );
+                                                })}
+                                                {products.filter(p => p.category !== 'Event Packages' && p.category !== 'Group Meals').length === 0 && (
+                                                    <div className="card border-0 shadow-sm rounded-4 p-5 text-center bg-white">
+                                                        <i className="bi bi-card-list text-muted display-4 mb-3"></i>
+                                                        <h5 className="text-muted">No menu items found.</h5>
+                                                    </div>
+                                                )}
+                                            </>
+                                        )}
+
+                                        {menuSubTab === 'event-packages' && (
+                                            <div className="card border-0 shadow-sm rounded-4 overflow-hidden">
+                                                <div className="table-responsive">
+                                                    <table className="table table-hover align-middle mb-0">
+                                                        <thead style={{ backgroundColor: '#8B3A0F', color: '#fff' }}>
+                                                             <tr>
+                                                                 <th className="py-3 px-4 border-0">Package Name</th>
+                                                                 <th className="py-3 px-4 border-0 text-center">Description</th>
+                                                                 <th className="py-3 px-4 border-0 text-center">Price</th>
+                                                                 <th className="py-3 px-4 border-0 text-end">Action</th>
+                                                             </tr>
+                                                        </thead>
+                                                        <tbody>
+                                                             {products.filter(p => p.category === 'Event Packages').map(p => (
+                                                                 <tr key={p.id}>
+                                                                     <td className="px-4 py-3">
+                                                                         <div className="d-flex align-items-center">
+                                                                             {p.imageUrl ? <img src={p.imageUrl.startsWith('http') || p.imageUrl.startsWith('/') || p.imageUrl.startsWith('data:') ? p.imageUrl : `/img/${p.imageUrl}`} alt={p.name} className="rounded-3 me-3 object-fit-cover shadow-sm" style={{ width: '42px', height: '42px', border: '1px solid rgba(0,0,0,0.08)' }} /> : <div className="bg-light rounded-3 me-3 d-flex align-items-center justify-content-center text-muted border" style={{ width: '42px', height: '42px' }}><i className="bi bi-image"></i></div>}
+                                                                             <span className="fw-bold text-dark">{p.name}</span>
+                                                                         </div>
+                                                                     </td>
+                                                                     <td className="px-4 text-center text-muted small py-3" style={{ maxWidth: '300px', textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap' }} title={p.description}>{p.description}</td>
+                                                                     <td className="px-4 text-center fw-bold text-dark py-3">₱{(p.priceSolo || 0).toLocaleString(undefined, {minimumFractionDigits: 2})}</td>
+                                                                     <td className="px-4 text-end py-3 text-nowrap">
+                                                                         <button className="btn btn-sm text-primary p-2 me-2" onClick={() => handleEditProduct(p)} title="Edit Package"><i className="bi bi-pencil-square fs-5"></i></button>
+                                                                         <button className="btn btn-sm text-danger p-2" onClick={() => handleDeleteProduct(p.id)} title="Delete Package"><i className="bi bi-trash fs-5"></i></button>
+                                                                     </td>
+                                                                 </tr>
+                                                             ))}
+                                                             {products.filter(p => p.category === 'Event Packages').length === 0 && <tr><td colSpan="4" className="text-center py-5 bg-white text-muted">No event packages found.</td></tr>}
+                                                        </tbody>
+                                                    </table>
+                                                </div>
+                                            </div>
+                                        )}
+
+                                        {menuSubTab === 'group-meals' && (
+                                            <div className="card border-0 shadow-sm rounded-4 overflow-hidden">
+                                                <div className="table-responsive">
+                                                    <table className="table table-hover align-middle mb-0">
+                                                        <thead style={{ backgroundColor: '#8B3A0F', color: '#fff' }}>
+                                                             <tr>
+                                                                 <th className="py-3 px-4 border-0">Meal Bundle Name</th>
+                                                                 <th className="py-3 px-4 border-0 text-center">Description</th>
+                                                                 <th className="py-3 px-4 border-0 text-center">Price</th>
+                                                                 <th className="py-3 px-4 border-0 text-end">Action</th>
+                                                             </tr>
+                                                        </thead>
+                                                        <tbody>
+                                                             {products.filter(p => p.category === 'Group Meals').map(p => (
+                                                                 <tr key={p.id}>
+                                                                     <td className="px-4 py-3">
+                                                                         <div className="d-flex align-items-center">
+                                                                             {p.imageUrl ? <img src={p.imageUrl.startsWith('http') || p.imageUrl.startsWith('/') || p.imageUrl.startsWith('data:') ? p.imageUrl : `/img/${p.imageUrl}`} alt={p.name} className="rounded-3 me-3 object-fit-cover shadow-sm" style={{ width: '42px', height: '42px', border: '1px solid rgba(0,0,0,0.08)' }} /> : <div className="bg-light rounded-3 me-3 d-flex align-items-center justify-content-center text-muted border" style={{ width: '42px', height: '42px' }}><i className="bi bi-image"></i></div>}
+                                                                             <span className="fw-bold text-dark">{p.name}</span>
+                                                                         </div>
+                                                                     </td>
+                                                                     <td className="px-4 text-center text-muted small py-3" style={{ maxWidth: '300px', textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap' }} title={(() => {
+                                                                         const parsed = parseGroupMealDescription(p.description);
+                                                                         return `Good for ${parsed.goodFor} | Save ₱${parsed.savings} | Inclusions: ${parsed.inclusions}`;
+                                                                     })()}>{(() => {
+                                                                         const parsed = parseGroupMealDescription(p.description);
+                                                                         return `Good for ${parsed.goodFor} | Save ₱${parsed.savings} | Inclusions: ${parsed.inclusions}`;
+                                                                     })()}</td>
+                                                                     <td className="px-4 text-center fw-bold text-dark py-3">₱{(p.priceSolo || 0).toLocaleString(undefined, {minimumFractionDigits: 2})}</td>
+                                                                     <td className="px-4 text-end py-3 text-nowrap">
+                                                                         <button className="btn btn-sm text-primary p-2 me-2" onClick={() => handleEditProduct(p)} title="Edit Group Meal"><i className="bi bi-pencil-square fs-5"></i></button>
+                                                                         <button className="btn btn-sm text-danger p-2" onClick={() => handleDeleteProduct(p.id)} title="Delete Group Meal"><i className="bi bi-trash fs-5"></i></button>
+                                                                     </td>
+                                                                 </tr>
+                                                             ))}
+                                                             {products.filter(p => p.category === 'Group Meals').length === 0 && <tr><td colSpan="4" className="text-center py-5 bg-white text-muted">No group meals found.</td></tr>}
+                                                        </tbody>
+                                                    </table>
+                                                </div>
+                                            </div>
+                                        )}
                                     </div>
-                                </div>
-                            </>
-                        )}
-
-                        {/* ── Event Packages Tab ── */}
-                        {activeTab === 'event-packages' && (
-                            <div className="fade-in">
-                                <div className="d-flex justify-content-between align-items-center mb-4">
-                                    <h3 className="fw-bold m-0" style={{ color: 'var(--primary-brown)' }}>Event Packages Management</h3>
-                                    <button className="btn text-white shadow-sm px-4 py-2 fw-bold" style={{ backgroundColor: 'var(--accent-orange)' }} onClick={() => { resetProductForm(); setShowProductForm(true); }}>
-                                        <i className="bi bi-plus-lg me-2"></i> Add Event Package
-                                    </button>
-                                </div>
-
-                                <div className="card border-0 shadow-sm rounded-4 overflow-hidden">
-                                    <table className="table table-hover align-middle mb-0">
-                                        <thead style={{ backgroundColor: '#8B3A0F', color: '#fff' }}>
-                                             <tr>
-                                                 <th className="py-3 px-4 border-0">Package Name</th>
-                                                 <th className="py-3 px-4 border-0 text-center">Description</th>
-                                                 <th className="py-3 px-4 border-0 text-center">Price</th>
-                                                 <th className="py-3 px-4 border-0 text-end">Action</th>
-                                             </tr>
-                                        </thead>
-                                        <tbody>
-                                             {products.filter(p => p.category === 'Event Packages').map(p => (
-                                                 <tr key={p.id}>
-                                                     <td className="px-4">
-                                                         <div className="d-flex align-items-center">
-                                                             {p.imageUrl ? <img src={p.imageUrl.startsWith('http') || p.imageUrl.startsWith('/') || p.imageUrl.startsWith('data:') ? p.imageUrl : `/img/${p.imageUrl}`} alt={p.name} className="rounded-2 me-3 object-fit-cover" style={{ width: '40px', height: '40px' }} /> : <div className="bg-light rounded-2 me-3 d-flex align-items-center justify-content-center text-muted" style={{ width: '40px', height: '40px' }}><i className="bi bi-image"></i></div>}
-                                                             <span className="fw-bold">{p.name}</span>
-                                                         </div>
-                                                     </td>
-                                                     <td className="px-4 text-center text-muted small" style={{ maxWidth: '300px', textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap' }} title={p.description}>{p.description}</td>
-                                                     <td className="px-4 text-center fw-bold">₱{(p.priceSolo || 0).toLocaleString(undefined, {minimumFractionDigits: 2})}</td>
-                                                     <td className="px-4 text-end">
-                                                         <button className="btn btn-sm text-primary p-2 me-2" onClick={() => handleEditProduct(p)}><i className="bi bi-pencil-square fs-5"></i></button>
-                                                         <button className="btn btn-sm text-danger p-2" onClick={() => handleDeleteProduct(p.id)}><i className="bi bi-trash fs-5"></i></button>
-                                                     </td>
-                                                 </tr>
-                                             ))}
-                                             {products.filter(p => p.category === 'Event Packages').length === 0 && <tr><td colSpan="4" className="text-center py-5">No event packages found.</td></tr>}
-                                        </tbody>
-                                    </table>
-                                </div>
-                            </div>
-                        )}
-
-                        {/* ── Group Meals Tab ── */}
-                        {activeTab === 'group-meals' && (
-                            <div className="fade-in">
-                                <div className="d-flex justify-content-between align-items-center mb-4">
-                                     <h3 className="fw-bold m-0" style={{ color: 'var(--primary-brown)' }}>Group Meals Management</h3>
-                                     <button className="btn text-white shadow-sm px-4 py-2 fw-bold" style={{ backgroundColor: 'var(--accent-orange)' }} onClick={() => { resetProductForm(); setShowProductForm(true); }}>
-                                         <i className="bi bi-plus-lg me-2"></i> Add Group Meal
-                                     </button>
-                                </div>
-
-                                <div className="card border-0 shadow-sm rounded-4 overflow-hidden">
-                                     <table className="table table-hover align-middle mb-0">
-                                         <thead style={{ backgroundColor: '#8B3A0F', color: '#fff' }}>
-                                             <tr>
-                                                 <th className="py-3 px-4 border-0">Meal Bundle Name</th>
-                                                 <th className="py-3 px-4 border-0 text-center">Description</th>
-                                                 <th className="py-3 px-4 border-0 text-center">Price</th>
-                                                 <th className="py-3 px-4 border-0 text-end">Action</th>
-                                             </tr>
-                                         </thead>
-                                         <tbody>
-                                             {products.filter(p => p.category === 'Group Meals').map(p => (
-                                                 <tr key={p.id}>
-                                                     <td className="px-4">
-                                                         <div className="d-flex align-items-center">
-                                                             {p.imageUrl ? <img src={p.imageUrl.startsWith('http') || p.imageUrl.startsWith('/') || p.imageUrl.startsWith('data:') ? p.imageUrl : `/img/${p.imageUrl}`} alt={p.name} className="rounded-2 me-3 object-fit-cover" style={{ width: '40px', height: '40px' }} /> : <div className="bg-light rounded-2 me-3 d-flex align-items-center justify-content-center text-muted" style={{ width: '40px', height: '40px' }}><i className="bi bi-image"></i></div>}
-                                                             <span className="fw-bold">{p.name}</span>
-                                                         </div>
-                                                     </td>
-                                                     <td className="px-4 text-center text-muted small" style={{ maxWidth: '300px', textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap' }} title={p.description}>{p.description}</td>
-                                                     <td className="px-4 text-center fw-bold">₱{(p.priceSolo || 0).toLocaleString(undefined, {minimumFractionDigits: 2})}</td>
-                                                     <td className="px-4 text-end">
-                                                         <button className="btn btn-sm text-primary p-2 me-2" onClick={() => handleEditProduct(p)}><i className="bi bi-pencil-square fs-5"></i></button>
-                                                         <button className="btn btn-sm text-danger p-2" onClick={() => handleDeleteProduct(p.id)}><i className="bi bi-trash fs-5"></i></button>
-                                                     </td>
-                                                 </tr>
-                                             ))}
-                                             {products.filter(p => p.category === 'Group Meals').length === 0 && <tr><td colSpan="4" className="text-center py-5">No group meals found.</td></tr>}
-                                         </tbody>
-                                     </table>
-                                </div>
-                            </div>
-                        )}
+                                </>
+                            )}
 
                             {/* ── Sales Report Tab (Live) ── */}
                             {activeTab === 'sales' && (
