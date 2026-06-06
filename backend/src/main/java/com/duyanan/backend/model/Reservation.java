@@ -40,6 +40,9 @@ public class Reservation {
 
     private String specialRequests;
 
+    @Column(name = "seating_type")
+    private String seatingType;
+
     @Column(nullable = false)
     private LocalDateTime createdAt = LocalDateTime.now();
 }

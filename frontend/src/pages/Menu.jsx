@@ -432,6 +432,13 @@ const Menu = () => {
                             border-color: #8B3A0F !important;
                             transform: translateY(-2px);
                         }
+                        .swal2-actions {
+                            margin-top: 8px !important;
+                            padding-top: 0 !important;
+                        }
+                        .swal2-html-container {
+                            padding-bottom: 8px !important;
+                        }
                     </style>
                     <div class="d-flex align-items-center mb-3 text-start pb-3" style="border-bottom: 2px solid rgba(0,0,0,0.05);">
                         <div style="width: 45px; height: 45px; flex-shrink: 0; border-radius: 8px; overflow: hidden; box-shadow: 0 2px 6px rgba(0,0,0,0.08); margin-right: 12px;">
@@ -444,51 +451,51 @@ const Menu = () => {
                     </div>
                     ${flavorDropdownHtml}
 
-                    <div class="d-flex flex-column px-2">
+                    <div class="d-flex flex-column px-1" style="gap: 8px;">
                         ${product.priceSolo > 0 ? `
-                            <button id="btn-solo" class="variant-btn btn text-white py-2 fw-bold shadow-sm d-flex justify-content-between align-items-center px-3" style="background: linear-gradient(135deg, #8B3A0F, #5C1F00); border-radius: 12px !important; font-size: 0.95rem; min-height: 48px; margin-bottom: 12px !important; border: 2px solid transparent;">
+                            <button id="btn-solo" class="variant-btn btn text-white py-2 fw-bold shadow-sm d-flex justify-content-between align-items-center px-3" style="background: linear-gradient(135deg, #8B3A0F, #5C1F00); border-radius: 12px !important; font-size: 0.95rem; min-height: 48px; border: 2px solid transparent;">
                                 <span>${['Drinks', 'Milk Shakes'].includes(product.category) ? 'Glass' : ['Duyanan Specials', 'Burger', 'French Fries', 'Home-Made Siomai', 'Soup'].includes(product.category) ? 'Price 1' : 'Solo'}</span>
                                 <span style="color: rgba(255,255,255,0.9);">₱${product.priceSolo.toFixed(2)}</span>
                             </button>
                         ` : ''}
                         ${!['Drinks', 'Milk Shakes'].includes(product.category) && product.priceALaCarte > 0 ? `
-                            <button id="btn-alacarte" class="variant-btn btn text-white py-2 fw-bold shadow-sm d-flex justify-content-between align-items-center px-3" style="background: linear-gradient(135deg, #D35400, #A04000); border-radius: 12px !important; font-size: 0.95rem; min-height: 48px; margin-bottom: 12px !important; border: 2px solid transparent;">
+                            <button id="btn-alacarte" class="variant-btn btn text-white py-2 fw-bold shadow-sm d-flex justify-content-between align-items-center px-3" style="background: linear-gradient(135deg, #D35400, #A04000); border-radius: 12px !important; font-size: 0.95rem; min-height: 48px; border: 2px solid transparent;">
                                 <span>${['Duyanan Specials', 'Burger', 'French Fries', 'Home-Made Siomai', 'Soup'].includes(product.category) ? 'Price 2' : (product.priceALaCarte2 > 0 ? 'A La Carte 1' : 'A La Carte')}</span>
                                 <span style="color: rgba(255,255,255,0.9);">₱${product.priceALaCarte.toFixed(2)}</span>
                             </button>
                         ` : ''}
                         ${!['Drinks', 'Milk Shakes'].includes(product.category) && product.priceALaCarte2 > 0 ? `
-                            <button id="btn-alacarte2" class="variant-btn btn text-white py-2 fw-bold shadow-sm d-flex justify-content-between align-items-center px-3" style="background: linear-gradient(135deg, #D35400, #A04000); border-radius: 12px !important; font-size: 0.95rem; min-height: 48px; margin-bottom: 12px !important; border: 2px solid transparent;">
+                            <button id="btn-alacarte2" class="variant-btn btn text-white py-2 fw-bold shadow-sm d-flex justify-content-between align-items-center px-3" style="background: linear-gradient(135deg, #D35400, #A04000); border-radius: 12px !important; font-size: 0.95rem; min-height: 48px; border: 2px solid transparent;">
                                 <span>A La Carte 2</span>
                                 <span style="color: rgba(255,255,255,0.9);">₱${product.priceALaCarte2.toFixed(2)}</span>
                             </button>
                         ` : ''}
                         ${['Drinks', 'Milk Shakes'].includes(product.category) && product.price1Liter > 0 ? `
-                            <button id="btn-1l" class="variant-btn btn text-white py-2 fw-bold shadow-sm d-flex justify-content-between align-items-center px-3" style="background: linear-gradient(135deg, #D35400, #A04000); border-radius: 12px !important; font-size: 0.95rem; min-height: 48px; margin-bottom: 12px !important; border: 2px solid transparent;">
+                            <button id="btn-1l" class="variant-btn btn text-white py-2 fw-bold shadow-sm d-flex justify-content-between align-items-center px-3" style="background: linear-gradient(135deg, #D35400, #A04000); border-radius: 12px !important; font-size: 0.95rem; min-height: 48px; border: 2px solid transparent;">
                                 <span>1 Liter</span>
                                 <span style="color: rgba(255,255,255,0.9);">₱${product.price1Liter.toFixed(2)}</span>
                             </button>
                         ` : ''}
                         ${['Drinks', 'Milk Shakes'].includes(product.category) && product.price1Point5Liter > 0 ? `
-                            <button id="btn-15l" class="variant-btn btn text-white py-2 fw-bold shadow-sm d-flex justify-content-between align-items-center px-3" style="background: linear-gradient(135deg, #D35400, #A04000); border-radius: 12px !important; font-size: 0.95rem; min-height: 48px; margin-bottom: 12px !important; border: 2px solid transparent;">
+                            <button id="btn-15l" class="variant-btn btn text-white py-2 fw-bold shadow-sm d-flex justify-content-between align-items-center px-3" style="background: linear-gradient(135deg, #D35400, #A04000); border-radius: 12px !important; font-size: 0.95rem; min-height: 48px; border: 2px solid transparent;">
                                 <span>1.5 Liters</span>
                                 <span style="color: rgba(255,255,255,0.9);">₱${product.price1Point5Liter.toFixed(2)}</span>
                             </button>
                         ` : ''}
                         ${['Drinks', 'Milk Shakes'].includes(product.category) && product.price2Liter > 0 ? `
-                            <button id="btn-2l" class="variant-btn btn text-white py-2 fw-bold shadow-sm d-flex justify-content-between align-items-center px-3" style="background: linear-gradient(135deg, #D35400, #A04000); border-radius: 12px !important; font-size: 0.95rem; min-height: 48px; margin-bottom: 12px !important; border: 2px solid transparent;">
+                            <button id="btn-2l" class="variant-btn btn text-white py-2 fw-bold shadow-sm d-flex justify-content-between align-items-center px-3" style="background: linear-gradient(135deg, #D35400, #A04000); border-radius: 12px !important; font-size: 0.95rem; min-height: 48px; border: 2px solid transparent;">
                                 <span>2 Liters</span>
                                 <span style="color: rgba(255,255,255,0.9);">₱${product.price2Liter.toFixed(2)}</span>
                             </button>
                         ` : ''}
                         ${product.combo1Name && product.combo1Price > 0 ? `
-                            <button id="btn-combo1" class="variant-btn btn text-white py-2 fw-bold shadow-sm d-flex justify-content-between align-items-center px-3" style="background: linear-gradient(135deg, #D35400, #A04000); border-radius: 12px !important; font-size: 0.95rem; min-height: 48px; margin-bottom: 12px !important; border: 2px solid transparent;">
+                            <button id="btn-combo1" class="variant-btn btn text-white py-2 fw-bold shadow-sm d-flex justify-content-between align-items-center px-3" style="background: linear-gradient(135deg, #D35400, #A04000); border-radius: 12px !important; font-size: 0.95rem; min-height: 48px; border: 2px solid transparent;">
                                 <span>Combo: ${product.combo1Name}</span>
                                 <span style="color: rgba(255,255,255,0.9);">₱${product.combo1Price.toFixed(2)}</span>
                             </button>
                         ` : ''}
                         ${product.combo2Name && product.combo2Price > 0 ? `
-                            <button id="btn-combo2" class="variant-btn btn text-white py-2 fw-bold shadow-sm d-flex justify-content-between align-items-center px-3" style="background: linear-gradient(135deg, #D35400, #A04000); border-radius: 12px !important; font-size: 0.95rem; min-height: 48px; margin-bottom: 12px !important; border: 2px solid transparent;">
+                            <button id="btn-combo2" class="variant-btn btn text-white py-2 fw-bold shadow-sm d-flex justify-content-between align-items-center px-3" style="background: linear-gradient(135deg, #D35400, #A04000); border-radius: 12px !important; font-size: 0.95rem; min-height: 48px; border: 2px solid transparent;">
                                 <span>Combo: ${product.combo2Name}</span>
                                 <span style="color: rgba(255,255,255,0.9);">₱${product.combo2Price.toFixed(2)}</span>
                             </button>
@@ -500,7 +507,7 @@ const Menu = () => {
                 cancelButtonText: 'Cancel',
                 buttonsStyling: false,
                 customClass: {
-                    cancelButton: 'swal-custom-cancel mt-4'
+                    cancelButton: 'swal-custom-cancel mt-2'
                 },
                 didOpen: () => {
                     const btnSolo = document.getElementById('btn-solo');
@@ -648,6 +655,7 @@ const Menu = () => {
                                     setActiveTab(tab);
                                     setSearchQuery('');
                                     setActiveCategory('All');
+                                    window.scrollTo({ top: 0, behavior: 'smooth' });
                                 }}
                             >
                                 {tab === 'Menu' && <i className="bi bi-book me-2"></i>}
@@ -666,13 +674,27 @@ const Menu = () => {
                         <input 
                             type="text" 
                             className="form-control rounded-pill ps-5" 
-                            placeholder={
-                                activeTab === 'Menu' ? 'Search Menu' :
-                                activeTab === 'Event Packages' ? 'Search Event Packages' :
-                                'Search Group Meals'
-                            } 
+                            placeholder="Search all items..."
                             value={searchQuery}
-                            onChange={(e) => setSearchQuery(e.target.value)}
+                            onChange={(e) => {
+                                const query = e.target.value;
+                                setSearchQuery(query);
+
+                                if (query.trim()) {
+                                    const q = query.toLowerCase();
+                                    const menuHits = products.filter(p => p.name.toLowerCase().includes(q)).length;
+                                    const pkgHits = eventPackages.filter(p => p.name.toLowerCase().includes(q) || p.description.toLowerCase().includes(q)).length;
+                                    const mealHits = groupMeals.filter(m => m.name.toLowerCase().includes(q) || m.description.toLowerCase().includes(q)).length;
+
+                                    // Auto-switch to the tab with results if current tab has none
+                                    const currentHits = activeTab === 'Menu' ? menuHits : activeTab === 'Event Packages' ? pkgHits : mealHits;
+                                    if (currentHits === 0) {
+                                        if (menuHits > 0) setActiveTab('Menu');
+                                        else if (pkgHits > 0) setActiveTab('Event Packages');
+                                        else if (mealHits > 0) setActiveTab('Group Meals');
+                                    }
+                                }
+                            }}
                             style={{ border: '1px solid #ccc', boxShadow: 'none' }}
                         />
                     </div>
@@ -737,10 +759,74 @@ const Menu = () => {
                         {/* 1. Standard A La Carte Menu View */}
                         {activeTab === 'Menu' && (
                             <>
-                                {categories.slice(1).map(category => {
+                                {/* Show search results at the top when searching */}
+                                {searchQuery.trim() && searchedProducts.length > 0 && (
+                                    <div className="mb-5 pt-2">
+                                        <h3 className="mb-4 pb-2 d-flex align-items-center gap-2" style={{ color: 'var(--primary-brown)', fontWeight: 'bold', borderBottom: '2px solid rgba(160, 64, 0, 0.1)' }}>
+                                            <i className="bi bi-search" style={{ fontSize: '1.1rem', opacity: 0.5 }}></i>
+                                            Results for "{searchQuery}"
+                                            <span className="badge rounded-pill" style={{ backgroundColor: 'rgba(211,84,0,0.1)', color: 'var(--accent-orange)', fontSize: '0.75rem', fontWeight: 600 }}>
+                                                {searchedProducts.length} {searchedProducts.length === 1 ? 'item' : 'items'}
+                                            </span>
+                                        </h3>
+                                        <div className="row g-4">
+                                            {searchedProducts.map(product => (
+                                                <div className="col-md-6 col-lg-6 col-xl-4" key={product.id}>
+                                                    {/* Reuse the same card component */}
+                                                    <div className="card h-100 border-0 bg-white position-relative" style={{ borderRadius: '12px', boxShadow: '0 2px 12px rgba(0,0,0,0.03)', border: '1px solid rgba(0,0,0,0.05)', position: 'relative' }}>
+                                                        <span className="badge rounded-pill position-absolute" style={{ backgroundColor: 'rgba(160,64,0,0.08)', color: 'var(--primary-brown)', fontSize: '0.65rem', fontWeight: 600, top: '12px', right: '12px', zIndex: 1 }}>
+                                                            {product.category}
+                                                        </span>
+                                                        <div className="d-flex h-100 align-items-center p-3">
+                                                            <div style={{ width: '120px', height: '120px', flexShrink: 0, overflow: 'hidden', borderRadius: '10px' }}>
+                                                                <img src={product.imageUrl || 'https://placehold.co/300x200?text=No+Image'} alt={product.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                                                            </div>
+                                                            <div className="ms-3 d-flex flex-column h-100 justify-content-center w-100 pt-1">
+                                                                <div className="mb-1" style={{ paddingRight: '80px' }}>
+                                                                    <h5 className="mb-0" style={{ color: '#222', fontWeight: '700', fontSize: '1.05rem', lineHeight: '1.3' }}>
+                                                                        {product.category === 'Milk Shakes' && product.flavors ? product.flavors : product.name}
+                                                                    </h5>
+                                                                </div>
+                                                                <p className="text-muted mb-2" style={{ fontSize: '0.82rem', lineHeight: '1.3', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
+                                                                    {product.description}
+                                                                </p>
+                                                                <div className="d-flex justify-content-between align-items-center mt-auto pt-1">
+                                                                    <span style={{ fontSize: '0.85rem', color: 'var(--accent-orange)', fontWeight: '700' }}>
+                                                                        ₱{(product.priceSolo || product.priceALaCarte || product.price1Liter || 0).toFixed(2)}
+                                                                        {(product.priceALaCarte > 0 && product.priceSolo > 0) ? ` - ₱${product.priceALaCarte.toFixed(2)}` : ''}
+                                                                    </span>
+                                                                    <button 
+                                                                        className="btn btn-sm px-3 fw-bold rounded-pill text-nowrap"
+                                                                        style={{ backgroundColor: 'rgba(211, 84, 0, 0.08)', color: 'var(--accent-orange)', fontSize: '0.8rem', transition: 'all 0.2s ease', border: '1px solid rgba(211, 84, 0, 0.15)' }}
+                                                                        onMouseOver={(e) => { e.currentTarget.style.backgroundColor = 'var(--accent-orange)'; e.currentTarget.style.color = '#fff'; }}
+                                                                        onMouseOut={(e) => { e.currentTarget.style.backgroundColor = 'rgba(211, 84, 0, 0.08)'; e.currentTarget.style.color = 'var(--accent-orange)'; }}
+                                                                        onClick={() => handleAddToCart(product)}
+                                                                    >
+                                                                        <i className="bi bi-plus-lg me-1"></i>Add
+                                                                    </button>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
+                                )}
+
+                                {searchQuery.trim() && searchedProducts.length === 0 && (
+                                    <div className="text-center py-5 text-muted mb-4">
+                                        <i className="bi bi-search fs-1 d-block mb-3" style={{ opacity: 0.15 }}></i>
+                                        <h5>No items found for "{searchQuery}"</h5>
+                                        <p className="small">Try a different keyword or browse by category below.</p>
+                                    </div>
+                                )}
+
+                                {/* Category sections — hidden when actively searching */}
+                                {!searchQuery.trim() && categories.slice(1).map(category => {
                                     const categoryProducts = productsByCategory[category] || [];
                                     
-                                    if (categoryProducts.length === 0 && searchQuery === '') return null;
+                                    if (categoryProducts.length === 0) return null;
 
                                     return (
                                         <div key={category} id={`category-${category}`} className="mb-5 pt-2">
@@ -941,12 +1027,7 @@ const Menu = () => {
                         {/* 3. Group Meals View */}
                         {activeTab === 'Group Meals' && (
                             <div className="py-2 animate__animated animate__fadeIn">
-                                <div className="text-center mb-5">
-                                    <h3 style={{ color: 'var(--primary-brown)', fontWeight: 'bold' }}>🍃 Duyanan Group Meals</h3>
-                                    <p className="text-muted mx-auto" style={{ maxWidth: '600px' }}>
-                                        Share the love with our special family and group platter bundles. Designed to serve 4 to 10 guests.
-                                    </p>
-                                </div>
+
                                 {searchedMeals.length > 0 ? (
                                     <div className="row g-4 mb-5">
                                         {searchedMeals.map(meal => (
@@ -958,8 +1039,34 @@ const Menu = () => {
                                                             alt={meal.name} 
                                                             style={{ width: '100%', height: '100%', objectFit: 'cover' }} 
                                                         />
-                                                        <div className="position-absolute bottom-0 end-0 bg-dark text-white fw-bold px-3 py-2 m-3 rounded-3" style={{ fontSize: '1.1rem', backgroundColor: 'rgba(0,0,0,0.75)' }}>
-                                                            ₱{meal.priceSolo.toLocaleString(undefined, {minimumFractionDigits: 2})}
+                                                        <div className="position-absolute bottom-0 end-0 m-3 d-flex flex-column align-items-end" style={{ gap: 0 }}>
+                                                            {(() => {
+                                                                const d = parseGroupMealDescription(meal.description);
+                                                                return d.savings > 0 ? (
+                                                                    <div className="fw-bold px-2 py-1 text-center" style={{ 
+                                                                        fontSize: '0.7rem', 
+                                                                        backgroundColor: 'var(--accent-orange)', 
+                                                                        color: '#fff',
+                                                                        borderRadius: '6px 6px 0 0', 
+                                                                        letterSpacing: '0.02em',
+                                                                        lineHeight: 1.2,
+                                                                        minWidth: '80px'
+                                                                    }}>
+                                                                        Save ₱{d.savings}
+                                                                    </div>
+                                                                ) : null;
+                                                            })()}
+                                                            <div className="text-white fw-bold px-3 py-2 text-center" style={{ 
+                                                                fontSize: '1.1rem', 
+                                                                backgroundColor: 'var(--dark-brown)',
+                                                                borderRadius: (() => {
+                                                                    const d = parseGroupMealDescription(meal.description);
+                                                                    return d.savings > 0 ? '0 0 8px 8px' : '8px';
+                                                                })(),
+                                                                minWidth: '80px'
+                                                            }}>
+                                                                ₱{meal.priceSolo.toLocaleString(undefined, {minimumFractionDigits: 2})}
+                                                            </div>
                                                         </div>
                                                     </div>
                                                     <div className="card-body p-4 d-flex flex-column">
@@ -975,11 +1082,6 @@ const Menu = () => {
                                                                         {details.goodFor && (
                                                                             <span className="badge bg-light text-dark border px-2 py-1 rounded-pill">
                                                                                 <i className="bi bi-people-fill me-1 text-primary"></i> Good for {details.goodFor}
-                                                                            </span>
-                                                                        )}
-                                                                        {details.savings > 0 && (
-                                                                            <span className="badge bg-success-subtle text-success border border-success-subtle px-2 py-1 rounded-pill fw-bold">
-                                                                                <i className="bi bi-piggy-bank-fill me-1"></i> Save ₱{details.savings}
                                                                             </span>
                                                                         )}
                                                                     </div>

@@ -41,14 +41,30 @@ public class ReservationController {
             User user = userRepository.findByEmail(email)
                     .orElseThrow(() -> new RuntimeException("User not found"));
 
+            LocalDate reservationDate = LocalDate.parse(body.get("reservationDate"));
+            LocalTime reservationTime = LocalTime.parse(body.get("reservationTime"));
+            String guestName = body.get("guestName");
+
+            boolean duplicateExists = reservationRepository
+                    .existsByUserIdAndGuestNameAndReservationDateAndReservationTimeAndStatusNot(
+                            user.getId(), guestName, reservationDate, reservationTime, "CANCELLED"
+                    );
+
+            if (duplicateExists) {
+                return ResponseEntity.badRequest().body(Map.of(
+                        "error", "A reservation with the exact same date and time already exists for this guest!"
+                ));
+            }
+
             Reservation reservation = new Reservation();
             reservation.setUser(user);
-            reservation.setGuestName(body.get("guestName"));
+            reservation.setGuestName(guestName);
             reservation.setContactNumber(body.get("contactNumber"));
-            reservation.setReservationDate(LocalDate.parse(body.get("reservationDate")));
-            reservation.setReservationTime(LocalTime.parse(body.get("reservationTime")));
+            reservation.setReservationDate(reservationDate);
+            reservation.setReservationTime(reservationTime);
             reservation.setNumberOfGuests(Integer.valueOf(body.get("numberOfGuests")));
             reservation.setSpecialRequests(body.get("specialRequests"));
+            reservation.setSeatingType(body.get("seatingType"));
             reservation.setStatus("PENDING");
             reservation.setCreatedAt(LocalDateTime.now());
 
@@ -90,5 +106,70 @@ public class ReservationController {
         return reservationRepository.findById(id)
                 .map(ResponseEntity::ok)
                 .orElse(ResponseEntity.notFound().build());
+    }
+
+    // ── Update reservation details ───────────────────────────
+    @PutMapping("/{id}")
+    public ResponseEntity<?> updateReservation(@RequestHeader("Authorization") String authHeader,
+                                                @PathVariable Long id,
+                                                @RequestBody Map<String, String> body) {
+        try {
+            String token = authHeader.replace("Bearer ", "");
+            var claims = jwtUtil.validateToken(token);
+            String email = claims.getSubject();
+
+            User user = userRepository.findByEmail(email)
+                    .orElseThrow(() -> new RuntimeException("User not found"));
+
+            Reservation reservation = reservationRepository.findById(id)
+                    .orElseThrow(() -> new RuntimeException("Reservation not found"));
+
+            // Safety check: Make sure this reservation belongs to the logged-in user
+            if (!reservation.getUser().getId().equals(user.getId())) {
+                return ResponseEntity.status(403).body(Map.of("error", "Unauthorized access."));
+            }
+
+            // Safety check: Only allow editing if the status is PENDING
+            if (!"PENDING".equalsIgnoreCase(reservation.getStatus())) {
+                return ResponseEntity.badRequest().body(Map.of("error", "Only pending reservations can be modified."));
+            }
+
+            LocalDate reservationDate = LocalDate.parse(body.get("reservationDate"));
+            LocalTime reservationTime = LocalTime.parse(body.get("reservationTime"));
+            String guestName = body.get("guestName");
+
+            // Check if there exists another reservation with the same details (excluding this one)
+            boolean isReallyDuplicate = reservationRepository.findAll().stream()
+                    .anyMatch(r -> !r.getId().equals(id) 
+                                   && r.getUser().getId().equals(user.getId())
+                                   && r.getGuestName().equalsIgnoreCase(guestName)
+                                   && r.getReservationDate().equals(reservationDate)
+                                   && r.getReservationTime().equals(reservationTime)
+                                   && !r.getStatus().equalsIgnoreCase("CANCELLED"));
+
+            if (isReallyDuplicate) {
+                return ResponseEntity.badRequest().body(Map.of(
+                        "error", "A reservation with the exact same date and time already exists for this guest!"
+                ));
+            }
+
+            reservation.setGuestName(guestName);
+            reservation.setContactNumber(body.get("contactNumber"));
+            reservation.setReservationDate(reservationDate);
+            reservation.setReservationTime(reservationTime);
+            reservation.setNumberOfGuests(Integer.valueOf(body.get("numberOfGuests")));
+            reservation.setSpecialRequests(body.get("specialRequests"));
+            reservation.setSeatingType(body.get("seatingType"));
+
+            Reservation saved = reservationRepository.save(reservation);
+            return ResponseEntity.ok(Map.of(
+                    "message", "Reservation updated successfully!",
+                    "reservationId", saved.getId(),
+                    "status", saved.getStatus()
+            ));
+
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+        }
     }
 }

@@ -49,6 +49,21 @@ const parseGroupMealDescription = (desc) => {
     };
 };
 
+const formatTime12Hour = (timeStr) => {
+    if (!timeStr) return '';
+    try {
+        const [hoursStr, minutesStr] = timeStr.split(':');
+        let hours = parseInt(hoursStr, 10);
+        const minutes = minutesStr ? minutesStr.substring(0, 2) : '00';
+        const ampm = hours >= 12 ? 'PM' : 'AM';
+        hours = hours % 12;
+        hours = hours ? hours : 12;
+        return `${hours}:${minutes} ${ampm}`;
+    } catch (e) {
+        return timeStr;
+    }
+};
+
 const AdminPanel = () => {
     const { user, logout } = useAuth();
     const [activeTab, setActiveTab] = useState('dashboard');
@@ -804,27 +819,39 @@ const AdminPanel = () => {
                                         <table className="table table-hover align-middle mb-0">
                                             <thead style={{ backgroundColor: '#8B3A0F', color: '#fff' }}>
                                                 <tr>
-                                                    <th className="py-3 px-4 border-0">Res ID</th>
-                                                    <th className="py-3 px-4 border-0">Name</th>
-                                                    <th className="py-3 px-4 border-0">Date & Time</th>
-                                                    <th className="py-3 px-4 border-0">Guests</th>
-                                                    <th className="py-3 px-4 border-0">Status</th>
-                                                    <th className="py-3 px-4 border-0 text-end">Action</th>
+                                                    <th className="py-3 px-4 border-0 text-center">Res ID</th>
+                                                    <th className="py-3 px-4 border-0 text-center">Name</th>
+                                                    <th className="py-3 px-4 border-0 text-center">Date & Time</th>
+                                                    <th className="py-3 px-4 border-0 text-center">Guests</th>
+                                                    <th className="py-3 px-4 border-0 text-center">Seating</th>
+                                                    <th className="py-3 px-4 border-0 text-center">Status</th>
+                                                    <th className="py-3 px-4 border-0 text-center">Action</th>
                                                 </tr>
                                             </thead>
                                             <tbody>
                                                 {reservations.map(r => (
                                                     <tr key={r.id}>
-                                                        <td className="px-4 fw-bold">#{r.id}</td>
-                                                        <td className="px-4">{r.guestName}</td>
-                                                        <td className="px-4">{r.reservationDate} <span className="text-muted small">{r.reservationTime}</span></td>
-                                                        <td className="px-4">{r.numberOfGuests}</td>
-                                                        <td className="px-4">
+                                                        <td className="px-4 fw-bold text-center">#{r.id}</td>
+                                                        <td className="px-4 text-center">{r.guestName}</td>
+                                                        <td className="px-4 text-center">{r.reservationDate} <span className="text-muted small">{formatTime12Hour(r.reservationTime)}</span></td>
+                                                        <td className="px-4 text-center">{r.numberOfGuests}</td>
+                                                        <td className="px-4 text-center">
+                                                            <span className="badge rounded-pill" style={{ 
+                                                                backgroundColor: r.seatingType?.toLowerCase() === 'indoor' ? 'rgba(41, 128, 185, 0.08)' : 'rgba(39, 174, 96, 0.08)',
+                                                                color: r.seatingType?.toLowerCase() === 'indoor' ? '#2980b9' : '#27ae60',
+                                                                fontSize: '0.72rem',
+                                                                fontWeight: 600,
+                                                                padding: '4px 10px'
+                                                            }}>
+                                                                {r.seatingType ? (r.seatingType.toLowerCase() === 'indoor' ? '🏠 Indoor' : '🌿 Outdoor') : 'N/A'}
+                                                            </span>
+                                                        </td>
+                                                        <td className="px-4 text-center">
                                                             <span className={`badge rounded-pill ${r.status === 'PENDING' ? 'bg-warning text-dark' : r.status === 'CONFIRMED' ? 'bg-success' : 'bg-danger'}`}>
                                                                 {r.status}
                                                             </span>
                                                         </td>
-                                                        <td className="px-4 text-end">
+                                                        <td className="px-4 text-center">
                                                             <select className="form-select form-select-sm d-inline-block w-auto" value={r.status} onChange={(e) => handleUpdateStatus('reservations', r.id, e.target.value)}>
                                                                 <option value="PENDING">Pending</option>
                                                                 <option value="CONFIRMED">Confirm</option>

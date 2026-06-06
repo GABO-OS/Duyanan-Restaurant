@@ -6,6 +6,7 @@ import Swal from 'sweetalert2';
 import duyananBg from '../assets/img/duyanan_bg.jpg';
 import sfcImg from '../assets/img/sfc.png';
 import habhabImg from '../assets/img/habhab.jpg';
+import turonImg from '../assets/img/turon.png';
 
 const carouselSlides = [
     {
@@ -302,42 +303,88 @@ const Home = () => {
             {/* Recommended Section */}
             <section className="section-py">
                 <div className="container">
-                    <div className="frosted-section" style={{ background: 'rgba(253,251,247,0.6)', backdropFilter: 'blur(12px) saturate(140%)', WebkitBackdropFilter: 'blur(12px) saturate(140%)', border: '1px solid rgba(255,255,255,0.5)', boxShadow: '0 4px 30px rgba(0,0,0,0.06)' }}>
-                        <h2 className="text-center mb-5" style={{ color: 'var(--primary-brown)', textShadow: '0 1px 2px rgba(255,255,255,0.5)' }}>Recommended</h2>
+                    <div className="text-center mb-5">
+                        <h2 className="fw-extrabold mb-2" style={{ color: 'var(--primary-brown)', textShadow: '0 1px 2px rgba(255,255,255,0.5)', fontSize: '2.5rem', fontWeight: 800 }}>Recommended Specials</h2>
+                        <p className="text-muted mx-auto mb-0" style={{ maxWidth: '650px', fontSize: '1.05rem', lineHeight: '1.6' }}>Indulge in our selection of customer-favorite Filipino comfort food and dessert, prepared fresh daily.</p>
+                    </div>
 
-                        <div className="row g-4 d-flex align-items-stretch">
-                            {[
-                                { name: 'Sizzling Fried Chicken', price: '₱109.00', img: sfcImg },
-                                { name: 'Pancit Habhab', price: '₱250.00', img: habhabImg },
-                                { name: 'Lumpiang Turon', price: '₱50.00', img: 'https://placehold.co/400x300/brown/white?text=Turon' }
-                            ].map((item, index) => (
-                                <div className="col-md-4" key={index}>
-                                    <div className="card h-100 border-0 frosted-card">
-                                        <img src={item.img} className="card-img-top" alt={item.name} style={{ height: '250px', objectFit: 'cover' }} />
-                                        <div className="card-body text-center d-flex flex-column">
-                                            <h5 className="card-title" style={{ color: 'var(--primary-brown)', fontWeight: 'bold' }}>{item.name}</h5>
-                                            <div className="mt-auto">
-                                                <p className="card-text text-muted mb-3">
-                                                    <span style={{ color: 'var(--accent-orange)', fontWeight: 'bold', fontSize: '1.2rem' }}>{item.price}</span>
-                                                </p>
-                                                <button 
-                                                    className="btn-outline-brand w-75"
-                                                    onClick={() => handleGuestAddToCart(item.name)}
-                                                    title={!isAuthenticated ? 'Login to add items to cart' : ''}
-                                                    style={{
-                                                        opacity: isAuthenticated ? 1 : 0.75,
-                                                        cursor: isAuthenticated ? 'pointer' : 'not-allowed'
-                                                    }}
-                                                >
-                                                    {!isAuthenticated && <i className="bi bi-lock-fill me-1" style={{ fontSize: '0.8rem' }}></i>}
-                                                    Add to cart
-                                                </button>
-                                            </div>
+                    <div className="row g-4 d-flex align-items-stretch">
+                        {[
+                            { 
+                                name: 'Sizzling Fried Chicken', 
+                                price: '₱109.00', 
+                                img: sfcImg, 
+                                tag: '⭐️ Bestseller', 
+                                rating: '4.9', 
+                                reviews: '124', 
+                                desc: 'Crispy local fried chicken served sizzling on an iron hotplate with our secret savory gravy.' 
+                            },
+                            { 
+                                name: 'Pancit Habhab', 
+                                price: '₱250.00', 
+                                img: habhabImg, 
+                                tag: '🔥 Customer Choice', 
+                                rating: '4.8', 
+                                reviews: '86', 
+                                desc: 'Traditional sautéed Lucban noodles tossed with vegetables, sliced pork, and vinegar flavor.' 
+                            },
+                            { 
+                                name: 'Lumpiang Turon', 
+                                price: '₱50.00', 
+                                img: turonImg, 
+                                tag: '🍰 Sweet Delight', 
+                                rating: '5.0', 
+                                reviews: '42', 
+                                desc: 'Golden brown banana rolls filled with jackfruit, caramelized in brown sugar syrup, served warm.' 
+                            }
+                        ].map((item, index) => (
+                            <div className="col-md-4" key={index}>
+                                <div className="card h-100 border-0 frosted-card position-relative" style={{ overflow: 'hidden', borderRadius: '24px' }}>
+                                    {/* Tag Overlay */}
+                                    <span className="badge position-absolute top-0 start-0 m-3 px-3 py-2 shadow" style={{ backgroundColor: 'rgba(139, 58, 15, 0.95)', color: '#fff', fontSize: '0.75rem', fontWeight: 700, zIndex: 2, borderRadius: '50px', letterSpacing: '0.5px' }}>
+                                        {item.tag}
+                                    </span>
+                                    <div style={{ overflow: 'hidden', height: '280px' }}>
+                                        <img src={item.img} className="card-img-top w-100 h-100" alt={item.name} style={{ objectFit: 'cover' }} />
+                                    </div>
+                                    <div className="card-body text-center d-flex flex-column p-4">
+                                        <h5 className="card-title fw-bold mb-1" style={{ color: 'var(--primary-brown)', fontSize: '1.35rem' }}>{item.name}</h5>
+                                        
+                                        {/* Rating */}
+                                        <div className="d-flex justify-content-center align-items-center gap-1 mb-3 text-warning" style={{ fontSize: '0.88rem' }}>
+                                            <i className="bi bi-star-fill"></i>
+                                            <strong className="text-dark">{item.rating}</strong>
+                                            <span className="text-muted">({item.reviews} reviews)</span>
+                                        </div>
+
+                                        <p className="card-text text-muted mb-4" style={{ flexGrow: 1, minHeight: '52px', fontSize: '0.95rem', lineHeight: '1.6' }}>
+                                            {item.desc}
+                                        </p>
+
+                                        <div className="mt-auto">
+                                            <p className="card-text text-muted mb-3">
+                                                <span style={{ color: 'var(--accent-orange)', fontWeight: 800, fontSize: '1.45rem' }}>{item.price}</span>
+                                            </p>
+                                            <button 
+                                                className="btn-outline-brand w-100 shadow-sm"
+                                                onClick={() => handleGuestAddToCart(item.name)}
+                                                title={!isAuthenticated ? 'Login to add items to cart' : ''}
+                                                style={{
+                                                    opacity: isAuthenticated ? 1 : 0.85,
+                                                    cursor: isAuthenticated ? 'pointer' : 'not-allowed',
+                                                    borderRadius: '30px',
+                                                    padding: '12px 0',
+                                                    fontSize: '0.9rem'
+                                                }}
+                                            >
+                                                {!isAuthenticated && <i className="bi bi-lock-fill me-1" style={{ fontSize: '0.9rem' }}></i>}
+                                                Add to cart
+                                            </button>
                                         </div>
                                     </div>
                                 </div>
-                            ))}
-                        </div>
+                            </div>
+                        ))}
                     </div>
                 </div>
             </section>

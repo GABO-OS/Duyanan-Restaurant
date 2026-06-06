@@ -6,12 +6,37 @@ import 'bootstrap-icons/font/bootstrap-icons.css';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8080';
 
+const formatTime12Hour = (timeStr) => {
+    if (!timeStr) return '';
+    try {
+        const [hoursStr, minutesStr] = timeStr.split(':');
+        let hours = parseInt(hoursStr, 10);
+        const minutes = minutesStr ? minutesStr.substring(0, 2) : '00';
+        const ampm = hours >= 12 ? 'PM' : 'AM';
+        hours = hours % 12;
+        hours = hours ? hours : 12;
+        return `${hours}:${minutes} ${ampm}`;
+    } catch (e) {
+        return timeStr;
+    }
+};
+
 const Profile = () => {
     const [activeTab, setActiveTab] = useState('profile');
     const { user, login } = useAuth(); // We might need to update auth context if email/name changes
     
     const [myOrders, setMyOrders] = useState([]);
     const [loadingOrders, setLoadingOrders] = useState(false);
+    const [myReservations, setMyReservations] = useState([]);
+    const [loadingReservations, setLoadingReservations] = useState(false);
+    const [editingReservation, setEditingReservation] = useState(null);
+    const [editForm, setEditForm] = useState({
+        seatingType: '',
+        date: '',
+        time: '',
+        guests: '',
+        request: ''
+    });
     const [loadingProfile, setLoadingProfile] = useState(true);
     
     // Profile Edit State
@@ -124,8 +149,85 @@ const Profile = () => {
         }
     };
 
+    const fetchReservations = () => {
+        if (user?.token) {
+            setLoadingReservations(true);
+            fetch(`${API_URL}/api/reservations/my-reservations`, {
+                headers: { 'Authorization': `Bearer ${user.token}` }
+            })
+            .then(res => res.json())
+            .then(data => {
+                if (Array.isArray(data)) setMyReservations(data);
+            })
+            .catch(err => console.error("Error fetching reservations:", err))
+            .finally(() => setLoadingReservations(false));
+        }
+    };
+
+    const handleOpenEditReservation = (res) => {
+        setEditingReservation(res);
+        setEditForm({
+            seatingType: res.seatingType || '',
+            date: res.reservationDate || '',
+            time: res.reservationTime || '',
+            guests: res.numberOfGuests || '',
+            request: res.specialRequests || ''
+        });
+    };
+
+    const handleUpdateReservation = async (e) => {
+        e.preventDefault();
+        try {
+            const response = await fetch(`${API_URL}/api/reservations/${editingReservation.id}`, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${user.token}`
+                },
+                body: JSON.stringify({
+                    guestName: editingReservation.guestName,
+                    contactNumber: editingReservation.contactNumber,
+                    reservationDate: editForm.date,
+                    reservationTime: editForm.time,
+                    numberOfGuests: editForm.guests,
+                    specialRequests: editForm.request,
+                    seatingType: editForm.seatingType
+                })
+            });
+
+            const data = await response.json();
+
+            if (response.ok) {
+                Swal.fire({
+                    icon: 'success',
+                    title: 'Reservation Updated!',
+                    text: 'Your reservation details have been successfully modified.',
+                    confirmButtonColor: 'var(--primary-brown)',
+                    timer: 3000
+                });
+                setEditingReservation(null);
+                fetchReservations();
+            } else {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Update Failed',
+                    text: data.error || 'Something went wrong. Please try again.',
+                    confirmButtonColor: 'var(--primary-brown)'
+                });
+            }
+        } catch (error) {
+            Swal.fire({
+                icon: 'error',
+                title: 'Connection Error',
+                text: 'Could not connect to the server. Please check your internet.',
+                confirmButtonColor: 'var(--primary-brown)'
+            });
+        }
+    };
+
     useEffect(() => {
         if (activeTab === 'orders') fetchOrders();
+        if (activeTab === 'reservations') fetchReservations();
     }, [activeTab, user?.token]);
 
     const getStatusInfo = (status) => {
@@ -369,6 +471,131 @@ const Profile = () => {
             );
         }
 
+        if (activeTab === 'reservations') {
+            return (
+                <>
+                    <div className="mb-4 d-flex justify-content-between align-items-end">
+                        <div>
+                            <h4 className="fw-bold mb-1" style={{ color: 'var(--text-dark)' }}>My Reservations</h4>
+                            <p className="text-muted small mb-0">Track your table bookings and statuses</p>
+                        </div>
+                        <button onClick={fetchReservations} className="btn btn-sm text-white px-3 py-2 fw-bold shadow-sm" style={{ backgroundColor: 'var(--accent-orange)', borderRadius: '8px' }}>
+                            <i className="bi bi-arrow-clockwise me-1"></i> Refresh Status
+                        </button>
+                    </div>
+
+                    {loadingReservations ? (
+                        <div className="text-center py-5">
+                            <div className="spinner-border text-secondary" role="status"></div>
+                            <p className="text-muted mt-3 small">Fetching your reservations...</p>
+                        </div>
+                    ) : myReservations.length === 0 ? (
+                        <div className="card border-0 bg-white text-center py-5" style={{ borderRadius: '16px', boxShadow: '0 4px 20px rgba(0,0,0,0.05)', border: '1px solid rgba(0,0,0,0.04)' }}>
+                            <i className="bi bi-calendar-x text-muted mb-3 d-block" style={{ fontSize: '3rem', opacity: 0.3 }}></i>
+                            <h5 className="fw-bold mb-2" style={{ color: 'var(--text-dark)' }}>No reservations found</h5>
+                            <p className="text-muted small mb-4">You haven't booked any tables yet.</p>
+                            <div>
+                                <Link to="/reservations" className="btn btn-sm shadow-sm text-white" style={{ backgroundColor: 'var(--accent-orange)', borderRadius: '50px', padding: '10px 30px', fontWeight: 'bold' }}>
+                                    Book a Table
+                                </Link>
+                            </div>
+                        </div>
+                    ) : (
+                        <div className="reservations-list d-flex flex-column gap-4 animate__animated animate__fadeIn">
+                            {myReservations.map(res => {
+                                const statusColors = {
+                                    PENDING: { bg: '#fff9e6', text: '#b7791f', border: '#fdebd0' },
+                                    CONFIRMED: { bg: '#e6ffed', text: '#1e8449', border: '#d5f5e3' },
+                                    CANCELLED: { bg: '#fdf0f0', text: '#e74c3c', border: '#f5e5e5' },
+                                    COMPLETED: { bg: '#ebf5fb', text: '#2980b9', border: '#d4e6f1' }
+                                };
+                                const colors = statusColors[res.status?.toUpperCase()] || statusColors.PENDING;
+                                const dateStr = new Date(res.reservationDate + 'T00:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+                                const timeStr = formatTime12Hour(res.reservationTime);
+
+                                return (
+                                     <div key={res.id} className="card border-0 bg-white reservation-card" style={{ borderRadius: '16px', boxShadow: '0 4px 20px rgba(0,0,0,0.05)' }}>
+                                         <div className="card-header bg-transparent border-bottom-0 pt-4 pb-0 px-4 d-flex justify-content-between align-items-center">
+                                             <div>
+                                                 <h6 className="fw-bold mb-1" style={{ color: 'var(--primary-brown)', display: 'flex', alignItems: 'center' }}>
+                                                     <i className="bi bi-calendar-check-fill me-2" style={{ color: 'var(--accent-orange)' }}></i>
+                                                     Table Reservation
+                                                 </h6>
+                                                 <p className="text-muted small mb-0">
+                                                     <i className="bi bi-calendar3 me-1"></i> {dateStr} at <strong className="text-dark">{timeStr}</strong>
+                                                 </p>
+                                             </div>
+                                             <div>
+                                                 <span className="badge rounded-pill px-3 py-1.5" style={{ backgroundColor: colors.bg, color: colors.text, border: `1.5px solid ${colors.border}`, fontSize: '0.72rem', fontWeight: 700 }}>
+                                                     {res.status}
+                                                 </span>
+                                             </div>
+                                         </div>
+                                         <div className="card-body px-4 py-3">
+                                             <div className="res-info-box p-3 mt-2">
+                                                 <div className="row g-3">
+                                                     <div className="col-md-4 col-sm-6 mb-3 mb-md-0">
+                                                         <div className="res-detail-label mb-1">
+                                                             <i className="bi bi-person-fill me-1" style={{ color: 'var(--accent-orange)' }}></i> Guest Name
+                                                         </div>
+                                                         <div className="fw-bold text-dark" style={{ fontSize: '0.92rem' }}>{res.guestName}</div>
+                                                     </div>
+                                                     <div className="col-md-4 col-sm-6 mb-3 mb-md-0">
+                                                         <div className="res-detail-label mb-1">
+                                                             <i className="bi bi-people-fill me-1" style={{ color: 'var(--accent-orange)' }}></i> Party Size
+                                                         </div>
+                                                         <div className="fw-bold text-dark" style={{ fontSize: '0.92rem' }}>{res.numberOfGuests} Guests</div>
+                                                     </div>
+                                                     <div className="col-md-4 col-sm-6">
+                                                         <div className="res-detail-label mb-1">
+                                                             <i className="bi bi-geo-alt-fill me-1" style={{ color: 'var(--accent-orange)' }}></i> Seating Type
+                                                         </div>
+                                                         <div className="fw-bold" style={{ fontSize: '0.92rem' }}>
+                                                             {res.seatingType ? (
+                                                                 res.seatingType.toLowerCase() === 'indoor' ? (
+                                                                     <span className="badge px-2.5 py-1.5" style={{ backgroundColor: 'rgba(41, 128, 185, 0.08)', color: '#2980b9', borderRadius: '6px', border: '1px solid rgba(41, 128, 185, 0.15)' }}>🏠 Indoor</span>
+                                                                 ) : (
+                                                                     <span className="badge px-2.5 py-1.5" style={{ backgroundColor: 'rgba(39, 174, 96, 0.08)', color: '#27ae60', borderRadius: '6px', border: '1px solid rgba(39, 174, 96, 0.15)' }}>🌿 Outdoor</span>
+                                                                 )
+                                                             ) : (
+                                                                 <span className="badge px-2.5 py-1.5" style={{ backgroundColor: 'rgba(108, 117, 125, 0.08)', color: '#6c757d', borderRadius: '6px', border: '1px solid rgba(108, 117, 125, 0.15)' }}>N/A</span>
+                                                             )}
+                                                         </div>
+                                                     </div>
+                                                     {res.specialRequests && (
+                                                         <div className="col-12 mt-2 pt-2 border-top" style={{ borderColor: 'rgba(139, 58, 15, 0.08)' }}>
+                                                             <div className="res-detail-label mb-1">
+                                                                 <i className="bi bi-chat-text-fill me-1" style={{ color: 'var(--accent-orange)' }}></i> Special Requests
+                                                             </div>
+                                                             <div className="res-special-request-box p-3 mt-1 fw-normal text-muted" style={{ fontSize: '0.85rem', whiteSpace: 'pre-line' }}>
+                                                                 {res.specialRequests}
+                                                             </div>
+                                                         </div>
+                                                     )}
+                                                 </div>
+                                             </div>
+ 
+                                             {res.status === 'PENDING' && (
+                                                 <div className="d-flex justify-content-end mt-3">
+                                                     <button 
+                                                         onClick={() => handleOpenEditReservation(res)} 
+                                                         className="btn btn-sm btn-edit-reservation text-white px-3 py-2 fw-bold shadow-sm" 
+                                                         style={{ fontSize: '0.85rem' }}
+                                                     >
+                                                         <i className="bi bi-pencil-square me-1"></i> Edit Details
+                                                     </button>
+                                                 </div>
+                                             )}
+                                         </div>
+                                     </div>
+                                );
+                            })}
+                        </div>
+                    )}
+                </>
+            );
+        }
+
         return (
             <div className="card border-0 bg-white text-center py-5" style={{ borderRadius: '16px', boxShadow: '0 4px 20px rgba(0,0,0,0.05)' }}>
                 <i className="bi bi-tools text-muted mb-3 d-block" style={{ fontSize: '3rem', opacity: 0.3 }}></i>
@@ -380,10 +607,7 @@ const Profile = () => {
 
     return (
         <div className="container" style={{ marginTop: 'calc(var(--nav-height) + 40px)', marginBottom: '60px', minHeight: '60vh' }}>
-            <div className="mb-4 d-flex align-items-center">
-                <Link to="/" className="text-decoration-none me-2" style={{ color: 'var(--text-dark)' }}>
-                    <i className="bi bi-arrow-left fs-5"></i>
-                </Link>
+            <div className="mb-4">
                 <h3 className="fw-bold mb-0" style={{ color: 'var(--text-dark)' }}>Account Management</h3>
             </div>
 
@@ -454,6 +678,9 @@ const Profile = () => {
                         <button className={`profile-sidebar-btn ${activeTab === 'orders' ? 'active' : ''}`} onClick={() => setActiveTab('orders')}>
                             <i className="bi bi-receipt"></i> My Orders
                         </button>
+                        <button className={`profile-sidebar-btn ${activeTab === 'reservations' ? 'active' : ''}`} onClick={() => setActiveTab('reservations')}>
+                            <i className="bi bi-calendar-event"></i> My Reservations
+                        </button>
                     </div>
 
                     <div className="sidebar-heading">Settings</div>
@@ -482,6 +709,44 @@ const Profile = () => {
                         .fade-in-content {
                             animation: slideFadeIn 0.3s cubic-bezier(0.4, 0, 0.2, 1) forwards;
                         }
+                        .reservation-card {
+                            transition: transform 0.25s ease, box-shadow 0.25s ease, border-color 0.25s ease;
+                            border: 1px solid rgba(0,0,0,0.04) !important;
+                        }
+                        .reservation-card:hover {
+                            transform: translateY(-3px);
+                            box-shadow: 0 12px 30px rgba(139, 58, 15, 0.08) !important;
+                            border-color: rgba(139, 58, 15, 0.15) !important;
+                        }
+                        .res-info-box {
+                            background: linear-gradient(135deg, rgba(253, 251, 247, 0.9), rgba(245, 237, 226, 0.75)) !important;
+                            border: 1.5px solid rgba(139, 58, 15, 0.07) !important;
+                            border-radius: 12px;
+                        }
+                        .res-detail-label {
+                            font-size: 0.72rem;
+                            font-weight: 700;
+                            letter-spacing: 0.6px;
+                            text-transform: uppercase;
+                            color: #8b624b !important;
+                        }
+                        .btn-edit-reservation {
+                            background-color: var(--accent-orange) !important;
+                            border: none !important;
+                            border-radius: 8px !important;
+                            transition: background-color 0.2s ease, transform 0.2s ease, box-shadow 0.2s ease !important;
+                        }
+                        .btn-edit-reservation:hover {
+                            background-color: #d35400 !important;
+                            transform: translateY(-1px);
+                            box-shadow: 0 4px 12px rgba(211, 84, 0, 0.25) !important;
+                        }
+                        .res-special-request-box {
+                            background-color: #ffffff;
+                            border: 1px solid rgba(139, 58, 15, 0.08);
+                            border-left: 3.5px solid var(--accent-orange) !important;
+                            border-radius: 6px;
+                        }
                         `}
                     </style>
                     <div className="fade-in-content" key={activeTab}>
@@ -489,6 +754,155 @@ const Profile = () => {
                     </div>
                 </div>
             </div>
+
+            {/* Editing modal */}
+            {editingReservation && (
+                <div
+                    className="modal show d-block animate__animated animate__fadeIn animate__faster"
+                    tabIndex="-1"
+                    style={{ backgroundColor: 'rgba(0,0,0,0.55)', backdropFilter: 'blur(6px)', zIndex: 1070 }}
+                    onClick={(e) => { if (e.target === e.currentTarget) setEditingReservation(null); }}
+                >
+                    <div className="modal-dialog modal-dialog-centered modal-dialog-scrollable">
+                        <div
+                            className="modal-content border-0"
+                            style={{
+                                borderRadius: '24px',
+                                overflow: 'hidden',
+                                background: 'rgba(253, 251, 247, 0.95)',
+                                backdropFilter: 'blur(24px)',
+                                border: '1px solid rgba(255,255,255,0.5)',
+                                boxShadow: '0 16px 64px rgba(0,0,0,0.3)'
+                            }}
+                        >
+                            {/* Header */}
+                            <div
+                                className="modal-header border-0"
+                                style={{
+                                    background: 'linear-gradient(135deg, var(--accent-orange), var(--dark-brown))',
+                                    padding: '20px 24px'
+                                }}
+                            >
+                                <h5
+                                    className="modal-title w-100 text-center mb-0"
+                                    style={{ color: '#fff', fontWeight: 800, fontSize: '1.25rem', letterSpacing: '0.02em', textShadow: '0 1px 4px rgba(0,0,0,0.3)' }}
+                                >
+                                    ✏️ Edit Reservation
+                                </h5>
+                                <button
+                                    type="button"
+                                    onClick={() => setEditingReservation(null)}
+                                    style={{
+                                        background: 'rgba(255,255,255,0.2)',
+                                        border: '1px solid rgba(255,255,255,0.4)',
+                                        borderRadius: '50%',
+                                        width: '32px',
+                                        height: '32px',
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        justifyContent: 'center',
+                                        color: '#fff',
+                                        fontSize: '1.1rem',
+                                        cursor: 'pointer',
+                                        flexShrink: 0,
+                                        transition: 'background 0.2s'
+                                    }}
+                                >
+                                    ✕
+                                </button>
+                            </div>
+
+                            {/* Body */}
+                            <div className="modal-body" style={{ padding: '24px' }}>
+                                <form onSubmit={handleUpdateReservation}>
+                                    {/* Seating Type */}
+                                    <div className="mb-3">
+                                        <label className="form-label small fw-bold" style={{ color: 'var(--primary-brown)' }}>Seating Type</label>
+                                        <select
+                                            name="seatingType"
+                                            value={editForm.seatingType}
+                                            onChange={(e) => setEditForm({ ...editForm, seatingType: e.target.value })}
+                                            required
+                                            className="form-select bg-white"
+                                            style={{ borderRadius: '8px', border: '1.5px solid rgba(160, 64, 0, 0.3)' }}
+                                        >
+                                            <option value="">Select Option</option>
+                                            <option value="indoor">Indoor 🏠</option>
+                                            <option value="outdoor">Outdoor 🌿</option>
+                                        </select>
+                                    </div>
+
+                                    {/* Date & Time */}
+                                    <div className="row g-3 mb-3">
+                                        <div className="col-6">
+                                            <label className="form-label small fw-bold" style={{ color: 'var(--primary-brown)' }}>Date</label>
+                                            <input
+                                                type="date"
+                                                name="date"
+                                                value={editForm.date}
+                                                onChange={(e) => setEditForm({ ...editForm, date: e.target.value })}
+                                                required
+                                                className="form-control bg-white"
+                                                style={{ borderRadius: '8px', border: '1.5px solid rgba(160, 64, 0, 0.3)' }}
+                                            />
+                                        </div>
+                                        <div className="col-6">
+                                            <label className="form-label small fw-bold" style={{ color: 'var(--primary-brown)' }}>Time</label>
+                                            <input
+                                                type="time"
+                                                name="time"
+                                                value={editForm.time}
+                                                onChange={(e) => setEditForm({ ...editForm, time: e.target.value })}
+                                                required
+                                                className="form-control bg-white"
+                                                style={{ borderRadius: '8px', border: '1.5px solid rgba(160, 64, 0, 0.3)' }}
+                                            />
+                                        </div>
+                                    </div>
+
+                                    {/* Guests */}
+                                    <div className="mb-3">
+                                        <label className="form-label small fw-bold" style={{ color: 'var(--primary-brown)' }}>Number of Guests</label>
+                                        <input
+                                            type="number"
+                                            name="guests"
+                                            value={editForm.guests}
+                                            onChange={(e) => setEditForm({ ...editForm, guests: e.target.value })}
+                                            required
+                                            min="1"
+                                            className="form-control bg-white"
+                                            style={{ borderRadius: '8px', border: '1.5px solid rgba(160, 64, 0, 0.3)' }}
+                                        />
+                                    </div>
+
+                                    {/* Special Request */}
+                                    <div className="mb-4">
+                                        <label className="form-label small fw-bold" style={{ color: 'var(--primary-brown)' }}>Special Request (optional)</label>
+                                        <textarea
+                                            name="request"
+                                            value={editForm.request}
+                                            onChange={(e) => setEditForm({ ...editForm, request: e.target.value })}
+                                            rows="3"
+                                            className="form-control bg-white"
+                                            style={{ borderRadius: '8px', border: '1.5px solid rgba(160, 64, 0, 0.3)', resize: 'none' }}
+                                        ></textarea>
+                                    </div>
+
+                                    {/* Submit */}
+                                    <div className="d-flex gap-2">
+                                        <button type="button" className="btn btn-light w-50 fw-bold" onClick={() => setEditingReservation(null)} style={{ borderRadius: '10px' }}>
+                                            Cancel
+                                        </button>
+                                        <button type="submit" className="btn text-white w-50 fw-bold" style={{ backgroundColor: 'var(--accent-orange)', borderRadius: '10px' }}>
+                                            Save Changes
+                                        </button>
+                                    </div>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 };
