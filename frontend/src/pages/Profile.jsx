@@ -225,6 +225,57 @@ const Profile = () => {
         }
     };
 
+    const handleCancelReservation = async (resId) => {
+        const result = await Swal.fire({
+            title: 'Cancel Reservation?',
+            text: 'Are you sure you want to cancel this reservation? This action cannot be undone.',
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#e74c3c',
+            cancelButtonColor: '#6c757d',
+            confirmButtonText: 'Yes, cancel it',
+            cancelButtonText: 'Keep it'
+        });
+
+        if (result.isConfirmed) {
+            try {
+                const response = await fetch(`${API_URL}/api/reservations/${resId}/cancel`, {
+                    method: 'PUT',
+                    headers: {
+                        'Authorization': `Bearer ${user.token}`
+                    }
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'Reservation Cancelled',
+                        text: 'Your reservation has been successfully cancelled.',
+                        confirmButtonColor: 'var(--primary-brown)',
+                        timer: 3000
+                    });
+                    fetchReservations();
+                } else {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Cancellation Failed',
+                        text: data.error || 'Something went wrong. Please try again.',
+                        confirmButtonColor: 'var(--primary-brown)'
+                    });
+                }
+            } catch (error) {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Connection Error',
+                    text: 'Could not connect to the server. Please check your internet.',
+                    confirmButtonColor: 'var(--primary-brown)'
+                });
+            }
+        }
+    };
+
     useEffect(() => {
         if (activeTab === 'orders') fetchOrders();
         if (activeTab === 'reservations') fetchReservations();
@@ -362,7 +413,6 @@ const Profile = () => {
                                     <div key={order.id} className="card border-0 bg-white" style={{ borderRadius: '16px', boxShadow: '0 4px 20px rgba(0,0,0,0.05)', border: '1px solid rgba(0,0,0,0.04)' }}>
                                         <div className="card-header bg-transparent border-bottom-0 pt-4 pb-0 px-4 d-flex justify-content-between align-items-center">
                                             <div>
-                                                <h6 className="fw-bold mb-1" style={{ color: 'var(--primary-brown)' }}>Order #{order.id}</h6>
                                                 <p className="text-muted small mb-0"><i className="bi bi-calendar3 me-1"></i> {dateStr}</p>
                                             </div>
                                             <div className="text-end">
@@ -576,7 +626,14 @@ const Profile = () => {
                                              </div>
  
                                              {res.status === 'PENDING' && (
-                                                 <div className="d-flex justify-content-end mt-3">
+                                                 <div className="d-flex justify-content-end mt-3 gap-2">
+                                                     <button 
+                                                         onClick={() => handleCancelReservation(res.id)} 
+                                                         className="btn btn-sm px-3 py-2 fw-bold shadow-sm" 
+                                                         style={{ fontSize: '0.85rem', backgroundColor: '#fdf0f0', color: '#e74c3c', border: '1.5px solid #f5c6cb', borderRadius: '8px' }}
+                                                     >
+                                                         <i className="bi bi-x-circle me-1"></i> Cancel
+                                                     </button>
                                                      <button 
                                                          onClick={() => handleOpenEditReservation(res)} 
                                                          className="btn btn-sm btn-edit-reservation text-white px-3 py-2 fw-bold shadow-sm" 

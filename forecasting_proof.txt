@@ -1,0 +1,116 @@
+DUYANAN RESTAURANT - PROJECTED REVENUE PROOF OF CALCULATION (HOLT-WINTERS)
+==========================================================================
+Date: 2026-06-08
+Calculated Stat: Projected Revenue (Next Month)
+Displayed Value: ₱329,749.56
+
+This document provides the mathematical proof and complete details of
+the calculations used to derive the Projected Revenue (Next Month)
+value shown in the Administrator Dashboard's Forecasting tab.
+
+Source File: frontend/src/pages/AdminPanel.jsx
+
+
+1. METHODOLOGY & DATA SOURCES
+------------------------------
+The Projected Revenue (Next Month) is calculated dynamically using the
+Holt-Winters Additive Method (Triple Exponential Smoothing).
+
+Instead of applying a single flat growth percentage to the daily average,
+the Holt-Winters algorithm forecasts the sales for each of the next 30 days
+individually, incorporating trend and weekly seasonality.
+
+The final Projected Revenue is the sum of these 30 individual daily forecasts:
+
+   Projected Revenue = Sum(Forecast Day 1 to 30)
+
+
+2. HOLT-WINTERS PARAMETERS & DATA SOURCES
+-------------------------------------------
+- History: 14 days of combined baseline and real sales.
+- Seasonality Period: p = 7 days (weekly cycle).
+- Smoothing parameters:
+  - Alpha (Level):    0.2
+  - Beta (Trend):     0.1
+  - Gamma (Seasonal): 0.3
+
+
+3. DATA BREAKDOWN & SMOOTHING STEPS
+------------------------------------
+
+A. 14-Day Input Data:
+   Week 1:
+   - Tue, May 26: ₱6,800.00
+   - Wed, May 27: ₱7,200.00
+   - Thu, May 28: ₱6,500.00
+   - Fri, May 29: ₱8,900.00
+   - Sat, May 30: ₱11,500.00
+   - Sun, May 31: ₱12,800.00
+   - Mon, Jun 1:  ₱10,200.00
+   -------------------------
+   Week 1 Total = ₱63,900.00 (Mean = ₱9,128.57)
+
+   Week 2:
+   - Tue, Jun 2:  ₱7,000.00
+   - Wed, Jun 3:  ₱7,500.00
+   - Thu, Jun 4:  ₱7,025.00 (Baseline ₱6,800.00 + real MySQL order ₱225.00)
+   - Fri, Jun 5:  ₱9,200.00
+   - Sat, Jun 6:  ₱12,000.00
+   - Sun, Jun 7:  ₱13,500.00
+   - Mon, Jun 8:  ₱11,000.00
+   -------------------------
+   Week 2 Total = ₱67,225.00
+
+B. Initialization (at index 6, Jun 1):
+   - Initial Level (L_6) = Mean of Week 1 = ₱9,128.57
+   - Initial Trend (T_6) = (Week 2 Total - Week 1 Total) / 49 = ₱67.86
+   - Initial Seasonals:
+     - Tue: -₱2,328.57
+     - Wed: -₱1,928.57
+     - Thu: -₱2,628.57
+     - Fri: -₱228.57
+     - Sat: +₱2,371.43
+     - Sun: +₱3,671.43
+     - Mon: +₱1,071.43
+
+C. Updates through Week 2:
+   Level and Trend update at each step t = 7 to 13.
+   At the final historical day (t = 13, Jun 8):
+   - Final Level (L_13): ₱9,810.50
+   - Final Trend (T_13): ₱83.60
+   - Updated Seasonals:
+     - Tue: -₱2,296.86
+     - Wed: -₱1,896.12
+     - Thu: -₱2,566.18
+     - Fri: -₱251.47
+     - Sat: +₱2,382.75
+     - Sun: +₱3,709.90
+     - Mon: +₱1,106.85
+
+
+4. FORECAST CALCULATION FOR THE NEXT 30 DAYS
+----------------------------------------------
+For each day m from 1 to 30:
+   Forecast(13 + m) = L_13 + m * T_13 + Seasonal_Factor(m)
+
+- Day 1 (Tue, Jun 9):   9,810.50 + 1 * 83.60 - 2,296.86 = ₱7,597.24
+- Day 2 (Wed, Jun 10):  9,810.50 + 2 * 83.60 - 1,896.12 = ₱8,081.57
+- Day 3 (Thu, Jun 11):  9,810.50 + 3 * 83.60 - 2,566.18 = ₱7,495.11
+- Day 4 (Fri, Jun 12):  9,810.50 + 4 * 83.60 - 251.47 = ₱9,893.41
+- Day 5 (Sat, Jun 13):  9,810.50 + 5 * 83.60 + 2,382.75 = ₱12,611.23
+- Day 6 (Sun, Jun 14):  9,810.50 + 6 * 83.60 + 3,709.90 = ₱14,021.97
+- Day 7 (Mon, Jun 15):  9,810.50 + 7 * 83.60 + 1,106.85 = ₱11,502.52
+...
+- Day 30 (Wed, Jul 8):  9,810.50 + 30 * 83.60 - 1,896.12 = ₱10,422.38
+
+Sum of all 30 days = ₱329,749.56 (Projected Revenue)
+
+
+5. DYNAMIC GROWTH/TREND CARD SUBTITLE
+---------------------------------------
+- Average Historical Daily Sales = ₱131,125.00 / 14 = ₱9,366.07
+- Average Projected Daily Sales  = ₱329,749.56 / 30 = ₱10,991.65
+- Trend Growth Rate = (10,991.65 - 9,366.07) / 9,366.07 = +17.36% (Bounded and formatted as "+17%")
+
+
+This mathematically proves the Projected Revenue of ₱329,749.56 displayed on the Forecasting tab.

@@ -172,4 +172,43 @@ public class ReservationController {
             return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
         }
     }
+
+    // ── Cancel a pending reservation ─────────────────────────
+    @PutMapping("/{id}/cancel")
+    public ResponseEntity<?> cancelReservation(@RequestHeader("Authorization") String authHeader,
+                                                @PathVariable Long id) {
+        try {
+            String token = authHeader.replace("Bearer ", "");
+            var claims = jwtUtil.validateToken(token);
+            String email = claims.getSubject();
+
+            User user = userRepository.findByEmail(email)
+                    .orElseThrow(() -> new RuntimeException("User not found"));
+
+            Reservation reservation = reservationRepository.findById(id)
+                    .orElseThrow(() -> new RuntimeException("Reservation not found"));
+
+            // Safety check: Make sure this reservation belongs to the logged-in user
+            if (!reservation.getUser().getId().equals(user.getId())) {
+                return ResponseEntity.status(403).body(Map.of("error", "Unauthorized access."));
+            }
+
+            // Safety check: Only allow cancelling if the status is PENDING
+            if (!"PENDING".equalsIgnoreCase(reservation.getStatus())) {
+                return ResponseEntity.badRequest().body(Map.of("error", "Only pending reservations can be cancelled."));
+            }
+
+            reservation.setStatus("CANCELLED");
+            reservationRepository.save(reservation);
+
+            return ResponseEntity.ok(Map.of(
+                    "message", "Reservation cancelled successfully.",
+                    "reservationId", reservation.getId(),
+                    "status", reservation.getStatus()
+            ));
+
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+        }
+    }
 }

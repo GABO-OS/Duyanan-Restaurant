@@ -419,35 +419,83 @@ const AdminPanel = () => {
         topCategory = 'Sizzling Meals'; // reasonable default
     }
 
-    // Forecasting: Calculate trend growth factor comparing Week 2 vs Week 1
-    const week1Sales = dailySalesData.slice(0, 7).reduce((sum, d) => sum + d.sales, 0);
-    const week2Sales = dailySalesData.slice(7, 14).reduce((sum, d) => sum + d.sales, 0);
-    const rawGrowthRate = week1Sales > 0 ? (week2Sales - week1Sales) / week1Sales : 0.05;
-    const boundedGrowthRate = Math.max(-0.2, Math.min(0.4, rawGrowthRate));
-    const growthPercentString = `${boundedGrowthRate >= 0 ? '+' : ''}${(boundedGrowthRate * 100).toFixed(0)}%`;
+    // ── Holt-Winters (Triple Exponential Smoothing) Forecasting ──
+    const historySales = dailySalesData.map(d => d.sales);
+    const hwPeriod = 7;
+    const hwAlpha = 0.2; // Level smoothing factor
+    const hwBeta = 0.1;  // Trend smoothing factor
+    const hwGamma = 0.3; // Seasonal smoothing factor
 
-    // Project next 7 days
-    const projectedSalesData = [];
-    for (let i = 1; i <= 7; i++) {
-        const d = new Date();
-        d.setDate(today.getDate() + i);
-        d.setHours(0, 0, 0, 0);
-        
-        const prevDayData = dailySalesData[14 - 7 + (i - 1) % 7];
-        const projectedSales = prevDayData.sales * (1 + boundedGrowthRate);
-        
-        projectedSalesData.push({
-            date: d,
-            label: d.toLocaleDateString(undefined, { month: 'short', day: 'numeric' }),
-            dayOfWeek: d.toLocaleDateString(undefined, { weekday: 'short' }),
-            sales: projectedSales,
-            realSales: 0,
-            orderCount: 0,
-            isForecast: true
-        });
+    // 1. Initialize level (average of first cycle)
+    let initialLevel = 0;
+    for (let i = 0; i < hwPeriod; i++) {
+        initialLevel += historySales[i];
+    }
+    initialLevel = initialLevel / hwPeriod;
+
+    // 2. Initialize trend (average difference between week 2 and week 1)
+    let initialTrend = 0;
+    for (let i = 0; i < hwPeriod; i++) {
+        initialTrend += (historySales[i + hwPeriod] - historySales[i]) / hwPeriod;
+    }
+    initialTrend = initialTrend / hwPeriod;
+
+    // 3. Initialize seasonal factors for the first week
+    const seasonalFactors = [];
+    for (let i = 0; i < hwPeriod; i++) {
+        seasonalFactors.push(historySales[i] - initialLevel);
     }
 
-    const projectedRevenueNextMonth = liveAvgDailySales * 30 * (1 + boundedGrowthRate);
+    // 4. Update Level, Trend, and Seasonal index through second week (t = 7 to 13)
+    let hwLevel = initialLevel;
+    let hwTrend = initialTrend;
+    for (let t = hwPeriod; t < historySales.length; t++) {
+        const y = historySales[t];
+        const prevLevel = hwLevel;
+        const prevTrend = hwTrend;
+        const sIdx = t % hwPeriod;
+        const prevSeasonal = seasonalFactors[sIdx];
+
+        hwLevel = hwAlpha * (y - prevSeasonal) + (1 - hwAlpha) * (prevLevel + prevTrend);
+        hwTrend = hwBeta * (hwLevel - prevLevel) + (1 - hwBeta) * prevTrend;
+        seasonalFactors[sIdx] = hwGamma * (y - hwLevel) + (1 - hwGamma) * prevSeasonal;
+    }
+
+    // 5. Project next 30 days
+    const projectedSalesData = [];
+    let hwProjectedRevenueNextMonth = 0;
+
+    for (let m = 1; m <= 30; m++) {
+        const sIdx = (historySales.length + m - 1) % hwPeriod;
+        const forecastVal = Math.max(0, hwLevel + m * hwTrend + seasonalFactors[sIdx]);
+        
+        hwProjectedRevenueNextMonth += forecastVal;
+
+        if (m <= 7) {
+            const d = new Date();
+            d.setDate(today.getDate() + m);
+            d.setHours(0, 0, 0, 0);
+
+            projectedSalesData.push({
+                date: d,
+                label: d.toLocaleDateString(undefined, { month: 'short', day: 'numeric' }),
+                dayOfWeek: d.toLocaleDateString(undefined, { weekday: 'short' }),
+                sales: forecastVal,
+                realSales: 0,
+                orderCount: 0,
+                isForecast: true
+            });
+        }
+    }
+
+    const projectedRevenueNextMonth = hwProjectedRevenueNextMonth;
+
+    // Calculate Holt-Winters trend/growth rate relative to historical average daily sales
+    const avgHistoricalSales = historySales.reduce((sum, val) => sum + val, 0) / historySales.length;
+    const avgProjectedSales = hwProjectedRevenueNextMonth / 30;
+    const hwGrowthRate = avgHistoricalSales > 0 ? (avgProjectedSales - avgHistoricalSales) / avgHistoricalSales : 0;
+    const boundedGrowthRate = Math.max(-0.5, Math.min(1.0, hwGrowthRate));
+    const growthPercentString = `${boundedGrowthRate >= 0 ? '+' : ''}${(boundedGrowthRate * 100).toFixed(0)}%`;
 
     // Busiest Day of week
     let busiestDay = 'Saturday';
@@ -771,7 +819,6 @@ const AdminPanel = () => {
                                                         </td>
                                                         <td className="px-4 text-center">
                                                             <div className="bg-light p-2 rounded mx-auto text-start" style={{ fontSize: '0.8rem', width: 'max-content' }}>
-                                                                <div className="fw-bold mb-1">Items:</div>
                                                                 {o.items?.map((item, idx) => (
                                                                     <div key={idx} className="text-truncate" style={{ maxWidth: '200px' }} title={`${item.quantity}x ${item.product?.name} ${item.variant ? `(${item.variant})` : ''}`}>
                                                                         {item.quantity}x {item.product?.name} {item.variant ? <span className="fst-italic text-primary">({item.variant})</span> : ''}
