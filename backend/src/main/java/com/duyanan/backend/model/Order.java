@@ -1,5 +1,6 @@
 package com.duyanan.backend.model;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import jakarta.persistence.*;
 import lombok.Data;
 
@@ -33,4 +34,8 @@ public class Order {
     private LocalDateTime orderDate = LocalDateTime.now();
 
     private String notes;
+
+    @OneToOne(mappedBy = "order", cascade = CascadeType.ALL, fetch = FetchType.EAGER)
+    @JsonIgnoreProperties("order")
+    private Feedback feedback;
 }

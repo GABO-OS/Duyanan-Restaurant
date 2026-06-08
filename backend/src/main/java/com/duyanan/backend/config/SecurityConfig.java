@@ -43,6 +43,7 @@ public class SecurityConfig {
                         // Authenticated endpoints (orders & reservations)
                         .requestMatchers("/api/orders/**").authenticated()
                         .requestMatchers("/api/reservations/**").authenticated()
+                        .requestMatchers("/api/feedback/**").authenticated()
                         // Everything else requires authentication
                         .anyRequest().authenticated()
                 )

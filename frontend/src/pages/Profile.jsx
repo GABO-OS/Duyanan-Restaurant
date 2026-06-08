@@ -39,6 +39,12 @@ const Profile = () => {
     });
     const [loadingProfile, setLoadingProfile] = useState(true);
     
+    // Feedback/Review State
+    const [selectedOrderForFeedback, setSelectedOrderForFeedback] = useState(null);
+    const [feedbackRating, setFeedbackRating] = useState(5);
+    const [feedbackComment, setFeedbackComment] = useState('');
+    const [submittingFeedback, setSubmittingFeedback] = useState(false);
+    
     // Profile Edit State
     const [isEditing, setIsEditing] = useState(false);
     const [profileData, setProfileData] = useState({
@@ -276,6 +282,63 @@ const Profile = () => {
         }
     };
 
+    const handleOpenFeedbackModal = (order) => {
+        setSelectedOrderForFeedback(order);
+        setFeedbackRating(5);
+        setFeedbackComment('');
+    };
+
+    const handleSubmitFeedback = async (e) => {
+        e.preventDefault();
+        if (!selectedOrderForFeedback) return;
+        
+        setSubmittingFeedback(true);
+        try {
+            const response = await fetch(`${API_URL}/api/feedback`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${user.token}`
+                },
+                body: JSON.stringify({
+                    orderId: selectedOrderForFeedback.id,
+                    rating: feedbackRating,
+                    comment: feedbackComment
+                })
+            });
+
+            const data = await response.json();
+
+            if (response.ok) {
+                Swal.fire({
+                    icon: 'success',
+                    title: 'Feedback Submitted!',
+                    text: 'Thank you for your feedback!',
+                    confirmButtonColor: 'var(--primary-brown)',
+                    timer: 3000
+                });
+                setSelectedOrderForFeedback(null);
+                fetchOrders(); // Refresh order list to reflect the new feedback!
+            } else {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Submission Failed',
+                    text: data.error || 'Something went wrong.',
+                    confirmButtonColor: 'var(--primary-brown)'
+                });
+            }
+        } catch (err) {
+            Swal.fire({
+                icon: 'error',
+                title: 'Connection Error',
+                text: 'Could not connect to the server.',
+                confirmButtonColor: 'var(--primary-brown)'
+            });
+        } finally {
+            setSubmittingFeedback(false);
+        }
+    };
+
     useEffect(() => {
         if (activeTab === 'orders') fetchOrders();
         if (activeTab === 'reservations') fetchReservations();
@@ -450,6 +513,38 @@ const Profile = () => {
                                                     </div>
                                                 )}
                                             </div>
+
+                                            {order.status === 'COMPLETED' && (
+                                                <div className="mt-3 pt-3 border-top d-flex justify-content-between align-items-center">
+                                                    {order.feedback ? (
+                                                        <div className="small">
+                                                            <span className="text-muted fw-bold me-2">Your Review:</span>
+                                                            <span className="text-warning">
+                                                                {Array.from({ length: order.feedback.rating }).map((_, i) => (
+                                                                    <i key={i} className="bi bi-star-fill me-1"></i>
+                                                                ))}
+                                                                {Array.from({ length: 5 - order.feedback.rating }).map((_, i) => (
+                                                                    <i key={i} className="bi bi-star me-1"></i>
+                                                                ))}
+                                                            </span>
+                                                            {order.feedback.comment && (
+                                                                <p className="text-muted mb-0 mt-1 fst-italic">"{order.feedback.comment}"</p>
+                                                            )}
+                                                        </div>
+                                                    ) : (
+                                                        <>
+                                                            <span className="text-muted small"><i className="bi bi-chat-left-heart me-1"></i>How was your food?</span>
+                                                            <button 
+                                                                onClick={() => handleOpenFeedbackModal(order)} 
+                                                                className="btn btn-sm text-white px-3 fw-bold shadow-sm" 
+                                                                style={{ backgroundColor: 'var(--primary-brown)', borderRadius: '8px', fontSize: '0.8rem' }}
+                                                            >
+                                                                Leave Feedback
+                                                            </button>
+                                                        </>
+                                                    )}
+                                                </div>
+                                            )}
                                         </div>
                                     </div>
                                 );
@@ -952,6 +1047,117 @@ const Profile = () => {
                                         </button>
                                         <button type="submit" className="btn text-white w-50 fw-bold" style={{ backgroundColor: 'var(--accent-orange)', borderRadius: '10px' }}>
                                             Save Changes
+                                        </button>
+                                    </div>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Feedback Modal */}
+            {selectedOrderForFeedback && (
+                <div
+                    className="modal show d-block animate__animated animate__fadeIn animate__faster"
+                    tabIndex="-1"
+                    style={{ backgroundColor: 'rgba(0,0,0,0.55)', backdropFilter: 'blur(6px)', zIndex: 1070 }}
+                    onClick={(e) => { if (e.target === e.currentTarget) setSelectedOrderForFeedback(null); }}
+                >
+                    <div className="modal-dialog modal-dialog-centered modal-dialog-scrollable">
+                        <div
+                            className="modal-content border-0"
+                            style={{
+                                borderRadius: '24px',
+                                overflow: 'hidden',
+                                background: 'rgba(253, 251, 247, 0.95)',
+                                backdropFilter: 'blur(24px)',
+                                border: '1px solid rgba(255,255,255,0.5)',
+                                boxShadow: '0 16px 64px rgba(0,0,0,0.3)'
+                            }}
+                        >
+                            {/* Header */}
+                            <div
+                                className="modal-header border-0"
+                                style={{
+                                    background: 'linear-gradient(135deg, var(--accent-orange), var(--dark-brown))',
+                                    padding: '20px 24px'
+                                }}
+                            >
+                                <h5
+                                    className="modal-title w-100 text-center mb-0"
+                                    style={{ color: '#fff', fontWeight: 800, fontSize: '1.25rem', letterSpacing: '0.02em', textShadow: '0 1px 4px rgba(0,0,0,0.3)' }}
+                                >
+                                    ⭐ Leave Order Feedback
+                                </h5>
+                                <button
+                                    type="button"
+                                    onClick={() => setSelectedOrderForFeedback(null)}
+                                    style={{
+                                        background: 'rgba(255,255,255,0.2)',
+                                        border: '1px solid rgba(255,255,255,0.4)',
+                                        borderRadius: '50%',
+                                        width: '32px',
+                                        height: '32px',
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        justifyContent: 'center',
+                                        color: '#fff',
+                                        fontSize: '1.1rem',
+                                        cursor: 'pointer',
+                                        flexShrink: 0,
+                                        transition: 'background 0.2s'
+                                    }}
+                                >
+                                    ✕
+                                </button>
+                            </div>
+
+                            {/* Body */}
+                            <div className="modal-body" style={{ padding: '24px' }}>
+                                <form onSubmit={handleSubmitFeedback}>
+                                    <div className="text-center mb-4">
+                                        <p className="text-muted small mb-3">How would you rate your order from {new Date(selectedOrderForFeedback.orderDate).toLocaleDateString()}?</p>
+                                        <div className="d-flex justify-content-center gap-2">
+                                            {[1, 2, 3, 4, 5].map((starVal) => (
+                                                <i
+                                                    key={starVal}
+                                                    className={`bi ${feedbackRating >= starVal ? 'bi-star-fill text-warning' : 'bi-star text-secondary'} fs-1`}
+                                                    style={{ cursor: 'pointer', transition: 'all 0.15s ease' }}
+                                                    onClick={() => setFeedbackRating(starVal)}
+                                                ></i>
+                                            ))}
+                                        </div>
+                                        <span className="badge mt-2 bg-light text-dark border fw-bold">
+                                            {feedbackRating === 1 ? 'Terrible 😞' :
+                                             feedbackRating === 2 ? 'Poor 😕' :
+                                             feedbackRating === 3 ? 'Ok 🙂' :
+                                             feedbackRating === 4 ? 'Very Good 😃' : 'Excellent! 😍'}
+                                        </span>
+                                    </div>
+
+                                    {/* Feedback Comment */}
+                                    <div className="mb-4">
+                                        <label className="form-label small fw-bold" style={{ color: 'var(--primary-brown)' }}>Tell us about your experience</label>
+                                        <textarea
+                                            value={feedbackComment}
+                                            onChange={(e) => setFeedbackComment(e.target.value)}
+                                            required
+                                            rows="4"
+                                            maxLength="1000"
+                                            placeholder="Write your review here... How was the taste, portions, and delivery?"
+                                            className="form-control bg-white"
+                                            style={{ borderRadius: '8px', border: '1.5px solid rgba(160, 64, 0, 0.3)', resize: 'none' }}
+                                        ></textarea>
+                                    </div>
+
+                                    {/* Submit */}
+                                    <div className="d-flex gap-2">
+                                        <button type="button" className="btn btn-light w-50 fw-bold" onClick={() => setSelectedOrderForFeedback(null)} style={{ borderRadius: '10px' }} disabled={submittingFeedback}>
+                                            Cancel
+                                        </button>
+                                        <button type="submit" className="btn text-white w-50 fw-bold" style={{ backgroundColor: 'var(--accent-orange)', borderRadius: '10px' }} disabled={submittingFeedback}>
+                                            {submittingFeedback ? 'Submitting...' : 'Submit Review'}
                                         </button>
                                     </div>
                                 </form>

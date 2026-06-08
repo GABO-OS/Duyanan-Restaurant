@@ -72,6 +72,7 @@ const AdminPanel = () => {
     const [products, setProducts] = useState([]);
     const [orders, setOrders] = useState([]);
     const [reservations, setReservations] = useState([]);
+    const [feedbacks, setFeedbacks] = useState([]);
     const [isLoading, setIsLoading] = useState(false);
     const [message, setMessage] = useState('');
     const [isSidebarOpen, setIsSidebarOpen] = useState(false);
@@ -121,17 +122,19 @@ const AdminPanel = () => {
     const fetchData = async (showLoading = true) => {
         if (showLoading) setIsLoading(true);
         try {
-            const [usersRes, productsRes, ordersRes, resRes] = await Promise.all([
+            const [usersRes, productsRes, ordersRes, resRes, fbRes] = await Promise.all([
                 fetch(`${API_URL}/api/admin/users`, { headers: authHeaders() }),
                 fetch(`${API_URL}/api/admin/products`, { headers: authHeaders() }),
                 fetch(`${API_URL}/api/admin/orders`, { headers: authHeaders() }),
-                fetch(`${API_URL}/api/admin/reservations`, { headers: authHeaders() })
+                fetch(`${API_URL}/api/admin/reservations`, { headers: authHeaders() }),
+                fetch(`${API_URL}/api/feedback`, { headers: authHeaders() })
             ]);
 
             if (usersRes.ok) setUsers(await usersRes.json());
             if (productsRes.ok) setProducts(await productsRes.json());
             if (ordersRes.ok) setOrders(await ordersRes.json());
             if (resRes.ok) setReservations(await resRes.json());
+            if (fbRes.ok) setFeedbacks(await fbRes.json());
         } catch (e) {
             console.error("Failed to fetch admin data", e);
         }
@@ -551,7 +554,8 @@ const AdminPanel = () => {
         { id: 'products', label: 'Menu', icon: 'bi-card-list' },
         { id: 'sales', label: 'Sales', icon: 'bi-bar-chart' },
         { id: 'forecasting', label: 'Forecasting', icon: 'bi-graph-up-arrow' },
-        { id: 'users', label: 'Users', icon: 'bi-people' }
+        { id: 'users', label: 'Users', icon: 'bi-people' },
+        { id: 'feedback', label: 'Reviews', icon: 'bi-chat-left-heart' }
     ];
 
     const StatBox = ({ title, value, subtitle }) => (
@@ -1774,6 +1778,63 @@ const AdminPanel = () => {
                                                 {users.filter(u => u.role !== 'ADMIN').length === 0 && <tr><td colSpan="5" className="text-center py-5">No registered customers found.</td></tr>}
                                             </tbody>
                                         </table>
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* ── Reviews Tab ── */}
+                            {activeTab === 'feedback' && (
+                                <div className="fade-in">
+                                    <h3 className="fw-bold mb-4" style={{ color: 'var(--primary-brown)' }}>Customer Reviews & Feedback</h3>
+                                    <div className="row g-4">
+                                        {feedbacks.length === 0 ? (
+                                            <div className="col-12 text-center py-5 bg-white shadow-sm rounded-4 border border-light">
+                                                <i className="bi bi-chat-left-heart text-muted mb-3 d-block" style={{ fontSize: '3rem', opacity: 0.3 }}></i>
+                                                <h5 className="fw-bold text-dark">No feedback submitted yet</h5>
+                                                <p className="text-muted small mb-0">Customer reviews will appear here once submitted.</p>
+                                            </div>
+                                        ) : (
+                                            feedbacks.map(fb => {
+                                                const fbDate = new Date(fb.createdAt).toLocaleString('en-US', { month: 'short', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit' });
+                                                return (
+                                                    <div key={fb.id} className="col-md-6 col-lg-4">
+                                                        <div className="card border border-light shadow-sm rounded-4 h-100 p-4 bg-white d-flex flex-column">
+                                                            <div className="d-flex justify-content-between align-items-start mb-3">
+                                                                <div>
+                                                                    <h6 className="fw-bold mb-1 text-dark">{fb.user?.firstName} {fb.user?.lastName}</h6>
+                                                                    <small className="text-muted"><i className="bi bi-calendar3 me-1"></i>{fbDate}</small>
+                                                                </div>
+                                                                <span className="text-warning">
+                                                                    {Array.from({ length: fb.rating }).map((_, i) => (
+                                                                        <i key={i} className="bi bi-star-fill me-1"></i>
+                                                                    ))}
+                                                                    {Array.from({ length: 5 - fb.rating }).map((_, i) => (
+                                                                        <i key={i} className="bi bi-star me-1"></i>
+                                                                    ))}
+                                                                </span>
+                                                            </div>
+                                                            <div className="flex-grow-1 mb-3">
+                                                                <p className="text-muted mb-0 fst-italic" style={{ fontSize: '0.92rem', lineHeight: '1.4' }}>
+                                                                    "{fb.comment}"
+                                                                </p>
+                                                            </div>
+                                                            <div className="pt-3 border-top mt-auto small">
+                                                                <div className="text-muted fw-bold mb-2 small text-uppercase">Order items reviewed:</div>
+                                                                <div className="bg-light p-2 rounded-3">
+                                                                    {fb.order?.items?.map((item, idx) => (
+                                                                        <div key={idx} className="d-flex justify-content-between mb-1 small text-dark">
+                                                                            <span>{item.quantity}x {item.product?.name}</span>
+                                                                            <span className="text-muted">₱{item.subtotal.toFixed(2)}</span>
+                                                                        </div>
+                                                                    ))}
+                                                                    {fb.order && <div className="text-end fw-bold mt-2 text-primary" style={{ fontSize: '0.8rem' }}>Order #{fb.order.id}</div>}
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                );
+                                            })
+                                        )}
                                     </div>
                                 </div>
                             )}
