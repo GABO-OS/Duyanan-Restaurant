@@ -875,6 +875,7 @@ const AdminPanel = () => {
                                                     <th className="py-3 px-4 border-0 text-center">Date & Time</th>
                                                     <th className="py-3 px-4 border-0 text-center">Guests</th>
                                                     <th className="py-3 px-4 border-0 text-center">Seating</th>
+                                                    <th className="py-3 px-4 border-0 text-center">Event Type</th>
                                                     <th className="py-3 px-4 border-0 text-center">Status</th>
                                                     <th className="py-3 px-4 border-0 text-center">Action</th>
                                                 </tr>
@@ -898,6 +899,17 @@ const AdminPanel = () => {
                                                             </span>
                                                         </td>
                                                         <td className="px-4 text-center">
+                                                            <span className="badge rounded-pill" style={{ 
+                                                                backgroundColor: 'rgba(139, 58, 15, 0.08)',
+                                                                color: 'var(--primary-brown)',
+                                                                fontSize: '0.72rem',
+                                                                fontWeight: 600,
+                                                                padding: '4px 10px'
+                                                            }}>
+                                                                {r.eventType || 'Casual Dining 🍽️'}
+                                                            </span>
+                                                        </td>
+                                                        <td className="px-4 text-center">
                                                             <span className={`badge rounded-pill ${r.status === 'PENDING' ? 'bg-warning text-dark' : r.status === 'CONFIRMED' ? 'bg-success' : 'bg-danger'}`}>
                                                                 {r.status}
                                                             </span>
@@ -911,7 +923,7 @@ const AdminPanel = () => {
                                                         </td>
                                                     </tr>
                                                 ))}
-                                                {reservations.length === 0 && <tr><td colSpan="6" className="text-center py-5">No reservations.</td></tr>}
+                                                {reservations.length === 0 && <tr><td colSpan="8" className="text-center py-5">No reservations.</td></tr>}
                                             </tbody>
                                         </table>
                                     </div>

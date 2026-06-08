@@ -21,7 +21,8 @@ const Reservations = () => {
         date: '',
         time: '',
         guests: '',
-        request: ''
+        request: '',
+        eventType: 'Casual Dining 🍽️'
     });
     const { user, isAuthenticated } = useAuth();
 
@@ -54,6 +55,17 @@ const Reservations = () => {
             return;
         }
 
+        const selectedDateTime = new Date(`${formData.date}T${formData.time}`);
+        if (selectedDateTime < new Date()) {
+            Swal.fire({
+                icon: 'error',
+                title: 'Invalid Date/Time',
+                text: 'Reservation date and time cannot be in the past!',
+                confirmButtonColor: 'var(--primary-brown)'
+            });
+            return;
+        }
+
         try {
             const response = await fetch(`${API_URL}/api/reservations`, {
                 method: 'POST',
@@ -68,7 +80,8 @@ const Reservations = () => {
                     reservationTime: formData.time,
                     numberOfGuests: formData.guests,
                     specialRequests: formData.request,
-                    seatingType: formData.seatingType
+                    seatingType: formData.seatingType,
+                    eventType: formData.eventType
                 })
             });
 
@@ -206,6 +219,25 @@ const Reservations = () => {
                                 </select>
                             </div>
 
+                            {/* Event Type */}
+                            <div className="mb-3">
+                                <label style={labelStyle}>Event Type</label>
+                                <select
+                                    name="eventType"
+                                    value={formData.eventType}
+                                    onChange={handleChange}
+                                    required
+                                    style={inputStyle}
+                                >
+                                    <option value="Casual Dining 🍽️">Casual Dining 🍽️</option>
+                                    <option value="Birthday Celebration 🎂">Birthday Celebration 🎂</option>
+                                    <option value="Anniversary 💑">Anniversary 💑</option>
+                                    <option value="Wedding / Reception 💍">Wedding / Reception 💍</option>
+                                    <option value="Business Meeting 💼">Business Meeting 💼</option>
+                                    <option value="Other Event 🎉">Other Event 🎉</option>
+                                </select>
+                            </div>
+
                             {/* Date & Time row */}
                             <div className="row g-3 mb-3">
                                 <div className="col-md-6">
@@ -216,6 +248,7 @@ const Reservations = () => {
                                         value={formData.date}
                                         onChange={handleChange}
                                         required
+                                        min={new Date().toLocaleDateString('en-CA')}
                                         style={inputStyle}
                                     />
                                 </div>

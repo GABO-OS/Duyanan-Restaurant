@@ -43,6 +43,9 @@ public class Reservation {
     @Column(name = "seating_type")
     private String seatingType;
 
+    @Column(name = "event_type")
+    private String eventType;
+
     @Column(nullable = false)
     private LocalDateTime createdAt = LocalDateTime.now();
 }

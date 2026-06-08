@@ -35,7 +35,8 @@ const Profile = () => {
         date: '',
         time: '',
         guests: '',
-        request: ''
+        request: '',
+        eventType: 'Casual Dining 🍽️'
     });
     const [loadingProfile, setLoadingProfile] = useState(true);
     
@@ -177,12 +178,25 @@ const Profile = () => {
             date: res.reservationDate || '',
             time: res.reservationTime || '',
             guests: res.numberOfGuests || '',
-            request: res.specialRequests || ''
+            request: res.specialRequests || '',
+            eventType: res.eventType || 'Casual Dining 🍽️'
         });
     };
 
     const handleUpdateReservation = async (e) => {
         e.preventDefault();
+
+        const selectedDateTime = new Date(`${editForm.date}T${editForm.time}`);
+        if (selectedDateTime < new Date()) {
+            Swal.fire({
+                icon: 'error',
+                title: 'Invalid Date/Time',
+                text: 'Reservation date and time cannot be in the past!',
+                confirmButtonColor: 'var(--primary-brown)'
+            });
+            return;
+        }
+
         try {
             const response = await fetch(`${API_URL}/api/reservations/${editingReservation.id}`, {
                 method: 'PUT',
@@ -197,7 +211,8 @@ const Profile = () => {
                     reservationTime: editForm.time,
                     numberOfGuests: editForm.guests,
                     specialRequests: editForm.request,
-                    seatingType: editForm.seatingType
+                    seatingType: editForm.seatingType,
+                    eventType: editForm.eventType
                 })
             });
 
@@ -679,19 +694,19 @@ const Profile = () => {
                                          <div className="card-body px-4 py-3">
                                              <div className="res-info-box p-3 mt-2">
                                                  <div className="row g-3">
-                                                     <div className="col-md-4 col-sm-6 mb-3 mb-md-0">
+                                                     <div className="col-md-3 col-sm-6 mb-3 mb-md-0">
                                                          <div className="res-detail-label mb-1">
                                                              <i className="bi bi-person-fill me-1" style={{ color: 'var(--accent-orange)' }}></i> Guest Name
                                                          </div>
                                                          <div className="fw-bold text-dark" style={{ fontSize: '0.92rem' }}>{res.guestName}</div>
                                                      </div>
-                                                     <div className="col-md-4 col-sm-6 mb-3 mb-md-0">
+                                                     <div className="col-md-3 col-sm-6 mb-3 mb-md-0">
                                                          <div className="res-detail-label mb-1">
                                                              <i className="bi bi-people-fill me-1" style={{ color: 'var(--accent-orange)' }}></i> Party Size
                                                          </div>
                                                          <div className="fw-bold text-dark" style={{ fontSize: '0.92rem' }}>{res.numberOfGuests} Guests</div>
                                                      </div>
-                                                     <div className="col-md-4 col-sm-6">
+                                                     <div className="col-md-3 col-sm-6 mb-3 mb-md-0">
                                                          <div className="res-detail-label mb-1">
                                                              <i className="bi bi-geo-alt-fill me-1" style={{ color: 'var(--accent-orange)' }}></i> Seating Type
                                                          </div>
@@ -705,6 +720,16 @@ const Profile = () => {
                                                              ) : (
                                                                  <span className="badge px-2.5 py-1.5" style={{ backgroundColor: 'rgba(108, 117, 125, 0.08)', color: '#6c757d', borderRadius: '6px', border: '1px solid rgba(108, 117, 125, 0.15)' }}>N/A</span>
                                                              )}
+                                                         </div>
+                                                     </div>
+                                                     <div className="col-md-3 col-sm-6">
+                                                         <div className="res-detail-label mb-1">
+                                                             <i className="bi bi-tag-fill me-1" style={{ color: 'var(--accent-orange)' }}></i> Event Type
+                                                         </div>
+                                                         <div className="fw-bold" style={{ fontSize: '0.92rem' }}>
+                                                             <span className="badge px-2.5 py-1.5" style={{ backgroundColor: 'rgba(139, 58, 15, 0.08)', color: 'var(--primary-brown)', borderRadius: '6px', border: '1px solid rgba(139, 58, 15, 0.15)' }}>
+                                                                 {res.eventType || 'Casual Dining 🍽️'}
+                                                             </span>
                                                          </div>
                                                      </div>
                                                      {res.specialRequests && (
@@ -984,6 +1009,26 @@ const Profile = () => {
                                         </select>
                                     </div>
 
+                                    {/* Event Type */}
+                                    <div className="mb-3">
+                                        <label className="form-label small fw-bold" style={{ color: 'var(--primary-brown)' }}>Event Type</label>
+                                        <select
+                                            name="eventType"
+                                            value={editForm.eventType}
+                                            onChange={(e) => setEditForm({ ...editForm, eventType: e.target.value })}
+                                            required
+                                            className="form-select bg-white"
+                                            style={{ borderRadius: '8px', border: '1.5px solid rgba(160, 64, 0, 0.3)' }}
+                                        >
+                                            <option value="Casual Dining 🍽️">Casual Dining 🍽️</option>
+                                            <option value="Birthday Celebration 🎂">Birthday Celebration 🎂</option>
+                                            <option value="Anniversary 💑">Anniversary 💑</option>
+                                            <option value="Wedding / Reception 💍">Wedding / Reception 💍</option>
+                                            <option value="Business Meeting 💼">Business Meeting 💼</option>
+                                            <option value="Other Event 🎉">Other Event 🎉</option>
+                                        </select>
+                                    </div>
+
                                     {/* Date & Time */}
                                     <div className="row g-3 mb-3">
                                         <div className="col-6">
@@ -994,6 +1039,7 @@ const Profile = () => {
                                                 value={editForm.date}
                                                 onChange={(e) => setEditForm({ ...editForm, date: e.target.value })}
                                                 required
+                                                min={new Date().toLocaleDateString('en-CA')}
                                                 className="form-control bg-white"
                                                 style={{ borderRadius: '8px', border: '1.5px solid rgba(160, 64, 0, 0.3)' }}
                                             />

@@ -42,7 +42,15 @@ public class ReservationController {
                     .orElseThrow(() -> new RuntimeException("User not found"));
 
             LocalDate reservationDate = LocalDate.parse(body.get("reservationDate"));
+            java.time.ZoneId manilaZone = java.time.ZoneId.of("Asia/Manila");
+            LocalDate today = LocalDate.now(manilaZone);
+            if (reservationDate.isBefore(today)) {
+                return ResponseEntity.badRequest().body(Map.of("error", "Reservation date cannot be in the past!"));
+            }
             LocalTime reservationTime = LocalTime.parse(body.get("reservationTime"));
+            if (reservationDate.isEqual(today) && reservationTime.isBefore(LocalTime.now(manilaZone))) {
+                return ResponseEntity.badRequest().body(Map.of("error", "Reservation time cannot be in the past!"));
+            }
             String guestName = body.get("guestName");
 
             boolean duplicateExists = reservationRepository
@@ -65,6 +73,7 @@ public class ReservationController {
             reservation.setNumberOfGuests(Integer.valueOf(body.get("numberOfGuests")));
             reservation.setSpecialRequests(body.get("specialRequests"));
             reservation.setSeatingType(body.get("seatingType"));
+            reservation.setEventType(body.getOrDefault("eventType", "Casual Dining 🍽️"));
             reservation.setStatus("PENDING");
             reservation.setCreatedAt(LocalDateTime.now());
 
@@ -135,7 +144,15 @@ public class ReservationController {
             }
 
             LocalDate reservationDate = LocalDate.parse(body.get("reservationDate"));
+            java.time.ZoneId manilaZone = java.time.ZoneId.of("Asia/Manila");
+            LocalDate today = LocalDate.now(manilaZone);
+            if (reservationDate.isBefore(today)) {
+                return ResponseEntity.badRequest().body(Map.of("error", "Reservation date cannot be in the past!"));
+            }
             LocalTime reservationTime = LocalTime.parse(body.get("reservationTime"));
+            if (reservationDate.isEqual(today) && reservationTime.isBefore(LocalTime.now(manilaZone))) {
+                return ResponseEntity.badRequest().body(Map.of("error", "Reservation time cannot be in the past!"));
+            }
             String guestName = body.get("guestName");
 
             // Check if there exists another reservation with the same details (excluding this one)
@@ -160,6 +177,7 @@ public class ReservationController {
             reservation.setNumberOfGuests(Integer.valueOf(body.get("numberOfGuests")));
             reservation.setSpecialRequests(body.get("specialRequests"));
             reservation.setSeatingType(body.get("seatingType"));
+            reservation.setEventType(body.getOrDefault("eventType", "Casual Dining 🍽️"));
 
             Reservation saved = reservationRepository.save(reservation);
             return ResponseEntity.ok(Map.of(
