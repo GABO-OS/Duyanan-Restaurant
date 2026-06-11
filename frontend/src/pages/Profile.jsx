@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import Swal from 'sweetalert2';
 import 'bootstrap-icons/font/bootstrap-icons.css';
@@ -25,9 +25,23 @@ const Profile = () => {
     const [activeTab, setActiveTab] = useState('profile');
     const { user, login } = useAuth(); // We might need to update auth context if email/name changes
     
+    const location = useLocation();
+
+    useEffect(() => {
+        if (location.state?.tab) {
+            setActiveTab(location.state.tab);
+        }
+    }, [location]);
+
     const [myOrders, setMyOrders] = useState([]);
     const [loadingOrders, setLoadingOrders] = useState(false);
     const [myReservations, setMyReservations] = useState([]);
+    const [lastViewedOrderId, setLastViewedOrderId] = useState(() => 
+        parseInt(localStorage.getItem('lastViewedOrderId') || '0', 10)
+    );
+    const [lastViewedReservationId, setLastViewedReservationId] = useState(() => 
+        parseInt(localStorage.getItem('lastViewedReservationId') || '0', 10)
+    );
     const [loadingReservations, setLoadingReservations] = useState(false);
     const [editingReservation, setEditingReservation] = useState(null);
     const [editForm, setEditForm] = useState({
@@ -66,10 +80,32 @@ const Profile = () => {
     useEffect(() => {
         if (user?.token) {
             fetchUserProfile();
+            fetchOrders();
+            fetchReservations();
         } else {
             setLoadingProfile(false);
         }
     }, [user?.token]);
+
+    useEffect(() => {
+        if (activeTab === 'orders' && myOrders.length > 0) {
+            const maxId = myOrders.reduce((max, o) => Math.max(max, parseInt(o.id || 0, 10)), 0);
+            if (maxId > lastViewedOrderId) {
+                localStorage.setItem('lastViewedOrderId', maxId.toString());
+                setLastViewedOrderId(maxId);
+            }
+        }
+    }, [activeTab, myOrders, lastViewedOrderId]);
+
+    useEffect(() => {
+        if (activeTab === 'reservations' && myReservations.length > 0) {
+            const maxId = myReservations.reduce((max, r) => Math.max(max, parseInt(r.id || 0, 10)), 0);
+            if (maxId > lastViewedReservationId) {
+                localStorage.setItem('lastViewedReservationId', maxId.toString());
+                setLastViewedReservationId(maxId);
+            }
+        }
+    }, [activeTab, myReservations, lastViewedReservationId]);
 
     const fetchUserProfile = () => {
         setLoadingProfile(true);
@@ -179,7 +215,7 @@ const Profile = () => {
             time: res.reservationTime || '',
             guests: res.numberOfGuests || '',
             request: res.specialRequests || '',
-            eventType: res.eventType || 'Casual Dining 🍽️'
+            eventType: res.eventType || ''
         });
     };
 
@@ -655,7 +691,7 @@ const Profile = () => {
                             <h5 className="fw-bold mb-2" style={{ color: 'var(--text-dark)' }}>No reservations found</h5>
                             <p className="text-muted small mb-4">You haven't booked any tables yet.</p>
                             <div>
-                                <Link to="/reservations" className="btn btn-sm shadow-sm text-white" style={{ backgroundColor: 'var(--accent-orange)', borderRadius: '50px', padding: '10px 30px', fontWeight: 'bold' }}>
+                                <Link to="/book-reservation" className="btn btn-sm shadow-sm text-white" style={{ backgroundColor: 'var(--accent-orange)', borderRadius: '50px', padding: '10px 30px', fontWeight: 'bold' }}>
                                     Book a Table
                                 </Link>
                             </div>
@@ -782,6 +818,16 @@ const Profile = () => {
         );
     };
 
+    const pendingOrdersCount = myOrders.filter(o => 
+        parseInt(o.id || 0, 10) > lastViewedOrderId &&
+        (o.status?.toUpperCase() === 'PENDING' || o.status?.toUpperCase() === 'PREPARING')
+    ).length;
+
+    const pendingReservationsCount = myReservations.filter(r => 
+        parseInt(r.id || 0, 10) > lastViewedReservationId &&
+        (r.status?.toUpperCase() === 'PENDING' || r.status?.toUpperCase() === 'CONFIRMED')
+    ).length;
+
     return (
         <div className="container" style={{ marginTop: 'calc(var(--nav-height) + 40px)', marginBottom: '60px', minHeight: '60vh' }}>
             <div className="mb-4">
@@ -841,6 +887,24 @@ const Profile = () => {
                         .sidebar-heading:first-child {
                             margin-top: 0;
                         }
+                        .profile-sidebar-btn .badge.rounded-pill {
+                            font-size: 0.72rem !important;
+                            font-weight: bold !important;
+                            padding: 4px 8px !important;
+                            border-radius: 10px !important;
+                            letter-spacing: normal !important;
+                            transition: all 0.2s ease;
+                        }
+                        .profile-sidebar-btn.active .badge.rounded-pill {
+                            background-color: #ffffff !important;
+                            color: var(--accent-orange) !important;
+                            border: none !important;
+                        }
+                        .profile-sidebar-btn:not(.active) .badge.rounded-pill {
+                            background-color: rgba(220, 53, 69, 0.1) !important;
+                            color: #dc3545 !important;
+                            border: 1px solid rgba(220, 53, 69, 0.2) !important;
+                        }
                         `}
                     </style>
 
@@ -854,9 +918,19 @@ const Profile = () => {
                         </button>
                         <button className={`profile-sidebar-btn ${activeTab === 'orders' ? 'active' : ''}`} onClick={() => setActiveTab('orders')}>
                             <i className="bi bi-receipt"></i> My Orders
+                            {pendingOrdersCount > 0 && (
+                                <span className="badge rounded-pill ms-auto px-2 py-1">
+                                    {pendingOrdersCount}
+                                </span>
+                            )}
                         </button>
                         <button className={`profile-sidebar-btn ${activeTab === 'reservations' ? 'active' : ''}`} onClick={() => setActiveTab('reservations')}>
                             <i className="bi bi-calendar-event"></i> My Reservations
+                            {pendingReservationsCount > 0 && (
+                                <span className="badge rounded-pill ms-auto px-2 py-1">
+                                    {pendingReservationsCount}
+                                </span>
+                            )}
                         </button>
                     </div>
 
@@ -992,23 +1066,6 @@ const Profile = () => {
                             {/* Body */}
                             <div className="modal-body" style={{ padding: '24px' }}>
                                 <form onSubmit={handleUpdateReservation}>
-                                    {/* Seating Type */}
-                                    <div className="mb-3">
-                                        <label className="form-label small fw-bold" style={{ color: 'var(--primary-brown)' }}>Seating Type</label>
-                                        <select
-                                            name="seatingType"
-                                            value={editForm.seatingType}
-                                            onChange={(e) => setEditForm({ ...editForm, seatingType: e.target.value })}
-                                            required
-                                            className="form-select bg-white"
-                                            style={{ borderRadius: '8px', border: '1.5px solid rgba(160, 64, 0, 0.3)' }}
-                                        >
-                                            <option value="">Select Option</option>
-                                            <option value="indoor">Indoor 🏠</option>
-                                            <option value="outdoor">Outdoor 🌿</option>
-                                        </select>
-                                    </div>
-
                                     {/* Event Type */}
                                     <div className="mb-3">
                                         <label className="form-label small fw-bold" style={{ color: 'var(--primary-brown)' }}>Event Type</label>
@@ -1020,12 +1077,30 @@ const Profile = () => {
                                             className="form-select bg-white"
                                             style={{ borderRadius: '8px', border: '1.5px solid rgba(160, 64, 0, 0.3)' }}
                                         >
+                                            <option value="" disabled hidden>Select Event Type</option>
                                             <option value="Casual Dining 🍽️">Casual Dining 🍽️</option>
                                             <option value="Birthday Celebration 🎂">Birthday Celebration 🎂</option>
                                             <option value="Anniversary 💑">Anniversary 💑</option>
                                             <option value="Wedding / Reception 💍">Wedding / Reception 💍</option>
                                             <option value="Business Meeting 💼">Business Meeting 💼</option>
                                             <option value="Other Event 🎉">Other Event 🎉</option>
+                                        </select>
+                                    </div>
+
+                                    {/* Seating Type */}
+                                    <div className="mb-3">
+                                        <label className="form-label small fw-bold" style={{ color: 'var(--primary-brown)' }}>Seating Type</label>
+                                        <select
+                                            name="seatingType"
+                                            value={editForm.seatingType}
+                                            onChange={(e) => setEditForm({ ...editForm, seatingType: e.target.value })}
+                                            required
+                                            className="form-select bg-white"
+                                            style={{ borderRadius: '8px', border: '1.5px solid rgba(160, 64, 0, 0.3)' }}
+                                        >
+                                            <option value="" disabled hidden>Select Seating Type</option>
+                                            <option value="indoor">Indoor 🏠</option>
+                                            <option value="outdoor">Outdoor 🌿</option>
                                         </select>
                                     </div>
 

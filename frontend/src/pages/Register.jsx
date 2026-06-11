@@ -4,6 +4,7 @@ import { useAuth } from '../context/AuthContext';
 import Swal from 'sweetalert2';
 import 'bootstrap-icons/font/bootstrap-icons.css';
 import duyananBg from '../assets/img/duyanan_bg.jpg';
+import quezonData from '../data/quezon_barangays.json';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8080';
 
@@ -12,6 +13,8 @@ const NAME_REGEX = /^[a-zA-ZÀ-ÖØ-öø-ÿ\s'\-]*$/;
 
 const Register = () => {
     const [formData, setFormData] = useState({ firstName: '', lastName: '', email: '', password: '', confirmPassword: '', phone: '', address: '' });
+    const [selectedMunicipality, setSelectedMunicipality] = useState('');
+    const [selectedBarangay, setSelectedBarangay] = useState('');
     const [showPassword, setShowPassword] = useState(false);
     const [showConfirm, setShowConfirm] = useState(false);
     const [formError, setFormError] = useState('');
@@ -56,6 +59,14 @@ const Register = () => {
             setFormError('Last name must be at least 2 characters.');
             return;
         }
+        if (!selectedMunicipality) {
+            setFormError('Please select a municipality.');
+            return;
+        }
+        if (!selectedBarangay) {
+            setFormError('Please select a barangay.');
+            return;
+        }
         if (formData.password.length < 8) {
             setFormError('Password must be at least 8 characters.');
             return;
@@ -76,7 +87,7 @@ const Register = () => {
                     email:     formData.email,
                     password:  formData.password,
                     phone:     formData.phone,
-                    address:   formData.address,
+                    address:   `${selectedBarangay}, ${selectedMunicipality}, Quezon`,
                 }),
             });
             const data = await response.json();
@@ -269,29 +280,50 @@ const Register = () => {
                             <input type="email" className="form-control input-auth ps-5" placeholder="Email Address" name="email" value={formData.email} onChange={handleChange} required style={glassInput} />
                         </div>
 
-                        {/* Phone & Address */}
+                        {/* Contact No. */}
+                        <div className="mb-3 position-relative">
+                            <i className="bi bi-telephone position-absolute" style={iconPos()}></i>
+                            <input type="text" className="form-control input-auth ps-5" placeholder="Contact No. (e.g. 0912...)" name="phone" value={formData.phone} onChange={handleChange} required style={glassInput} />
+                        </div>
+
+                        {/* Municipality & Barangay Address Fields */}
                         <div className="row g-2 mb-3">
-                            <div className="col-12 col-md-5 position-relative">
-                                <i className="bi bi-telephone position-absolute" style={iconPos()}></i>
-                                <input type="text" className="form-control input-auth ps-5" placeholder="Contact No. (e.g. 0912...)" name="phone" value={formData.phone} onChange={handleChange} required style={glassInput} />
-                            </div>
-                            <div className="col-12 col-md-7 position-relative">
+                            <div className="col-12 col-md-6 position-relative">
                                 <i className="bi bi-geo-alt position-absolute" style={iconPos()}></i>
                                 <select 
                                     className="form-control input-auth ps-5" 
-                                    name="address" 
-                                    value={formData.address} 
-                                    onChange={handleChange} 
+                                    name="municipality" 
+                                    value={selectedMunicipality} 
+                                    onChange={(e) => {
+                                        setSelectedMunicipality(e.target.value);
+                                        setSelectedBarangay(''); // Reset barangay on municipality change
+                                    }} 
                                     required 
                                     style={{...glassInput, appearance: 'none'}}
                                 >
-                                    <option value="" disabled style={{ color: '#000' }}>Select Barangay (Padre Burgos Only)</option>
-                                    {[
-                                        'Burgos', 'Cabuyao', 'Danlagan', 'Hinguiwin', 'Kinagunan Ibaba', 'Kinagunan Ilaya', 
-                                        'Lipata', 'Marao', 'Marquez', 'Rizal', 'San Isidro', 'San Vicente', 'Sipa', 
-                                        'Tulay Buhangin', 'Villapaz', 'Walay', 'Yawe'
-                                    ].map(brgy => (
-                                        <option key={brgy} value={`${brgy}, Padre Burgos, Quezon`} style={{ color: '#000' }}>{brgy}</option>
+                                    <option value="" disabled style={{ color: '#000' }}>Select Municipality</option>
+                                    {Object.keys(quezonData).map(mun => (
+                                        <option key={mun} value={mun} style={{ color: '#000' }}>{mun}</option>
+                                    ))}
+                                </select>
+                                <i className="bi bi-chevron-down position-absolute" style={{...iconPos('right'), pointerEvents: 'none'}}></i>
+                            </div>
+                            <div className="col-12 col-md-6 position-relative">
+                                <i className="bi bi-house-door position-absolute" style={iconPos()}></i>
+                                <select 
+                                    className="form-control input-auth ps-5" 
+                                    name="barangay" 
+                                    value={selectedBarangay} 
+                                    onChange={(e) => setSelectedBarangay(e.target.value)} 
+                                    required 
+                                    disabled={!selectedMunicipality}
+                                    style={{...glassInput, appearance: 'none', opacity: selectedMunicipality ? 1 : 0.6}}
+                                >
+                                    <option value="" disabled style={{ color: '#000' }}>
+                                        {selectedMunicipality ? 'Select Barangay' : 'Choose Municipality First'}
+                                    </option>
+                                    {selectedMunicipality && quezonData[selectedMunicipality].map(brgy => (
+                                        <option key={brgy} value={brgy} style={{ color: '#000' }}>{brgy}</option>
                                     ))}
                                 </select>
                                 <i className="bi bi-chevron-down position-absolute" style={{...iconPos('right'), pointerEvents: 'none'}}></i>

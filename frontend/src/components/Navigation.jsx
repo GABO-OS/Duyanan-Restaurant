@@ -11,6 +11,58 @@ const Navigation = () => {
     const location = useLocation();
     const navigate = useNavigate();
     const [isNavCollapsed, setIsNavCollapsed] = useState(true);
+    const [pendingOrdersCount, setPendingOrdersCount] = useState(0);
+    const [pendingReservationsCount, setPendingReservationsCount] = useState(0);
+
+    const fetchCounts = async () => {
+        if (!isAuthenticated || !user?.token) return;
+        try {
+            const lastViewedOrderId = parseInt(localStorage.getItem('lastViewedOrderId') || '0', 10);
+            const lastViewedReservationId = parseInt(localStorage.getItem('lastViewedReservationId') || '0', 10);
+            const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8080';
+
+            const ordersRes = await fetch(`${API_URL}/api/orders/my-orders`, {
+                headers: { 'Authorization': `Bearer ${user.token}` }
+            });
+            if (ordersRes.ok) {
+                const orders = await ordersRes.json();
+                if (Array.isArray(orders)) {
+                    const count = orders.filter(o => 
+                        parseInt(o.id || 0, 10) > lastViewedOrderId &&
+                        (o.status?.toUpperCase() === 'PENDING' || o.status?.toUpperCase() === 'PREPARING')
+                    ).length;
+                    setPendingOrdersCount(count);
+                }
+            }
+
+            const resRes = await fetch(`${API_URL}/api/reservations/my-reservations`, {
+                headers: { 'Authorization': `Bearer ${user.token}` }
+            });
+            if (resRes.ok) {
+                const reservations = await resRes.json();
+                if (Array.isArray(reservations)) {
+                    const count = reservations.filter(r => 
+                        parseInt(r.id || 0, 10) > lastViewedReservationId &&
+                        (r.status?.toUpperCase() === 'PENDING' || r.status?.toUpperCase() === 'CONFIRMED')
+                    ).length;
+                    setPendingReservationsCount(count);
+                }
+            }
+        } catch (err) {
+            console.error("Error fetching notification counts for navbar dropdown:", err);
+        }
+    };
+
+    useEffect(() => {
+        if (isAuthenticated) {
+            fetchCounts();
+        } else {
+            setPendingOrdersCount(0);
+            setPendingReservationsCount(0);
+        }
+    }, [isAuthenticated, user?.token, location]);
+
+    const totalNotifications = pendingOrdersCount + pendingReservationsCount;
 
     useEffect(() => { setIsNavCollapsed(true); }, [location]);
 
@@ -76,7 +128,7 @@ const Navigation = () => {
                         </li>
                         <li className="nav-item"><Link className={`nav-link ${location.pathname === '/' ? 'active' : ''}`} to="/" onClick={() => setIsNavCollapsed(true)} style={{ color: '#fff', fontWeight: 'bold', textShadow: '0 1px 2px rgba(0,0,0,0.3)' }}><i className="bi bi-house-door me-3 d-lg-none"></i>Home</Link></li>
                         <li className="nav-item"><Link className={`nav-link ${location.pathname === '/menu' ? 'active' : ''}`} to="/menu" onClick={() => setIsNavCollapsed(true)} style={{ color: '#fff', fontWeight: 'bold', textShadow: '0 1px 2px rgba(0,0,0,0.3)' }}><i className="bi bi-book me-3 d-lg-none"></i>Menu</Link></li>
-                        <li className="nav-item"><Link className={`nav-link ${location.pathname === '/reservations' ? 'active' : ''}`} to="/reservations" onClick={() => setIsNavCollapsed(true)} style={{ color: '#fff', fontWeight: 'bold', textShadow: '0 1px 2px rgba(0,0,0,0.3)' }}><i className="bi bi-calendar-event me-3 d-lg-none"></i>Reservations</Link></li>
+                        <li className="nav-item"><Link className={`nav-link ${location.pathname === '/book-reservation' ? 'active' : ''}`} to="/book-reservation" onClick={() => setIsNavCollapsed(true)} style={{ color: '#fff', fontWeight: 'bold', textShadow: '0 1px 2px rgba(0,0,0,0.3)' }}><i className="bi bi-calendar-event me-3 d-lg-none"></i>Book Reservation</Link></li>
                         <li className="nav-item"><Link className={`nav-link ${location.pathname === '/about' ? 'active' : ''}`} to="/about" onClick={() => setIsNavCollapsed(true)} style={{ color: '#fff', fontWeight: 'bold', textShadow: '0 1px 2px rgba(0,0,0,0.3)' }}><i className="bi bi-info-circle me-3 d-lg-none"></i>About Us</Link></li>
 
                         {isAuthenticated && isAdmin && (
@@ -85,32 +137,79 @@ const Navigation = () => {
 
                         {isAuthenticated ? (
                             <>
-                                <li className="nav-item ms-lg-2 d-none d-lg-flex align-items-center">
-                                     <Link className="btn shadow-none d-flex align-items-center" to="/profile" style={{ color: '#fff', padding: '8px', fontSize: '1.5rem' }}>
+                                <li className="nav-item dropdown ms-lg-2 d-none d-lg-flex align-items-center profile-dropdown-container" onMouseEnter={fetchCounts}>
+                                     <Link className="btn shadow-none d-flex align-items-center position-relative" to="/profile" style={{ color: '#fff', padding: '8px', fontSize: '1.5rem' }}>
                                         <i className="bi bi-person"></i>
+                                        {totalNotifications > 0 && (
+                                            <span 
+                                                className="position-absolute badge rounded-pill bg-danger shadow" 
+                                                style={{ 
+                                                    top: '2px', 
+                                                    right: '2px', 
+                                                    fontSize: '0.65rem',
+                                                    padding: '3px 6px',
+                                                    zIndex: 10
+                                                }}
+                                            >
+                                                {totalNotifications}
+                                            </span>
+                                        )}
                                     </Link>
+                                    <ul className="dropdown-menu dropdown-menu-end shadow border-0" style={{ margin: 0 }}>
+                                        <li>
+                                            <Link className="dropdown-item" to="/profile" state={{ tab: 'profile' }}>
+                                                <i className="bi bi-person me-2"></i>My Profile
+                                            </Link>
+                                        </li>
+                                        <li>
+                                            <Link className="dropdown-item d-flex justify-content-between align-items-center" to="/profile" state={{ tab: 'orders' }}>
+                                                <span><i className="bi bi-receipt me-2"></i>My Orders</span>
+                                                {pendingOrdersCount > 0 && (
+                                                    <span className="badge rounded-pill bg-danger px-2 py-0.5" style={{ fontSize: '0.7rem' }}>
+                                                        {pendingOrdersCount}
+                                                    </span>
+                                                )}
+                                            </Link>
+                                        </li>
+                                        <li>
+                                            <Link className="dropdown-item d-flex justify-content-between align-items-center" to="/profile" state={{ tab: 'reservations' }}>
+                                                <span><i className="bi bi-calendar-event me-2"></i>My Reservations</span>
+                                                {pendingReservationsCount > 0 && (
+                                                    <span className="badge rounded-pill bg-danger px-2 py-0.5" style={{ fontSize: '0.7rem' }}>
+                                                        {pendingReservationsCount}
+                                                    </span>
+                                                )}
+                                            </Link>
+                                        </li>
+                                        <li><hr className="dropdown-divider" /></li>
+                                        <li>
+                                            <button className="dropdown-item text-danger" onClick={handleLogout} style={{ border: 'none', background: 'transparent', textAlign: 'left' }}>
+                                                <i className="bi bi-box-arrow-right me-2"></i>Logout
+                                            </button>
+                                        </li>
+                                    </ul>
                                 </li>
                                 <li className="nav-item w-100 d-lg-none">
-                                     <Link className="nav-link" to="/profile" onClick={() => setIsNavCollapsed(true)} style={{ color: '#fff', fontWeight: 'bold' }}>
-                                        <i className="bi bi-person-circle me-3"></i>My Profile
-                                    </Link>
+                                     <Link className="nav-link d-flex justify-content-between align-items-center" to="/profile" onClick={() => setIsNavCollapsed(true)} style={{ color: '#fff', fontWeight: 'bold' }}>
+                                        <span><i className="bi bi-person-circle me-3"></i>My Profile</span>
+                                        {totalNotifications > 0 && (
+                                            <span className="badge rounded-pill bg-danger px-2 py-1" style={{ fontSize: '0.75rem' }}>
+                                                {totalNotifications}
+                                            </span>
+                                        )}
+                                     </Link>
                                 </li>
                                 <li className="nav-item ms-lg-2 d-none d-lg-flex align-items-center position-relative">
                                      <Link className="btn shadow-sm d-flex align-items-center rounded-pill" to="/cart" style={{ backgroundColor: '#fff', color: 'var(--accent-orange)', padding: '8px 24px', fontWeight: 'bold', textDecoration: 'none' }}>
                                         <i className="bi bi-cart3 me-2" style={{ fontSize: '1.2rem', color: 'var(--accent-orange)' }}></i>
                                         Order Now
-                                    </Link>
-                                    {cartCount > 0 && (<span className="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-dark shadow" style={{ transform: 'translate(-50%, -50%)', zIndex: 10 }}>{cartCount}</span>)}
-                                </li>
-                                <li className="nav-item ms-lg-1 d-none d-lg-flex align-items-center">
-                                    <button className="btn shadow-none d-flex align-items-center" onClick={handleLogout} style={{ color: 'rgba(255,255,255,0.7)', padding: '8px', border: 'none', marginLeft: '5px' }} title="Logout">
-                                        <i className="bi bi-box-arrow-right" style={{ fontSize: '1.2rem' }}></i>
-                                    </button>
+                                     </Link>
+                                     {cartCount > 0 && (<span className="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-dark shadow" style={{ transform: 'translate(-50%, -50%)', zIndex: 10 }}>{cartCount}</span>)}
                                 </li>
                                 <li className="nav-item w-100 d-lg-none" style={{ borderTop: '2px solid rgba(160, 64, 0, 0.1)' }}>
-                                    <button className="nav-link text-danger w-100 text-start border-0 bg-transparent" onClick={handleLogout} style={{ fontWeight: 'bold' }}>
+                                     <button className="nav-link text-danger w-100 text-start border-0 bg-transparent" onClick={handleLogout} style={{ fontWeight: 'bold' }}>
                                         <i className="bi bi-box-arrow-right me-3"></i>Log out
-                                    </button>
+                                     </button>
                                 </li>
                             </>
                         ) : (
@@ -136,6 +235,70 @@ const Navigation = () => {
                     </ul>
                 </div>
             </div>
+            <style>{`
+                .profile-dropdown-container {
+                    position: relative;
+                }
+                .profile-dropdown-container:hover .dropdown-menu {
+                    display: block;
+                    animation: fadeInDropdown 0.22s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+                }
+                .profile-dropdown-container .dropdown-menu {
+                    display: none;
+                    background: rgba(253, 251, 247, 0.98);
+                    backdrop-filter: blur(20px);
+                    border-radius: 14px;
+                    padding: 8px 0;
+                    min-width: 200px;
+                    border: 1px solid rgba(139, 58, 15, 0.12) !important;
+                    top: 100%;
+                    right: 0;
+                }
+                .profile-dropdown-container .dropdown-item {
+                    padding: 10px 16px;
+                    margin: 2px 8px;
+                    border-radius: 8px;
+                    width: calc(100% - 16px) !important;
+                    box-sizing: border-box;
+                    font-size: 0.9rem;
+                    font-weight: 600;
+                    color: var(--primary-brown) !important;
+                    transition: all 0.2s ease;
+                    display: flex;
+                    align-items: center;
+                }
+                .profile-dropdown-container .dropdown-item:hover {
+                    background-color: var(--accent-orange) !important;
+                    color: #fff !important;
+                }
+                .profile-dropdown-container .dropdown-item i {
+                    font-size: 1.05rem;
+                    color: inherit;
+                }
+                .profile-dropdown-container .dropdown-divider {
+                    margin: 6px 0;
+                    border-top: 1px solid rgba(139, 58, 15, 0.08);
+                }
+                @keyframes fadeInDropdown {
+                    from {
+                        opacity: 0;
+                        transform: translateY(12px);
+                    }
+                    to {
+                        opacity: 1;
+                        transform: translateY(0);
+                    }
+                }
+                .navbar .badge.bg-danger {
+                    background-color: #dc3545 !important;
+                    color: #ffffff !important;
+                    border: 1.5px solid #ffffff !important;
+                    opacity: 1 !important;
+                    font-weight: bold !important;
+                    padding: 3px 6px !important;
+                    letter-spacing: normal !important;
+                }
+            `}</style>
         </nav>
     );
 };

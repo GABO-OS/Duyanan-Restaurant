@@ -817,7 +817,7 @@ const AdminPanel = () => {
                                                     <tr key={o.id}>
                                                         <td className="px-4 fw-bold text-center">#{o.id}</td>
                                                         <td className="px-4 text-start">
-                                                            <div className="fw-bold text-dark">{o.user?.firstName} {o.user?.lastName} <span className="text-muted small">(ID: #{o.user?.id})</span></div>
+                                                            <div className="fw-bold text-dark">{o.user?.firstName} {o.user?.lastName}</div>
                                                             <div className="small text-muted" style={{ lineHeight: '1.2' }}><i className="bi bi-telephone-fill me-1" style={{ fontSize: '0.75rem' }}></i>{o.user?.phone || 'N/A'}</div>
                                                             <div className="small text-muted text-truncate" style={{ maxWidth: '200px', lineHeight: '1.2' }} title={o.user?.address || 'N/A'}><i className="bi bi-geo-alt-fill me-1" style={{ fontSize: '0.75rem' }}></i>{o.user?.address || 'N/A'}</div>
                                                         </td>

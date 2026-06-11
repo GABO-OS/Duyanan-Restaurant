@@ -159,7 +159,7 @@ const Home = () => {
                         </p>
                         <div className="d-flex justify-content-center gap-3">
                             <Link to="/menu" className="btn-outline-brand text-decoration-none">Order Now</Link>
-                            <Link to="/reservations" className="btn-outline-brand text-decoration-none">Book Reservation</Link>
+                            <Link to="/book-reservation" className="btn-outline-brand text-decoration-none">Book Reservation</Link>
                         </div>
                     </div>
                 </div>

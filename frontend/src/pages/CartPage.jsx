@@ -107,6 +107,32 @@ const styles = `
         .cart-step span:not(.cart-step-num) { display: none; }
         .cart-step-line { width: 32px; }
     }
+
+    /* Step 2 Form styling */
+    .checkout-form-card { background: #fff; border-radius: 18px; padding: 24px; border: 1px solid #f0ece8; box-shadow: 0 2px 12px rgba(0,0,0,0.04); }
+    .form-group-custom { margin-bottom: 18px; }
+    .form-group-custom label { font-size: 0.82rem; font-weight: 700; color: var(--primary-brown); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 6px; display: block; }
+    .form-group-custom input, .form-group-custom textarea, .form-group-custom select { width: 100%; padding: 12px 16px; border: 1.5px solid #e8e0d8; border-radius: 10px; font-size: 0.92rem; color: var(--text-dark); background: #fdfbf9; transition: all 0.25s ease; }
+    .form-group-custom input:focus, .form-group-custom textarea:focus, .form-group-custom select:focus { border-color: var(--accent-orange); outline: none; background: #fff; box-shadow: 0 0 0 3px rgba(211,84,0,0.08); }
+    
+    /* Payment methods */
+    .payment-options { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 8px; }
+    .payment-option-card { border: 1.5px solid #e8e0d8; border-radius: 12px; padding: 14px; text-align: center; cursor: pointer; background: #fdfbf9; transition: all 0.2s; }
+    .payment-option-card.selected { border-color: var(--accent-orange); background: rgba(211, 84, 0, 0.03); box-shadow: 0 2px 8px rgba(211,84,0,0.08); }
+    .payment-option-card i { font-size: 1.4rem; color: var(--accent-orange); display: block; margin-bottom: 4px; }
+    .payment-option-card span { font-size: 0.88rem; font-weight: 600; color: var(--primary-brown); }
+
+    /* Success Card */
+    .success-card { background: #fff; border-radius: 24px; padding: 40px; border: 1px solid #f0ece8; box-shadow: 0 4px 24px rgba(0,0,0,0.06); text-align: center; max-width: 600px; margin: 0 auto; animation: successFadeUp 0.6s cubic-bezier(0.34, 1.56, 0.64, 1); }
+    .success-icon-container { width: 80px; height: 80px; border-radius: 50%; background: rgba(39, 174, 96, 0.1); color: #27ae60; display: flex; align-items: center; justify-content: center; margin: 0 auto 20px; font-size: 2.5rem; animation: popCheck 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) 0.3s both; }
+    
+    @keyframes successFadeUp { from { opacity: 0; transform: translateY(30px); } to { opacity: 1; transform: translateY(0); } }
+    @keyframes popCheck { 0% { transform: scale(0); } 100% { transform: scale(1); } }
+
+    .receipt-box { background: #fdfbf9; border: 1px dashed #e8dcd0; border-radius: 14px; padding: 20px; text-align: left; margin: 24px 0; }
+    .receipt-row { display: flex; justify-content: space-between; align-items: center; padding: 6px 0; border-bottom: 1px solid rgba(160,64,0,0.04); font-size: 0.88rem; }
+    .receipt-row:last-child { border-bottom: none; }
+    .receipt-total { border-top: 1.5px solid #e8dcd0; padding-top: 10px; margin-top: 10px; font-weight: 700; font-size: 1.05rem; }
 `;
 
 /* ─── Format Group Meal JSON ─── */
@@ -146,6 +172,16 @@ const CartPage = () => {
     const { user, isAuthenticated } = useAuth();
     const navigate = useNavigate();
     const [isCheckingOut, setIsCheckingOut] = useState(false);
+    const [step, setStep] = useState(1);
+    const [checkoutForm, setCheckoutForm] = useState({
+        recipientName: '',
+        contactNumber: '',
+        deliveryAddress: '',
+        paymentMethod: 'COD', // COD or GCASH
+        notes: ''
+    });
+    const [orderResult, setOrderResult] = useState(null);
+    const [loadingProfile, setLoadingProfile] = useState(false);
 
     const itemCount = cart.reduce((sum, item) => sum + item.quantity, 0);
     const total = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
@@ -171,31 +207,84 @@ const CartPage = () => {
         if (result.isConfirmed) clearCart();
     };
 
-    const handleCheckout = async () => {
+    const handleProceedToCheckout = () => {
         if (!isAuthenticated) {
             Swal.fire({
                 icon: 'warning',
                 title: 'Sign In Required',
-                text: 'Please log in to place your order.',
+                text: 'Please log in to proceed to checkout.',
                 confirmButtonColor: '#A04000'
             });
             navigate('/login');
             return;
         }
+        
+        // Fetch user profile to prefill the checkout form
+        if (user?.token) {
+            setLoadingProfile(true);
+            fetch(`${API_URL}/api/auth/me`, {
+                headers: { 'Authorization': `Bearer ${user.token}` }
+            })
+            .then(res => {
+                if (!res.ok) throw new Error("Failed to fetch profile");
+                return res.json();
+            })
+            .then(data => {
+                setCheckoutForm(prev => ({
+                    ...prev,
+                    recipientName: `${data.firstName || ''} ${data.lastName || ''}`.trim(),
+                    contactNumber: data.phone || '',
+                    deliveryAddress: data.address || ''
+                }));
+            })
+            .catch(err => {
+                console.error("Error fetching user profile for checkout:", err);
+            })
+            .finally(() => {
+                setLoadingProfile(false);
+                setStep(2);
+            });
+        } else {
+            setStep(2);
+        }
+    };
+
+    const handleFormChange = (e) => {
+        const { name, value } = e.target;
+        setCheckoutForm(prev => ({ ...prev, [name]: value }));
+    };
+
+    const handleSelectPayment = (method) => {
+        setCheckoutForm(prev => ({ ...prev, paymentMethod: method }));
+    };
+
+    const handlePlaceOrder = async () => {
+        if (!checkoutForm.recipientName || !checkoutForm.contactNumber || !checkoutForm.deliveryAddress) {
+            Swal.fire({
+                icon: 'warning',
+                title: 'Required Fields',
+                text: 'Please fill in all recipient and delivery information.',
+                confirmButtonColor: '#A04000'
+            });
+            return;
+        }
 
         const result = await Swal.fire({
-            title: 'Confirm Order?',
-            html: `<div style="font-size:0.95rem">Place order for <b>${itemCount} item${itemCount !== 1 ? 's' : ''}</b> totaling <b style="color:#a04000">₱${total.toFixed(2)}</b>?</div>`,
+            title: 'Place Order?',
+            html: `<div style="font-size:0.95rem">Confirm order for <b>${itemCount} item${itemCount !== 1 ? 's' : ''}</b> totaling <b style="color:#a04000">₱${total.toFixed(2)}</b> via <b>${checkoutForm.paymentMethod === 'COD' ? 'Cash on Delivery' : 'G-Cash'}</b>?</div>`,
             icon: 'question',
             showCancelButton: true,
             confirmButtonColor: '#A04000',
             cancelButtonColor: '#999',
-            confirmButtonText: '<i class="bi bi-check-lg me-1"></i> Yes, Order Now'
+            confirmButtonText: '<i class="bi bi-check-lg me-1"></i> Yes, Place Order'
         });
 
         if (result.isConfirmed) {
             setIsCheckingOut(true);
             try {
+                // Construct notes including recipient name, contact, and payment method info
+                const combinedNotes = `Recipient: ${checkoutForm.recipientName} | Contact: ${checkoutForm.contactNumber} | Address: ${checkoutForm.deliveryAddress} | Payment: ${checkoutForm.paymentMethod} | Notes: ${checkoutForm.notes || 'None'}`;
+                
                 const response = await fetch(`${API_URL}/api/orders`, {
                     method: 'POST',
                     headers: {
@@ -203,7 +292,7 @@ const CartPage = () => {
                         'Authorization': `Bearer ${user.token}`
                     },
                     body: JSON.stringify({
-                        notes: "Customer order via Website",
+                        notes: combinedNotes,
                         items: cart.map(item => ({
                             productId: item.id,
                             quantity: item.quantity,
@@ -215,15 +304,24 @@ const CartPage = () => {
                 const data = await response.json();
 
                 if (response.ok) {
+                    setOrderResult({
+                        id: data.id || 'N/A',
+                        total: total,
+                        recipientName: checkoutForm.recipientName,
+                        deliveryAddress: checkoutForm.deliveryAddress,
+                        paymentMethod: checkoutForm.paymentMethod
+                    });
+                    
                     Swal.fire({
                         icon: 'success',
                         title: 'Order Placed! 🎉',
-                        html: '<div>Your delicious meal is now being prepared.</div>',
+                        text: 'Your delicious meal is now being prepared.',
                         confirmButtonColor: '#A04000',
-                        timer: 5000
+                        timer: 3000
                     });
+
                     clearCart();
-                    navigate('/profile');
+                    setStep(3);
                 } else {
                     Swal.fire({
                         icon: 'error',
@@ -272,153 +370,357 @@ const CartPage = () => {
 
                 {/* ─── Step Progress ─── */}
                 <div className="cart-steps">
-                    <div className="cart-step active">
-                        <span className="cart-step-num">1</span>
+                    <div className={`cart-step ${step === 1 ? 'active' : step > 1 ? 'done' : ''}`}>
+                        <span className="cart-step-num">{step > 1 ? <i className="bi bi-check-lg"></i> : '1'}</span>
                         <span>Review Order</span>
                     </div>
-                    <div className="cart-step-line active"></div>
-                    <div className="cart-step">
-                        <span className="cart-step-num">2</span>
+                    <div className={`cart-step-line ${step > 1 ? 'done' : ''}`}></div>
+                    <div className={`cart-step ${step === 2 ? 'active' : step > 2 ? 'done' : ''}`}>
+                        <span className="cart-step-num">{step > 2 ? <i className="bi bi-check-lg"></i> : '2'}</span>
                         <span>Checkout</span>
                     </div>
-                    <div className="cart-step-line"></div>
-                    <div className="cart-step">
+                    <div className={`cart-step-line ${step > 2 ? 'done' : ''}`}></div>
+                    <div className={`cart-step ${step === 3 ? 'active' : ''}`}>
                         <span className="cart-step-num">3</span>
                         <span>Order Confirmed</span>
                     </div>
                 </div>
 
                 <div className="row g-4">
-                    {/* ─── Left: Cart Items ─── */}
-                    <div className="col-lg-8">
-                        <div className="d-flex justify-content-between align-items-center mb-3">
-                            <h4 style={{ color: 'var(--primary-brown)', fontWeight: 700, margin: 0 }}>
-                                <i className="bi bi-bag-check me-2" style={{ opacity: 0.6 }}></i>
-                                Your Order
-                                <span style={{ fontSize: '0.85rem', fontWeight: 500, color: '#aaa', marginLeft: 8 }}>
-                                    ({itemCount} {itemCount === 1 ? 'item' : 'items'})
-                                </span>
-                            </h4>
-                            <button className="clear-cart-btn" onClick={handleClearCart}>
-                                <i className="bi bi-trash3 me-1"></i> Clear All
-                            </button>
-                        </div>
+                    {step === 1 && (
+                        <>
+                            {/* ─── Left: Cart Items ─── */}
+                            <div className="col-lg-8">
+                                <div className="d-flex justify-content-between align-items-center mb-3">
+                                    <h4 style={{ color: 'var(--primary-brown)', fontWeight: 700, margin: 0 }}>
+                                        <i className="bi bi-bag-check me-2" style={{ opacity: 0.6 }}></i>
+                                        Your Order
+                                        <span style={{ fontSize: '0.85rem', fontWeight: 500, color: '#aaa', marginLeft: 8 }}>
+                                            ({itemCount} {itemCount === 1 ? 'item' : 'items'})
+                                        </span>
+                                    </h4>
+                                    <button className="clear-cart-btn" onClick={handleClearCart}>
+                                        <i className="bi bi-trash3 me-1"></i> Clear All
+                                    </button>
+                                </div>
 
-                        {cart.map((item, index) => (
-                            <div className="cart-item-card" key={item.cartItemId} style={{ animationDelay: `${index * 0.06}s` }}>
-                                <div className="d-flex align-items-start gap-3">
-                                    <img 
-                                        src={item.imageUrl || 'https://placehold.co/72x72/f5ebe0/a04000?text=🍽️'} 
-                                        alt={item.name} 
-                                        className="cart-item-img" 
-                                    />
-                                    <div className="flex-grow-1" style={{ minWidth: 0 }}>
-                                        <div className="d-flex justify-content-between align-items-start">
-                                            <div style={{ minWidth: 0, flex: 1 }}>
-                                                <h6 style={{ fontWeight: 700, color: '#2c2c2c', margin: 0, fontSize: '0.95rem' }}>
-                                                    {item.name}
-                                                </h6>
-                                                {item.variant && (
-                                                    <span style={{ fontSize: '0.75rem', color: 'var(--accent-orange)', fontWeight: 600 }}>
-                                                        {item.variant}
-                                                    </span>
-                                                )}
-                                                {formatDescription(item.description)}
-                                            </div>
-                                            <button 
-                                                className="cart-remove-btn ms-2 flex-shrink-0" 
-                                                onClick={() => removeFromCart(item.cartItemId)} 
-                                                title="Remove item"
-                                            >
-                                                <i className="bi bi-trash3"></i>
-                                            </button>
-                                        </div>
-
-                                        {/* Bottom: Price + Qty */}
-                                        <div className="d-flex justify-content-between align-items-center mt-3">
-                                            <div className="qty-stepper">
-                                                <button 
-                                                    onClick={() => handleDecrement(item)}
-                                                    title={item.quantity <= 1 ? "Remove item" : "Decrease quantity"}
-                                                >
-                                                    {item.quantity <= 1 ? <i className="bi bi-trash3" style={{ fontSize: '0.75rem', color: '#e74c3c' }}></i> : '−'}
-                                                </button>
-                                                <span className="qty-value">{item.quantity}</span>
-                                                <button onClick={() => handleIncrement(item)} title="Increase quantity">+</button>
-                                            </div>
-                                            <div style={{ textAlign: 'right' }}>
-                                                <div style={{ fontSize: '1.05rem', fontWeight: 700, color: 'var(--primary-brown)' }}>
-                                                    ₱{(item.price * item.quantity).toFixed(2)}
-                                                </div>
-                                                {item.quantity > 1 && (
-                                                    <div style={{ fontSize: '0.72rem', color: '#bbb' }}>
-                                                        ₱{item.price.toFixed(2)} each
+                                {cart.map((item, index) => (
+                                    <div className="cart-item-card" key={item.cartItemId} style={{ animationDelay: `${index * 0.06}s` }}>
+                                        <div className="d-flex align-items-start gap-3">
+                                            <img 
+                                                src={item.imageUrl || 'https://placehold.co/72x72/f5ebe0/a04000?text=🍽️'} 
+                                                alt={item.name} 
+                                                className="cart-item-img" 
+                                            />
+                                            <div className="flex-grow-1" style={{ minWidth: 0 }}>
+                                                <div className="d-flex justify-content-between align-items-start">
+                                                    <div style={{ minWidth: 0, flex: 1 }}>
+                                                        <h6 style={{ fontWeight: 700, color: '#2c2c2c', margin: 0, fontSize: '0.95rem' }}>
+                                                            {item.name}
+                                                        </h6>
+                                                        {item.variant && (
+                                                            <span style={{ fontSize: '0.75rem', color: 'var(--accent-orange)', fontWeight: 600 }}>
+                                                                {item.variant}
+                                                            </span>
+                                                        )}
+                                                        {formatDescription(item.description)}
                                                     </div>
-                                                )}
+                                                    <button 
+                                                        className="cart-remove-btn ms-2 flex-shrink-0" 
+                                                        onClick={() => removeFromCart(item.cartItemId)} 
+                                                        title="Remove item"
+                                                    >
+                                                        <i className="bi bi-trash3"></i>
+                                                    </button>
+                                                </div>
+
+                                                {/* Bottom: Price + Qty */}
+                                                <div className="d-flex justify-content-between align-items-center mt-3">
+                                                    <div className="qty-stepper">
+                                                        <button 
+                                                            onClick={() => handleDecrement(item)}
+                                                            title={item.quantity <= 1 ? "Remove item" : "Decrease quantity"}
+                                                        >
+                                                            {item.quantity <= 1 ? <i className="bi bi-trash3" style={{ fontSize: '0.75rem', color: '#e74c3c' }}></i> : '−'}
+                                                        </button>
+                                                        <span className="qty-value">{item.quantity}</span>
+                                                        <button onClick={() => handleIncrement(item)} title="Increase quantity">+</button>
+                                                    </div>
+                                                    <div style={{ textAlign: 'right' }}>
+                                                        <div style={{ fontSize: '1.05rem', fontWeight: 700, color: 'var(--primary-brown)' }}>
+                                                            ₱{(item.price * item.quantity).toFixed(2)}
+                                                        </div>
+                                                        {item.quantity > 1 && (
+                                                            <div style={{ fontSize: '0.72rem', color: '#bbb' }}>
+                                                                ₱{item.price.toFixed(2)} each
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                </div>
                                             </div>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+
+                            {/* ─── Right: Order Summary ─── */}
+                            <div className="col-lg-4">
+                                <div className="order-summary">
+                                    <h5 style={{ fontWeight: 700, color: 'var(--primary-brown)', marginBottom: 20 }}>
+                                        <i className="bi bi-receipt me-2" style={{ opacity: 0.5 }}></i>
+                                        Order Summary
+                                    </h5>
+
+                                    <div className="summary-row">
+                                        <span style={{ color: '#888', fontSize: '0.9rem' }}>Items ({itemCount})</span>
+                                        <span style={{ fontWeight: 600, fontSize: '0.9rem' }}>₱{total.toFixed(2)}</span>
+                                    </div>
+                                    <div className="summary-row">
+                                        <span style={{ color: '#888', fontSize: '0.9rem' }}>Delivery</span>
+                                        <span style={{ fontWeight: 600, fontSize: '0.9rem', color: '#27ae60' }}>Free</span>
+                                    </div>
+
+                                    <div className="summary-divider"></div>
+
+                                    <div className="summary-row total">
+                                        <span style={{ fontWeight: 700, fontSize: '1.05rem', color: '#333' }}>Total</span>
+                                        <span style={{ fontWeight: 800, fontSize: '1.25rem', color: 'var(--primary-brown)' }}>
+                                            ₱{total.toFixed(2)}
+                                        </span>
+                                    </div>
+
+                                    <div className="summary-divider"></div>
+
+                                    <button 
+                                        className="checkout-btn" 
+                                        onClick={handleProceedToCheckout}
+                                        disabled={loadingProfile}
+                                    >
+                                        {loadingProfile ? (
+                                            <><span className="spinner-border spinner-border-sm me-2"></span> Loading...</>
+                                        ) : (
+                                            <><i className="bi bi-arrow-right-circle me-2"></i> Proceed to Checkout</>
+                                        )}
+                                    </button>
+
+                                    <Link to="/menu" className="add-more-btn text-center d-block" style={{ textDecoration: 'none' }}>
+                                        <i className="bi bi-plus-lg me-1"></i> Add More Items
+                                    </Link>
+
+                                    {/* Trust badges */}
+                                    <div className="text-center mt-4" style={{ opacity: 0.4 }}>
+                                        <div style={{ fontSize: '0.72rem', color: '#999', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 12 }}>
+                                            <span><i className="bi bi-shield-check me-1"></i>Secure</span>
+                                            <span>•</span>
+                                            <span><i className="bi bi-clock me-1"></i>Fast Prep</span>
+                                            <span>•</span>
+                                            <span><i className="bi bi-heart me-1"></i>Fresh</span>
                                         </div>
                                     </div>
                                 </div>
                             </div>
-                        ))}
-                    </div>
+                        </>
+                    )}
 
-                    {/* ─── Right: Order Summary ─── */}
-                    <div className="col-lg-4">
-                        <div className="order-summary">
-                            <h5 style={{ fontWeight: 700, color: 'var(--primary-brown)', marginBottom: 20 }}>
-                                <i className="bi bi-receipt me-2" style={{ opacity: 0.5 }}></i>
-                                Order Summary
-                            </h5>
+                    {step === 2 && (
+                        <>
+                            {/* ─── Left: Checkout Details ─── */}
+                            <div className="col-lg-8">
+                                <div className="checkout-form-card">
+                                    <h5 style={{ fontWeight: 700, color: 'var(--primary-brown)', marginBottom: 20 }}>
+                                        <i className="bi bi-truck me-2" style={{ opacity: 0.6 }}></i>
+                                        Delivery & Recipient Details
+                                    </h5>
+                                    
+                                    <div className="form-group-custom">
+                                        <label>Recipient Full Name <span className="text-danger">*</span></label>
+                                        <input 
+                                            type="text" 
+                                            name="recipientName"
+                                            value={checkoutForm.recipientName}
+                                            onChange={handleFormChange}
+                                            placeholder="Enter full name of the recipient"
+                                            required
+                                        />
+                                    </div>
 
-                            <div className="summary-row">
-                                <span style={{ color: '#888', fontSize: '0.9rem' }}>Items ({itemCount})</span>
-                                <span style={{ fontWeight: 600, fontSize: '0.9rem' }}>₱{total.toFixed(2)}</span>
+                                    <div className="form-group-custom">
+                                        <label>Contact Number <span className="text-danger">*</span></label>
+                                        <input 
+                                            type="text" 
+                                            name="contactNumber"
+                                            value={checkoutForm.contactNumber}
+                                            onChange={handleFormChange}
+                                            placeholder="e.g. 09123456789"
+                                            required
+                                        />
+                                    </div>
+
+                                    <div className="form-group-custom">
+                                        <label>Delivery Address <span className="text-danger">*</span></label>
+                                        <textarea 
+                                            name="deliveryAddress"
+                                            value={checkoutForm.deliveryAddress}
+                                            onChange={handleFormChange}
+                                            rows="3"
+                                            placeholder="Enter complete house number, street, barangay, and municipality"
+                                            required
+                                        />
+                                    </div>
+
+                                    <div className="form-group-custom">
+                                        <label>Payment Method <span className="text-danger">*</span></label>
+                                        <div className="payment-options">
+                                            <div 
+                                                className={`payment-option-card ${checkoutForm.paymentMethod === 'COD' ? 'selected' : ''}`}
+                                                onClick={() => handleSelectPayment('COD')}
+                                            >
+                                                <i className="bi bi-cash-stack"></i>
+                                                <span>Cash on Delivery</span>
+                                            </div>
+                                            <div 
+                                                className={`payment-option-card ${checkoutForm.paymentMethod === 'GCASH' ? 'selected' : ''}`}
+                                                onClick={() => handleSelectPayment('GCASH')}
+                                            >
+                                                <i className="bi bi-phone"></i>
+                                                <span>G-Cash</span>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div className="form-group-custom">
+                                        <label>Order Notes / Special Instructions (Optional)</label>
+                                        <textarea 
+                                            name="notes"
+                                            value={checkoutForm.notes}
+                                            onChange={handleFormChange}
+                                            rows="2"
+                                            placeholder="Any notes for the kitchen or delivery rider..."
+                                        />
+                                    </div>
+
+                                    <button 
+                                        className="btn border-0 py-2.5 px-4 mt-2" 
+                                        onClick={() => setStep(1)} 
+                                        style={{ 
+                                            background: 'transparent', 
+                                            color: 'var(--primary-brown)', 
+                                            fontWeight: 600, 
+                                            display: 'inline-flex', 
+                                            alignItems: 'center', 
+                                            gap: 8,
+                                            padding: '8px 16px',
+                                            border: '1.5px solid #e0d6cc',
+                                            borderRadius: '12px'
+                                        }}
+                                    >
+                                        <i className="bi bi-arrow-left"></i> Back to Review Order
+                                    </button>
+                                </div>
                             </div>
-                            <div className="summary-row">
-                                <span style={{ color: '#888', fontSize: '0.9rem' }}>Delivery</span>
-                                <span style={{ fontWeight: 600, fontSize: '0.9rem', color: '#27ae60' }}>Free</span>
+
+                            {/* ─── Right: Summary / Confirm ─── */}
+                            <div className="col-lg-4">
+                                <div className="order-summary">
+                                    <h5 style={{ fontWeight: 700, color: 'var(--primary-brown)', marginBottom: 20 }}>
+                                        <i className="bi bi-receipt me-2" style={{ opacity: 0.5 }}></i>
+                                        Order Summary
+                                    </h5>
+
+                                    <div className="summary-row">
+                                        <span style={{ color: '#888', fontSize: '0.9rem' }}>Items ({itemCount})</span>
+                                        <span style={{ fontWeight: 600, fontSize: '0.9rem' }}>₱{total.toFixed(2)}</span>
+                                    </div>
+                                    <div className="summary-row">
+                                        <span style={{ color: '#888', fontSize: '0.9rem' }}>Delivery</span>
+                                        <span style={{ fontWeight: 600, fontSize: '0.9rem', color: '#27ae60' }}>Free</span>
+                                    </div>
+
+                                    <div className="summary-divider"></div>
+
+                                    <div className="summary-row total">
+                                        <span style={{ fontWeight: 700, fontSize: '1.05rem', color: '#333' }}>Total</span>
+                                        <span style={{ fontWeight: 800, fontSize: '1.25rem', color: 'var(--primary-brown)' }}>
+                                            ₱{total.toFixed(2)}
+                                        </span>
+                                    </div>
+
+                                    <div className="summary-divider"></div>
+
+                                    <button 
+                                        className="checkout-btn" 
+                                        onClick={handlePlaceOrder}
+                                        disabled={isCheckingOut}
+                                    >
+                                        {isCheckingOut ? (
+                                            <><span className="spinner-border spinner-border-sm me-2"></span> Placing Order...</>
+                                        ) : (
+                                            <><i className="bi bi-check2-circle me-2"></i> Confirm & Place Order</>
+                                        )}
+                                    </button>
+                                </div>
                             </div>
+                        </>
+                    )}
 
-                            <div className="summary-divider"></div>
+                    {step === 3 && (
+                        <div className="col-12">
+                            <div className="success-card">
+                                <div className="success-icon-container">
+                                    <i className="bi bi-check-lg"></i>
+                                </div>
+                                <h3 style={{ color: 'var(--primary-brown)', fontWeight: 800, marginBottom: 8 }}>Order Placed Successfully! 🎉</h3>
+                                <p style={{ color: '#666', fontSize: '0.95rem', maxWidth: 450, margin: '0 auto 24px' }}>
+                                    Thank you for your purchase. Your delicious meal is being prepared and will be delivered shortly.
+                                </p>
 
-                            <div className="summary-row total">
-                                <span style={{ fontWeight: 700, fontSize: '1.05rem', color: '#333' }}>Total</span>
-                                <span style={{ fontWeight: 800, fontSize: '1.25rem', color: 'var(--primary-brown)' }}>
-                                    ₱{total.toFixed(2)}
-                                </span>
-                            </div>
-
-                            <div className="summary-divider"></div>
-
-                            <button 
-                                className="checkout-btn" 
-                                onClick={handleCheckout}
-                                disabled={isCheckingOut}
-                            >
-                                {isCheckingOut ? (
-                                    <><span className="spinner-border spinner-border-sm me-2"></span> Processing...</>
-                                ) : (
-                                    <><i className="bi bi-bag-check me-2"></i> Place Order</>
+                                {orderResult && (
+                                    <div className="receipt-box">
+                                        <h6 style={{ fontWeight: 700, color: 'var(--primary-brown)', borderBottom: '1.5px dashed #e8dcd0', paddingBottom: 8, marginBottom: 12 }}>
+                                            Receipt Details
+                                        </h6>
+                                        <div className="receipt-row">
+                                            <span className="text-muted">Order ID</span>
+                                            <span className="fw-bold text-dark">#{orderResult.id}</span>
+                                        </div>
+                                        <div className="receipt-row">
+                                            <span className="text-muted">Recipient</span>
+                                            <span className="text-dark fw-semibold">{orderResult.recipientName}</span>
+                                        </div>
+                                        <div className="receipt-row">
+                                            <span className="text-muted">Delivery Address</span>
+                                            <span className="text-dark fw-semibold">{orderResult.deliveryAddress}</span>
+                                        </div>
+                                        <div className="receipt-row">
+                                            <span className="text-muted">Payment Method</span>
+                                            <span className="text-dark fw-semibold">{orderResult.paymentMethod === 'COD' ? 'Cash on Delivery (COD)' : 'G-Cash'}</span>
+                                        </div>
+                                        <div className="receipt-row receipt-total">
+                                            <span>Total Amount Paid</span>
+                                            <span style={{ color: 'var(--accent-orange)' }}>₱{orderResult.total.toFixed(2)}</span>
+                                        </div>
+                                    </div>
                                 )}
-                            </button>
 
-                            <Link to="/menu" className="add-more-btn text-center d-block" style={{ textDecoration: 'none' }}>
-                                <i className="bi bi-plus-lg me-1"></i> Add More Items
-                            </Link>
-
-                            {/* Trust badges */}
-                            <div className="text-center mt-4" style={{ opacity: 0.4 }}>
-                                <div style={{ fontSize: '0.72rem', color: '#999', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 12 }}>
-                                    <span><i className="bi bi-shield-check me-1"></i>Secure</span>
-                                    <span>•</span>
-                                    <span><i className="bi bi-clock me-1"></i>Fast Prep</span>
-                                    <span>•</span>
-                                    <span><i className="bi bi-heart me-1"></i>Fresh</span>
+                                <div className="d-flex flex-column flex-sm-row justify-content-center gap-3">
+                                    <button 
+                                        className="checkout-btn" 
+                                        onClick={() => navigate('/profile', { state: { tab: 'orders' } })}
+                                        style={{ width: 'auto', padding: '12px 30px' }}
+                                    >
+                                        <i className="bi bi-receipt me-2"></i> Track My Order
+                                    </button>
+                                    <button 
+                                        className="add-more-btn" 
+                                        onClick={() => navigate('/menu')}
+                                        style={{ width: 'auto', padding: '12px 30px', marginTop: 0 }}
+                                    >
+                                        <i className="bi bi-shop me-2"></i> Order More Food
+                                    </button>
                                 </div>
                             </div>
                         </div>
-                    </div>
+                    )}
                 </div>
             </div>
         </>

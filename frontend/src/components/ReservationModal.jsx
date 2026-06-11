@@ -11,7 +11,7 @@ const ReservationModal = ({ show, handleClose }) => {
         time: '',
         guests: '',
         request: '',
-        eventType: 'Casual Dining 🍽️'
+        eventType: ''
     });
 
     const { user, isAuthenticated } = useAuth();
@@ -76,7 +76,7 @@ const ReservationModal = ({ show, handleClose }) => {
                     confirmButtonColor: 'var(--primary-brown)',
                     timer: 5000
                 });
-                setFormData({ seatingType: '', date: '', time: '', guests: '', request: '', eventType: 'Casual Dining 🍽️' });
+                setFormData({ seatingType: '', date: '', time: '', guests: '', request: '', eventType: '' });
                 handleClose();
             } else {
                 Swal.fire({
@@ -183,22 +183,6 @@ const ReservationModal = ({ show, handleClose }) => {
                     <div className="modal-body" style={{ padding: '24px' }}>
                         <form onSubmit={handleSubmit}>
 
-                            {/* Seating Type */}
-                            <div className="mb-3">
-                                <label style={labelStyle}>Seating Type</label>
-                                <select
-                                    name="seatingType"
-                                    value={formData.seatingType}
-                                    onChange={handleChange}
-                                    required
-                                    style={inputStyle}
-                                >
-                                    <option value="">Select Option</option>
-                                    <option value="indoor">🏠 Indoor</option>
-                                    <option value="outdoor">🌿 Outdoor</option>
-                                </select>
-                            </div>
-
                             {/* Event Type */}
                             <div className="mb-3">
                                 <label style={labelStyle}>Event Type</label>
@@ -209,12 +193,29 @@ const ReservationModal = ({ show, handleClose }) => {
                                     required
                                     style={inputStyle}
                                 >
+                                    <option value="" disabled hidden style={{ color: '#aaa' }}>Select Event Type</option>
                                     <option value="Casual Dining 🍽️">Casual Dining 🍽️</option>
                                     <option value="Birthday Celebration 🎂">Birthday Celebration 🎂</option>
                                     <option value="Anniversary 💑">Anniversary 💑</option>
                                     <option value="Wedding / Reception 💍">Wedding / Reception 💍</option>
                                     <option value="Business Meeting 💼">Business Meeting 💼</option>
                                     <option value="Other Event 🎉">Other Event 🎉</option>
+                                </select>
+                            </div>
+
+                            {/* Seating Type */}
+                            <div className="mb-3">
+                                <label style={labelStyle}>Seating Type</label>
+                                <select
+                                    name="seatingType"
+                                    value={formData.seatingType}
+                                    onChange={handleChange}
+                                    required
+                                    style={inputStyle}
+                                >
+                                    <option value="" disabled hidden style={{ color: '#aaa' }}>Select Seating Type</option>
+                                    <option value="indoor">🏠 Indoor</option>
+                                    <option value="outdoor">🌿 Outdoor</option>
                                 </select>
                             </div>
 

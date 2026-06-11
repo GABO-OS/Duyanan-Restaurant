@@ -1,0 +1,119 @@
+DUYANAN RESTAURANT - ROLE-BASED ACCESS CONTROL (RBAC) ARCHITECTURE
+==================================================================
+Date: 2026-06-08
+Description: Overview of user authentication, route protection, and token validation.
+
+This document describes the Role-Based Access Control (RBAC) implementation
+used to secure REST API endpoints in the Duyanan Restaurant application.
+
+
+1. CONCEPTUAL ARCHITECTURE (ASCII FLOW)
+--------------------------------------
+
+    +-------------------+      +---------------------------------+
+    |   USER/CLIENT     | ---> |    JwtAuthFilter                |
+    |  - Guest (No Token) |      |   - Extracts JWT header token   |
+    |  - Customer (Token) |      |   - Reads "role" claim          |
+    |  - Admin (Token)    |      |   - Grants SimpleGrantedAuthority|
+    +-------------------+      +---------------------------------+
+                                               |
+                                               v
+    +-------------------+      +---------------------------------+
+    |  TARGET CONTROLLER| <--- |   SecurityFilterChain           |
+    |  - Auth/Products  |      |   - Matches path matchers       |
+    |  - Reservations   |      |   - permitAll()                 |
+    |  - Admin API      |      |   - authenticated()             |
+    +-------------------+      |   - hasRole("ADMIN")            |
+                               +---------------------------------+
+
+
+2. USER ROLES & ACCESS MATRIX
+-----------------------------
+
+The system identifies two database roles ("CUSTOMER" and "ADMIN") and treats
+unauthenticated requests as "GUEST" level access.
+
+- GUEST:
+  - Access Level: Public read-only.
+  - Allowed Endpoints:
+    * `/api/auth/**` (Registration, login, verification)
+    * `/api/products/**` (Viewing the menu, product listings)
+
+- CUSTOMER:
+  - Access Level: Authenticated customer.
+  - Allowed Endpoints:
+    * All Guest endpoints.
+    * `/api/reservations/**` (Table reservation creation/modification)
+    * `/api/orders/**` (Placing orders, viewing own order history)
+    * `/api/feedback/**` (Submitting reviews for completed orders)
+
+- ADMIN:
+  - Access Level: Full management authority.
+  - Allowed Endpoints:
+    * All Customer endpoints.
+    * `/api/admin/**` (View all sales, Holt-Winters forecasting, event packages)
+
+
+3. AUTHENTICATION & LOGIN PROCESS (IDENTITY VERIFICATION)
+---------------------------------------------------------
+Before role-based authorization can occur, the system verifies the user's identity via credentials:
+
+A. Login Credentials Verification (Backend):
+   - The user posts their email and password to `/api/auth/login`.
+   - The backend controller queries the database and verifies the password using the BCrypt hashing matcher:
+     `passwordEncoder.matches(submittedPassword, databasePassword)`
+
+B. Token Issuance:
+   - If verification succeeds, the backend generates a JSON Web Token (JWT) with the user ID, email, and role claims.
+
+C. Session Maintenance (Frontend):
+   - The React frontend saves the JWT. For subsequent operations (such as making a booking or placing an order), the token is included in the HTTP headers:
+     `Authorization: Bearer <JWT_TOKEN>`
+
+
+4. AUTHORIZATION SEQUENCE FLOW
+------------------------------
+
+1. The client sends an HTTP request with an Authorization header:
+   `Authorization: Bearer <JWT_TOKEN>`
+
+2. The JwtAuthFilter intercepts the request:
+   - Validates the token signature and expiration.
+   - Extracts the "role" claim (e.g., "CUSTOMER" or "ADMIN").
+   - Registers a UsernamePasswordAuthenticationToken inside Spring Security's
+     SecurityContextHolder using the "ROLE_" prefix (e.g., "ROLE_CUSTOMER").
+
+3. Spring Security evaluates URL matchers defined in SecurityConfig:
+   - Requests matching `/api/admin/**` check for "ROLE_ADMIN" authority.
+   - Requests matching `/api/orders/**` or `/api/reservations/**` require
+     any authenticated session.
+   - Requests matching `/api/auth/**` or `/api/products/**` pass through.
+
+4. If authorization succeeds, the request is dispatched to the Controller
+   endpoint to read or write data in the MySQL database (duyanan_db).
+   Otherwise, a 401 Unauthorized or 403 Forbidden is returned.
+
+
+5. SOURCE CODE FILE REFERENCES
+------------------------------
+
+- Model definition for user roles:
+  [User.java](file:///c:/Users/maureen/Desktop/CLONED%20PROJECTS/CAPSTONE%20DUYANAN%20RESTO/backend/src/main/java/com/duyanan/backend/model/User.java)
+
+- Database seeding of default admin:
+  [DataSeeder.java](file:///c:/Users/maureen/Desktop/CLONED%20PROJECTS/CAPSTONE%20DUYANAN%20RESTO/backend/src/main/java/com/duyanan/backend/DataSeeder.java)
+
+- Login validation and controller endpoint:
+  [UserController.java](file:///c:/Users/maureen/Desktop/CLONED%20PROJECTS/CAPSTONE%20DUYANAN%20RESTO/backend/src/main/java/com/duyanan/backend/controller/UserController.java)
+
+- React frontend Login form & fetch request:
+  [Login.jsx](file:///c:/Users/maureen/Desktop/CLONED%20PROJECTS/CAPSTONE%20DUYANAN%20RESTO/frontend/src/pages/Login.jsx)
+
+- JWT validation & claims generation:
+  [JwtUtil.java](file:///c:/Users/maureen/Desktop/CLONED%20PROJECTS/CAPSTONE%20DUYANAN%20RESTO/backend/src/main/java/com/duyanan/backend/util/JwtUtil.java)
+
+- Authentication request interception:
+  [JwtAuthFilter.java](file:///c:/Users/maureen/Desktop/CLONED%20PROJECTS/CAPSTONE%20DUYANAN%20RESTO/backend/src/main/java/com/duyanan/backend/security/JwtAuthFilter.java)
+
+- Access control configuration matchers:
+  [SecurityConfig.java](file:///c:/Users/maureen/Desktop/CLONED%20PROJECTS/CAPSTONE%20DUYANAN%20RESTO/backend/src/main/java/com/duyanan/backend/config/SecurityConfig.java)

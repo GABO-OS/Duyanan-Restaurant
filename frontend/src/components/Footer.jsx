@@ -74,7 +74,7 @@ const Footer = () => {
                     <div className="col-md-6 text-center text-md-end small">
                         <a href="/" className="me-3 text-muted text-decoration-none hover-orange">Home</a>
                         <a href="/menu" className="me-3 text-muted text-decoration-none hover-orange">Menu</a>
-                        <a href="/reservations" className="text-muted text-decoration-none hover-orange">Reservations</a>
+                        <a href="/book-reservation" className="text-muted text-decoration-none hover-orange">Book Reservation</a>
                     </div>
                 </div>
             </div>
