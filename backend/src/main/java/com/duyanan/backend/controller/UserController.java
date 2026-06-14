@@ -9,6 +9,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.client.RestTemplate;
 
+import java.security.SecureRandom;
 import java.util.Map;
 
 @RestController
@@ -199,5 +200,44 @@ public class UserController {
         } catch (Exception e) {
             return ResponseEntity.status(401).body(Map.of("error", "Invalid token"));
         }
+    }
+
+    // ── Forgot Password ───────────────────────────────────
+    @PostMapping("/forgot-password")
+    public ResponseEntity<?> forgotPassword(@RequestBody Map<String, String> body) {
+        String email = body.get("email");
+        if (email == null || email.isBlank()) {
+            return ResponseEntity.badRequest().body(Map.of("error", "Email is required."));
+        }
+
+        var userOpt = userRepository.findByEmail(email);
+        if (userOpt.isEmpty()) {
+            return ResponseEntity.badRequest().body(Map.of("error", "No account found with that email."));
+        }
+
+        User user = userOpt.get();
+
+        // Generate a random 10-character password
+        String newPassword = generateRandomPassword(10);
+
+        // Hash and save
+        user.setPassword(passwordEncoder.encode(newPassword));
+        userRepository.save(user);
+
+        return ResponseEntity.ok(Map.of(
+            "message", "Your new password has been generated.",
+            "newPassword", newPassword
+        ));
+    }
+
+    // ── Helper: generate random password ──────────────────
+    private String generateRandomPassword(int length) {
+        String chars = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789!@#$";
+        SecureRandom random = new SecureRandom();
+        StringBuilder sb = new StringBuilder(length);
+        for (int i = 0; i < length; i++) {
+            sb.append(chars.charAt(random.nextInt(chars.length())));
+        }
+        return sb.toString();
     }
 }

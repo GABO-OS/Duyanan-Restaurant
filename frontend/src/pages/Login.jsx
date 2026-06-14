@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import Swal from 'sweetalert2';
 import 'bootstrap-icons/font/bootstrap-icons.css';
 import duyananBg from '../assets/img/duyanan_bg.jpg';
 
@@ -33,6 +34,80 @@ const Login = () => {
         }));
     };
 
+    const handleForgotPassword = async () => {
+        const { value: email } = await Swal.fire({
+            title: 'Forgot Password?',
+            text: 'Enter your email address and we will send you a new password.',
+            input: 'email',
+            inputPlaceholder: 'Enter your email address',
+            showCancelButton: true,
+            confirmButtonText: 'Send New Password',
+            cancelButtonText: 'Cancel',
+            confirmButtonColor: '#c2703a',
+            cancelButtonColor: '#6c757d',
+            background: '#1a1a2e',
+            color: '#fff',
+            inputAttributes: {
+                autocapitalize: 'off',
+                autocorrect: 'off'
+            },
+            inputValidator: (value) => {
+                if (!value) {
+                    return 'Please enter your email address';
+                }
+            }
+        });
+
+        if (email) {
+            Swal.fire({
+                title: 'Sending...',
+                text: 'Please wait while we process your request.',
+                allowOutsideClick: false,
+                didOpen: () => Swal.showLoading(),
+                background: '#1a1a2e',
+                color: '#fff',
+            });
+
+            try {
+                const response = await fetch(`${API_URL}/api/auth/forgot-password`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ email }),
+                });
+                const data = await response.json();
+
+                if (response.ok) {
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'Check Your Email!',
+                        text: data.message || 'If an account with that email exists, a new password has been sent.',
+                        confirmButtonColor: '#c2703a',
+                        background: '#1a1a2e',
+                        color: '#fff',
+                    });
+                } else {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Error',
+                        text: data.error || 'Something went wrong. Please try again.',
+                        confirmButtonColor: '#c2703a',
+                        background: '#1a1a2e',
+                        color: '#fff',
+                    });
+                }
+            } catch (err) {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Connection Error',
+                    text: 'Could not connect to the server. Please try again later.',
+                    confirmButtonColor: '#c2703a',
+                    background: '#1a1a2e',
+                    color: '#fff',
+                });
+            }
+        }
+    };
+
     const handleSubmit = async (e) => {
         e.preventDefault();
         setLoginError('');
@@ -42,7 +117,7 @@ const Login = () => {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
-                    email:    credentials.email,
+                    email: credentials.email,
                     password: credentials.password,
                 }),
             });
@@ -83,23 +158,23 @@ const Login = () => {
                 if (response.authResponse) {
                     const accessToken = response.authResponse.accessToken;
                     setIsLoading(true);
-                    
+
                     fetch(`${API_URL}/api/auth/facebook`, {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({ accessToken })
                     })
-                    .then(res => res.json())
-                    .then(data => {
-                        if (data.token) {
-                            login(data);
-                            navigate('/');
-                        } else {
-                            Swal.fire('Login Failed', data.error || 'Could not log in with Facebook', 'error');
-                        }
-                    })
-                    .catch(() => Swal.fire('Error', 'Server communication failed', 'error'))
-                    .finally(() => setIsLoading(false));
+                        .then(res => res.json())
+                        .then(data => {
+                            if (data.token) {
+                                login(data);
+                                navigate('/');
+                            } else {
+                                Swal.fire('Login Failed', data.error || 'Could not log in with Facebook', 'error');
+                            }
+                        })
+                        .catch(() => Swal.fire('Error', 'Server communication failed', 'error'))
+                        .finally(() => setIsLoading(false));
                 }
             }, { scope: 'public_profile,email' });
             return;
@@ -241,7 +316,15 @@ const Login = () => {
                                     Remember Me
                                 </label>
                             </div>
-                            <Link to="#" className="text-decoration-none small" style={{ color: 'rgba(255,200,120,0.9)' }}>Forgot Password?</Link>
+                            <span
+                                onClick={handleForgotPassword}
+                                className="text-decoration-none small"
+                                style={{ color: 'rgba(255,200,120,0.9)', cursor: 'pointer', transition: 'color 0.2s' }}
+                                onMouseEnter={(e) => e.target.style.color = '#ffcc80'}
+                                onMouseLeave={(e) => e.target.style.color = 'rgba(255,200,120,0.9)'}
+                            >
+                                Forgot Password?
+                            </span>
                         </div>
 
                         {loginError && (
