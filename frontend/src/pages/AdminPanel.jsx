@@ -73,10 +73,20 @@ const AdminPanel = () => {
     const [orders, setOrders] = useState([]);
     const [reservations, setReservations] = useState([]);
     const [feedbacks, setFeedbacks] = useState([]);
+    const [events, setEvents] = useState([]);
     const [isLoading, setIsLoading] = useState(false);
     const [message, setMessage] = useState('');
     const [isSidebarOpen, setIsSidebarOpen] = useState(false);
     const [hoveredPoint, setHoveredPoint] = useState(null);
+
+    // Event form state
+    const [showEventForm, setShowEventForm] = useState(false);
+    const [editingEvent, setEditingEvent] = useState(null);
+    const [eventForm, setEventForm] = useState({
+        title: '', description: '', category: 'Milestone', eventDate: '', image: null
+    });
+    const [eventImagePreview, setEventImagePreview] = useState(null);
+    const eventCategories = ['Milestone', 'Community', 'Fiesta', 'Workshop', 'Celebration', 'Event'];
 
     // Product form state
     const [showProductForm, setShowProductForm] = useState(false);
@@ -122,12 +132,13 @@ const AdminPanel = () => {
     const fetchData = async (showLoading = true) => {
         if (showLoading) setIsLoading(true);
         try {
-            const [usersRes, productsRes, ordersRes, resRes, fbRes] = await Promise.all([
+            const [usersRes, productsRes, ordersRes, resRes, fbRes, eventsRes] = await Promise.all([
                 fetch(`${API_URL}/api/admin/users`, { headers: authHeaders() }),
                 fetch(`${API_URL}/api/admin/products`, { headers: authHeaders() }),
                 fetch(`${API_URL}/api/admin/orders`, { headers: authHeaders() }),
                 fetch(`${API_URL}/api/admin/reservations`, { headers: authHeaders() }),
-                fetch(`${API_URL}/api/feedback`, { headers: authHeaders() })
+                fetch(`${API_URL}/api/feedback`, { headers: authHeaders() }),
+                fetch(`${API_URL}/api/admin/events`, { headers: authHeaders() })
             ]);
 
             if (usersRes.ok) setUsers(await usersRes.json());
@@ -135,6 +146,7 @@ const AdminPanel = () => {
             if (ordersRes.ok) setOrders(await ordersRes.json());
             if (resRes.ok) setReservations(await resRes.json());
             if (fbRes.ok) setFeedbacks(await fbRes.json());
+            if (eventsRes.ok) setEvents(await eventsRes.json());
         } catch (e) {
             console.error("Failed to fetch admin data", e);
         }
@@ -547,11 +559,112 @@ const AdminPanel = () => {
     };
 
     // ── Components ────────────────────────────────────────
+    // ── Events CRUD ────────────────────────────────────────
+    const resetEventForm = () => {
+        setEventForm({ title: '', description: '', category: 'Milestone', eventDate: '', image: null });
+        setEventImagePreview(null);
+        setEditingEvent(null);
+        setShowEventForm(false);
+    };
+
+    const handleEventImageChange = (e) => {
+        const file = e.target.files[0];
+        if (file) {
+            setEventForm(prev => ({ ...prev, image: file }));
+            const reader = new FileReader();
+            reader.onloadend = () => setEventImagePreview(reader.result);
+            reader.readAsDataURL(file);
+        }
+    };
+
+    const handleEventSubmit = async (e) => {
+        e.preventDefault();
+        setMessage('');
+
+        const formData = new FormData();
+        formData.append('title', eventForm.title);
+        formData.append('description', eventForm.description);
+        formData.append('category', eventForm.category);
+        formData.append('eventDate', eventForm.eventDate);
+        if (eventForm.image) {
+            formData.append('image', eventForm.image);
+        }
+
+        try {
+            const url = editingEvent
+                ? `${API_URL}/api/admin/events/${editingEvent.id}`
+                : `${API_URL}/api/admin/events`;
+            const method = editingEvent ? 'PUT' : 'POST';
+
+            const res = await fetch(url, {
+                method,
+                headers: { 'Authorization': `Bearer ${user.token}` },
+                body: formData
+            });
+
+            if (res.ok) {
+                Swal.fire({
+                    icon: 'success',
+                    title: editingEvent ? 'Event Updated' : 'Event Created',
+                    text: `Successfully ${editingEvent ? 'updated' : 'created'} "${eventForm.title}".`,
+                    confirmButtonColor: 'var(--primary-brown)'
+                });
+                resetEventForm();
+                fetchData();
+            } else {
+                Swal.fire({ icon: 'error', title: 'Failed', text: 'Unable to save event.', confirmButtonColor: 'var(--primary-brown)' });
+            }
+        } catch {
+            Swal.fire({ icon: 'error', title: 'Error', text: 'Error saving event.', confirmButtonColor: 'var(--primary-brown)' });
+        }
+    };
+
+    const handleEditEvent = (event) => {
+        setEventForm({
+            title: event.title || '',
+            description: event.description || '',
+            category: event.category || 'Milestone',
+            eventDate: event.eventDate || '',
+            image: null
+        });
+        setEventImagePreview(event.imageUrl ? `${API_URL}${event.imageUrl}` : null);
+        setEditingEvent(event);
+        setShowEventForm(true);
+    };
+
+    const handleDeleteEvent = async (id) => {
+        const result = await Swal.fire({
+            title: 'Delete Event?',
+            text: 'This event will be permanently removed from the About Us page.',
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#d33',
+            cancelButtonColor: '#3085d6',
+            confirmButtonText: 'Yes, delete it!'
+        });
+
+        if (result.isConfirmed) {
+            try {
+                const res = await fetch(`${API_URL}/api/admin/events/${id}`, {
+                    method: 'DELETE',
+                    headers: authHeaders()
+                });
+                if (res.ok) {
+                    Swal.fire('Deleted!', 'Event has been removed.', 'success');
+                    fetchData();
+                }
+            } catch (e) {
+                Swal.fire('Error', 'Failed to delete event.', 'error');
+            }
+        }
+    };
+
     const navItems = [
         { id: 'dashboard', label: 'Dashboard', icon: 'bi-grid' },
         { id: 'orders', label: 'Orders', icon: 'bi-bag-check' },
         { id: 'reservations', label: 'Reservations', icon: 'bi-calendar-event' },
         { id: 'products', label: 'Menu', icon: 'bi-card-list' },
+        { id: 'events', label: 'Events', icon: 'bi-trophy' },
         { id: 'sales', label: 'Sales', icon: 'bi-bar-chart' },
         { id: 'forecasting', label: 'Forecasting', icon: 'bi-graph-up-arrow' },
         { id: 'users', label: 'Users', icon: 'bi-people' },
@@ -1848,6 +1961,200 @@ const AdminPanel = () => {
                                             })
                                         )}
                                     </div>
+                                </div>
+                            )}
+
+                            {/* ── Events Tab ── */}
+                            {activeTab === 'events' && (
+                                <div className="fade-in">
+                                    <div className="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-3">
+                                        <h3 className="fw-bold mb-0" style={{ color: 'var(--primary-brown)' }}>Events & Milestones</h3>
+                                        <button
+                                            className="btn-brand d-flex align-items-center gap-2"
+                                            onClick={() => { resetEventForm(); setShowEventForm(true); }}
+                                        >
+                                            <i className="bi bi-plus-circle"></i> Add Event
+                                        </button>
+                                    </div>
+
+                                    <p className="text-muted mb-4">Manage events displayed on the <strong>About Us</strong> page. Customers will see these under "Our Events & Milestones".</p>
+
+                                    {/* Event Form */}
+                                    {showEventForm && (
+                                        <div className="card border-0 shadow-sm rounded-4 mb-4">
+                                            <div className="card-body p-4">
+                                                <div className="d-flex justify-content-between align-items-center mb-3">
+                                                    <h5 className="fw-bold mb-0" style={{ color: 'var(--primary-brown)' }}>
+                                                        {editingEvent ? 'Edit Event' : 'Create New Event'}
+                                                    </h5>
+                                                    <button className="btn btn-sm btn-outline-secondary rounded-pill" onClick={resetEventForm}>
+                                                        <i className="bi bi-x-lg"></i> Cancel
+                                                    </button>
+                                                </div>
+
+                                                <form onSubmit={handleEventSubmit}>
+                                                    <div className="row g-3">
+                                                        <div className="col-md-6">
+                                                            <label className="form-label fw-bold">Event Title *</label>
+                                                            <input
+                                                                type="text"
+                                                                className="form-control rounded-3"
+                                                                placeholder="e.g. Grand Opening Day"
+                                                                value={eventForm.title}
+                                                                onChange={(e) => setEventForm(prev => ({ ...prev, title: e.target.value }))}
+                                                                required
+                                                            />
+                                                        </div>
+                                                        <div className="col-md-3">
+                                                            <label className="form-label fw-bold">Category *</label>
+                                                            <select
+                                                                className="form-select rounded-3"
+                                                                value={eventForm.category}
+                                                                onChange={(e) => setEventForm(prev => ({ ...prev, category: e.target.value }))}
+                                                                required
+                                                            >
+                                                                {eventCategories.map(cat => (
+                                                                    <option key={cat} value={cat}>{cat}</option>
+                                                                ))}
+                                                            </select>
+                                                        </div>
+                                                        <div className="col-md-3">
+                                                            <label className="form-label fw-bold">Date *</label>
+                                                            <input
+                                                                type="text"
+                                                                className="form-control rounded-3"
+                                                                placeholder="e.g. June 2023"
+                                                                value={eventForm.eventDate}
+                                                                onChange={(e) => setEventForm(prev => ({ ...prev, eventDate: e.target.value }))}
+                                                                required
+                                                            />
+                                                        </div>
+                                                        <div className="col-12">
+                                                            <label className="form-label fw-bold">Description *</label>
+                                                            <textarea
+                                                                className="form-control rounded-3"
+                                                                rows="3"
+                                                                placeholder="Describe the event..."
+                                                                value={eventForm.description}
+                                                                onChange={(e) => setEventForm(prev => ({ ...prev, description: e.target.value }))}
+                                                                required
+                                                            />
+                                                        </div>
+                                                        <div className="col-md-6">
+                                                            <label className="form-label fw-bold">Event Image</label>
+                                                            <input
+                                                                type="file"
+                                                                className="form-control rounded-3"
+                                                                accept="image/*"
+                                                                onChange={handleEventImageChange}
+                                                            />
+                                                            <small className="text-muted">Recommended: 800×500px or larger, landscape orientation.</small>
+                                                        </div>
+                                                        <div className="col-md-6 d-flex align-items-center">
+                                                            {eventImagePreview && (
+                                                                <div className="position-relative">
+                                                                    <img
+                                                                        src={eventImagePreview}
+                                                                        alt="Preview"
+                                                                        style={{ height: '120px', borderRadius: '12px', objectFit: 'cover', boxShadow: '0 4px 16px rgba(0,0,0,0.1)' }}
+                                                                    />
+                                                                    <button
+                                                                        type="button"
+                                                                        className="btn btn-sm btn-danger position-absolute top-0 end-0 rounded-circle"
+                                                                        style={{ transform: 'translate(30%, -30%)', width: '28px', height: '28px', padding: 0, fontSize: '0.75rem' }}
+                                                                        onClick={() => { setEventForm(prev => ({ ...prev, image: null })); setEventImagePreview(null); }}
+                                                                    >
+                                                                        <i className="bi bi-x"></i>
+                                                                    </button>
+                                                                </div>
+                                                            )}
+                                                        </div>
+                                                    </div>
+                                                    <div className="mt-4 d-flex gap-2">
+                                                        <button type="submit" className="btn-brand">
+                                                            <i className={`bi ${editingEvent ? 'bi-check-lg' : 'bi-plus-circle'} me-2`}></i>
+                                                            {editingEvent ? 'Update Event' : 'Create Event'}
+                                                        </button>
+                                                        <button type="button" className="btn btn-outline-secondary rounded-pill px-4" onClick={resetEventForm}>
+                                                            Cancel
+                                                        </button>
+                                                    </div>
+                                                </form>
+                                            </div>
+                                        </div>
+                                    )}
+
+                                    {/* Events List */}
+                                    {events.length === 0 ? (
+                                        <div className="text-center py-5 bg-white shadow-sm rounded-4 border border-light">
+                                            <i className="bi bi-trophy text-muted mb-3 d-block" style={{ fontSize: '3rem', opacity: 0.3 }}></i>
+                                            <h5 className="fw-bold text-dark">No events yet</h5>
+                                            <p className="text-muted small mb-0">Click "Add Event" to create your first event or milestone.</p>
+                                        </div>
+                                    ) : (
+                                        <div className="row g-4">
+                                            {events.map(event => (
+                                                <div key={event.id} className="col-md-6 col-lg-4">
+                                                    <div className="card border border-light shadow-sm rounded-4 h-100 overflow-hidden bg-white">
+                                                        {/* Image */}
+                                                        {event.imageUrl && (
+                                                            <div style={{ height: '180px', overflow: 'hidden', position: 'relative' }}>
+                                                                <img
+                                                                    src={`${API_URL}${event.imageUrl}`}
+                                                                    alt={event.title}
+                                                                    style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                                                                />
+                                                                <span
+                                                                    className="badge position-absolute"
+                                                                    style={{
+                                                                        bottom: '10px', left: '10px',
+                                                                        background: 'var(--accent-orange)', color: '#fff',
+                                                                        padding: '5px 14px', borderRadius: '50px',
+                                                                        fontSize: '0.75rem', fontWeight: 700
+                                                                    }}
+                                                                >
+                                                                    <i className="bi bi-calendar-event me-1"></i>{event.eventDate}
+                                                                </span>
+                                                            </div>
+                                                        )}
+                                                        <div className="card-body p-3">
+                                                            <span
+                                                                className="badge mb-2"
+                                                                style={{
+                                                                    background: 'rgba(211,84,0,0.1)', color: 'var(--accent-orange)',
+                                                                    padding: '4px 12px', borderRadius: '50px',
+                                                                    fontSize: '0.7rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.5px'
+                                                                }}
+                                                            >
+                                                                {event.category}
+                                                            </span>
+                                                            <h6 className="fw-bold mb-2" style={{ color: 'var(--primary-brown)' }}>{event.title}</h6>
+                                                            <p className="text-muted small mb-3" style={{ lineHeight: '1.5', display: '-webkit-box', WebkitLineClamp: 3, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
+                                                                {event.description}
+                                                            </p>
+                                                            {!event.imageUrl && (
+                                                                <small className="text-muted d-block mb-2"><i className="bi bi-calendar-event me-1"></i>{event.eventDate}</small>
+                                                            )}
+                                                            <div className="d-flex gap-2">
+                                                                <button
+                                                                    className="btn btn-sm btn-outline-warning rounded-pill flex-grow-1"
+                                                                    onClick={() => handleEditEvent(event)}
+                                                                >
+                                                                    <i className="bi bi-pencil me-1"></i> Edit
+                                                                </button>
+                                                                <button
+                                                                    className="btn btn-sm btn-outline-danger rounded-pill flex-grow-1"
+                                                                    onClick={() => handleDeleteEvent(event.id)}
+                                                                >
+                                                                    <i className="bi bi-trash me-1"></i> Delete
+                                                                </button>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    )}
                                 </div>
                             )}
                         </>

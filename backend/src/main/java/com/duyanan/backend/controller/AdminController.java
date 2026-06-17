@@ -5,9 +5,17 @@ import com.duyanan.backend.repository.*;
 
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.nio.file.StandardCopyOption;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 
 @RestController
 @RequestMapping("/api/admin")
@@ -17,15 +25,18 @@ public class AdminController {
     private final ProductRepository productRepository;
     private final OrderRepository orderRepository;
     private final ReservationRepository reservationRepository;
+    private final EventRepository eventRepository;
 
     public AdminController(UserRepository userRepository,
                            ProductRepository productRepository,
                            OrderRepository orderRepository,
-                           ReservationRepository reservationRepository) {
+                           ReservationRepository reservationRepository,
+                           EventRepository eventRepository) {
         this.userRepository = userRepository;
         this.productRepository = productRepository;
         this.orderRepository = orderRepository;
         this.reservationRepository = reservationRepository;
+        this.eventRepository = eventRepository;
     }
 
     // ── Users ──────────────────────────────────────────────
@@ -123,5 +134,109 @@ public class AdminController {
             ));
         }).orElse(ResponseEntity.notFound().build());
     }
-}
 
+    // ── Events (Admin) ────────────────────────────────────
+    private static final String UPLOAD_DIR = "uploads/events/";
+
+    @GetMapping("/events")
+    public List<Event> getAllEvents() {
+        return eventRepository.findAllByOrderByCreatedAtDesc();
+    }
+
+    @PostMapping("/events")
+    public ResponseEntity<?> createEvent(
+            @RequestParam("title") String title,
+            @RequestParam("description") String description,
+            @RequestParam("category") String category,
+            @RequestParam("eventDate") String eventDate,
+            @RequestParam(value = "image", required = false) MultipartFile image) {
+
+        try {
+            Event event = new Event();
+            event.setTitle(title);
+            event.setDescription(description);
+            event.setCategory(category);
+            event.setEventDate(eventDate);
+            event.setCreatedAt(LocalDateTime.now());
+
+            if (image != null && !image.isEmpty()) {
+                String imageUrl = saveImage(image);
+                event.setImageUrl(imageUrl);
+            }
+
+            Event saved = eventRepository.save(event);
+            return ResponseEntity.ok(saved);
+        } catch (IOException e) {
+            return ResponseEntity.badRequest().body(Map.of("error", "Failed to upload image: " + e.getMessage()));
+        }
+    }
+
+    @PutMapping("/events/{id}")
+    public ResponseEntity<?> updateEvent(
+            @PathVariable Long id,
+            @RequestParam("title") String title,
+            @RequestParam("description") String description,
+            @RequestParam("category") String category,
+            @RequestParam("eventDate") String eventDate,
+            @RequestParam(value = "image", required = false) MultipartFile image) {
+
+        return eventRepository.findById(id).map(existing -> {
+            existing.setTitle(title);
+            existing.setDescription(description);
+            existing.setCategory(category);
+            existing.setEventDate(eventDate);
+
+            if (image != null && !image.isEmpty()) {
+                try {
+                    deleteOldImage(existing.getImageUrl());
+                    String imageUrl = saveImage(image);
+                    existing.setImageUrl(imageUrl);
+                } catch (IOException e) {
+                    return ResponseEntity.badRequest().body((Object) Map.of("error", "Failed to upload image."));
+                }
+            }
+
+            eventRepository.save(existing);
+            return ResponseEntity.ok((Object) existing);
+        }).orElse(ResponseEntity.notFound().build());
+    }
+
+    @DeleteMapping("/events/{id}")
+    public ResponseEntity<?> deleteEvent(@PathVariable Long id) {
+        return eventRepository.findById(id).map(event -> {
+            deleteOldImage(event.getImageUrl());
+            eventRepository.deleteById(id);
+            return ResponseEntity.ok(Map.of("message", "Event deleted successfully."));
+        }).orElse(ResponseEntity.notFound().build());
+    }
+
+    // ── Image Upload Helpers ──────────────────────────────
+    private String saveImage(MultipartFile image) throws IOException {
+        Path uploadPath = Paths.get(UPLOAD_DIR);
+        if (!Files.exists(uploadPath)) {
+            Files.createDirectories(uploadPath);
+        }
+
+        String originalFilename = image.getOriginalFilename();
+        String extension = "";
+        if (originalFilename != null && originalFilename.contains(".")) {
+            extension = originalFilename.substring(originalFilename.lastIndexOf("."));
+        }
+        String filename = UUID.randomUUID().toString() + extension;
+
+        Path filePath = uploadPath.resolve(filename);
+        Files.copy(image.getInputStream(), filePath, StandardCopyOption.REPLACE_EXISTING);
+
+        return "/uploads/events/" + filename;
+    }
+
+    private void deleteOldImage(String imageUrl) {
+        if (imageUrl != null && imageUrl.startsWith("/uploads/")) {
+            try {
+                Path oldFile = Paths.get(imageUrl.substring(1));
+                Files.deleteIfExists(oldFile);
+            } catch (IOException ignored) {
+            }
+        }
+    }
+}
