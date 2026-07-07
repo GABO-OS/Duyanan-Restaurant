@@ -35,6 +35,9 @@ public class Order {
 
     private String notes;
 
+    @Column(name = "cancellation_reason")
+    private String cancellationReason;
+
     @OneToOne(mappedBy = "order", cascade = CascadeType.ALL, fetch = FetchType.EAGER)
     @JsonIgnoreProperties("order")
     private Feedback feedback;

@@ -74,7 +74,12 @@ public class AdminController {
             existing.setPrice1Point5Liter(product.getPrice1Point5Liter());
             existing.setPrice2Liter(product.getPrice2Liter());
             existing.setDescription(product.getDescription());
+            
+            if (product.getImageUrl() != null && !product.getImageUrl().equals(existing.getImageUrl())) {
+                deleteOldImage(existing.getImageUrl());
+            }
             existing.setImageUrl(product.getImageUrl());
+            
             existing.setCategory(product.getCategory());
             existing.setFlavors(product.getFlavors());
             
@@ -90,11 +95,24 @@ public class AdminController {
 
     @DeleteMapping("/products/{id}")
     public ResponseEntity<?> deleteProduct(@PathVariable Long id) {
-        if (productRepository.existsById(id)) {
+        return productRepository.findById(id).map(product -> {
+            deleteOldImage(product.getImageUrl());
             productRepository.deleteById(id);
             return ResponseEntity.ok(Map.of("message", "Product deleted successfully."));
+        }).orElse(ResponseEntity.notFound().build());
+    }
+
+    @PostMapping("/products/upload")
+    public ResponseEntity<?> uploadProductImage(@RequestParam("image") MultipartFile image) {
+        try {
+            if (image == null || image.isEmpty()) {
+                return ResponseEntity.badRequest().body(Map.of("error", "Image file is required."));
+            }
+            String imageUrl = saveProductImage(image);
+            return ResponseEntity.ok(Map.of("imageUrl", imageUrl));
+        } catch (IOException e) {
+            return ResponseEntity.badRequest().body(Map.of("error", "Failed to upload image: " + e.getMessage()));
         }
-        return ResponseEntity.notFound().build();
     }
 
     // ── Orders (Admin) ────────────────────────────────────
@@ -105,8 +123,18 @@ public class AdminController {
 
     @PutMapping("/orders/{id}/status")
     public ResponseEntity<?> updateOrderStatus(@PathVariable Long id, @RequestBody Map<String, String> body) {
+        String status = body.get("status");
+        String cancellationReason = body.get("cancellationReason");
+
+        if ("CANCELLED".equalsIgnoreCase(status) && (cancellationReason == null || cancellationReason.trim().isEmpty())) {
+            return ResponseEntity.badRequest().body(Map.of("error", "Cancellation reason is required when cancelling an order."));
+        }
+
         return orderRepository.findById(id).map(order -> {
-            order.setStatus(body.get("status"));
+            order.setStatus(status);
+            if ("CANCELLED".equalsIgnoreCase(status)) {
+                order.setCancellationReason(cancellationReason.trim());
+            }
             orderRepository.save(order);
             return ResponseEntity.ok(Map.of(
                     "message", "Order status updated.",
@@ -124,8 +152,18 @@ public class AdminController {
 
     @PutMapping("/reservations/{id}/status")
     public ResponseEntity<?> updateReservationStatus(@PathVariable Long id, @RequestBody Map<String, String> body) {
+        String status = body.get("status");
+        String cancellationReason = body.get("cancellationReason");
+
+        if ("CANCELLED".equalsIgnoreCase(status) && (cancellationReason == null || cancellationReason.trim().isEmpty())) {
+            return ResponseEntity.badRequest().body(Map.of("error", "Cancellation reason is required when cancelling a reservation."));
+        }
+
         return reservationRepository.findById(id).map(reservation -> {
-            reservation.setStatus(body.get("status"));
+            reservation.setStatus(status);
+            if ("CANCELLED".equalsIgnoreCase(status)) {
+                reservation.setCancellationReason(cancellationReason.trim());
+            }
             reservationRepository.save(reservation);
             return ResponseEntity.ok(Map.of(
                     "message", "Reservation status updated.",
@@ -228,6 +266,27 @@ public class AdminController {
         Files.copy(image.getInputStream(), filePath, StandardCopyOption.REPLACE_EXISTING);
 
         return "/uploads/events/" + filename;
+    }
+
+    private static final String PRODUCT_UPLOAD_DIR = "uploads/products/";
+
+    private String saveProductImage(MultipartFile image) throws IOException {
+        Path uploadPath = Paths.get(PRODUCT_UPLOAD_DIR);
+        if (!Files.exists(uploadPath)) {
+            Files.createDirectories(uploadPath);
+        }
+
+        String originalFilename = image.getOriginalFilename();
+        String extension = "";
+        if (originalFilename != null && originalFilename.contains(".")) {
+            extension = originalFilename.substring(originalFilename.lastIndexOf("."));
+        }
+        String filename = UUID.randomUUID().toString() + extension;
+
+        Path filePath = uploadPath.resolve(filename);
+        Files.copy(image.getInputStream(), filePath, StandardCopyOption.REPLACE_EXISTING);
+
+        return "/uploads/products/" + filename;
     }
 
     private void deleteOldImage(String imageUrl) {

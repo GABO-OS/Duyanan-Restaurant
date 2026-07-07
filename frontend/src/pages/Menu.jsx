@@ -96,6 +96,8 @@ const Menu = () => {
                         finalImg = habhabImg;
                     } else if (p.imageUrl === 'duyanan_logo.png') {
                         finalImg = logoImg;
+                    } else if (p.imageUrl && p.imageUrl.startsWith('/uploads/')) {
+                        finalImg = `${API_URL}${p.imageUrl}`;
                     } else if (p.imageUrl && !p.imageUrl.startsWith('http') && !p.imageUrl.startsWith('data:') && !p.imageUrl.startsWith('/')) {
                         finalImg = `/img/${p.imageUrl}`;
                     }

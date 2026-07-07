@@ -95,6 +95,8 @@ const AdminPanel = () => {
         name: '', priceSolo: '', priceALaCarte: '', priceALaCarte2: '', price1Liter: '', price1Point5Liter: '', price2Liter: '', description: '', imageUrl: '', category: 'Rice Meals', flavors: '', customCombos: [],
         groupMealInclusions: '', groupMealGoodFor: '', groupMealSavings: ''
     });
+    const [productImageFile, setProductImageFile] = useState(null);
+    const [productImagePreview, setProductImagePreview] = useState(null);
 
     const addCombo = (e) => {
         e.preventDefault();
@@ -204,11 +206,52 @@ const AdminPanel = () => {
         });
         setEditingProduct(null);
         setShowProductForm(false);
+        setProductImageFile(null);
+        setProductImagePreview(null);
+    };
+
+    const handleProductImageChange = (e) => {
+        const file = e.target.files[0];
+        if (file) {
+            setProductImageFile(file);
+            const reader = new FileReader();
+            reader.onloadend = () => setProductImagePreview(reader.result);
+            reader.readAsDataURL(file);
+        }
     };
 
     const handleProductSubmit = async (e) => {
         e.preventDefault();
         setMessage('');
+
+        let uploadedImageUrl = productForm.imageUrl;
+
+        if (productImageFile) {
+            const uploadFormData = new FormData();
+            uploadFormData.append('image', productImageFile);
+            try {
+                const uploadRes = await fetch(`${API_URL}/api/admin/products/upload`, {
+                    method: 'POST',
+                    headers: { 'Authorization': `Bearer ${user.token}` },
+                    body: uploadFormData
+                });
+                if (uploadRes.ok) {
+                    const uploadData = await uploadRes.json();
+                    uploadedImageUrl = uploadData.imageUrl;
+                } else {
+                    throw new Error('Image upload failed');
+                }
+            } catch (err) {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Upload Failed',
+                    text: 'Unable to upload the product image. Please try again.',
+                    confirmButtonColor: 'var(--primary-brown)'
+                });
+                return;
+            }
+        }
+
         let finalDescription = productForm.description;
         if (productForm.category === 'Group Meals') {
             finalDescription = JSON.stringify({
@@ -221,6 +264,7 @@ const AdminPanel = () => {
         const { groupMealInclusions, groupMealGoodFor, groupMealSavings, ...cleanForm } = productForm;
         const payload = { 
             ...cleanForm, 
+            imageUrl: uploadedImageUrl,
             description: finalDescription,
             name: productForm.category === 'Milk Shakes' ? 'Milk Shake' : productForm.name,
             priceSolo: productForm.priceSolo ? parseFloat(productForm.priceSolo) : 0,
@@ -294,6 +338,12 @@ const AdminPanel = () => {
         });
         setEditingProduct(product);
         setShowProductForm(true);
+        setProductImageFile(null);
+        if (product.imageUrl) {
+            setProductImagePreview(product.imageUrl.startsWith('http') || product.imageUrl.startsWith('/') || product.imageUrl.startsWith('data:') ? (product.imageUrl.startsWith('/uploads/') ? `${API_URL}${product.imageUrl}` : product.imageUrl) : `/img/${product.imageUrl}`);
+        } else {
+            setProductImagePreview(null);
+        }
     };
 
     const handleDeleteProduct = async (id) => {
@@ -325,6 +375,68 @@ const AdminPanel = () => {
 
     // ── Orders & Reservations Status ──────────────────────
     const handleUpdateStatus = async (type, id, status) => {
+        // If cancelling, show a modal requiring a reason
+        if (status === 'CANCELLED') {
+            const { value: cancellationReason, isConfirmed } = await Swal.fire({
+                title: 'Cancellation Reason Required',
+                html: `<p style="margin-bottom: 8px; color: #666; font-size: 0.9rem;">Please provide a reason for cancelling this ${type === 'orders' ? 'order' : 'reservation'}. This is mandatory.</p>`,
+                input: 'textarea',
+                inputPlaceholder: 'Enter the reason for cancellation...',
+                inputAttributes: {
+                    'aria-label': 'Cancellation Reason',
+                    style: 'min-height: 100px; font-size: 0.95rem;'
+                },
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonText: 'Confirm Cancellation',
+                cancelButtonText: 'Go Back',
+                confirmButtonColor: '#d33',
+                cancelButtonColor: '#6c757d',
+                inputValidator: (value) => {
+                    if (!value || !value.trim()) {
+                        return 'You must provide a cancellation reason!';
+                    }
+                },
+                customClass: {
+                    popup: 'rounded-4'
+                }
+            });
+
+            if (!isConfirmed) {
+                // Admin dismissed the modal — revert the dropdown by re-fetching
+                fetchData();
+                return;
+            }
+
+            // Send cancellation with reason
+            try {
+                const res = await fetch(`${API_URL}/api/admin/${type}/${id}/status`, {
+                    method: 'PUT',
+                    headers: authHeaders(),
+                    body: JSON.stringify({ status: 'CANCELLED', cancellationReason: cancellationReason.trim() })
+                });
+
+                if (res.ok) {
+                    Swal.fire({
+                        toast: true,
+                        position: 'top-end',
+                        icon: 'success',
+                        title: `${type === 'orders' ? 'Order' : 'Reservation'} Cancelled`,
+                        showConfirmButton: false,
+                        timer: 2000
+                    });
+                    fetchData();
+                } else {
+                    const errorData = await res.json().catch(() => ({}));
+                    Swal.fire('Error', errorData.error || 'Failed to cancel.', 'error');
+                }
+            } catch (e) {
+                Swal.fire('Error', 'Failed to update status.', 'error');
+            }
+            return;
+        }
+
+        // Non-cancel status updates (original flow)
         try {
             const res = await fetch(`${API_URL}/api/admin/${type}/${id}/status`, {
                 method: 'PUT',
@@ -948,9 +1060,14 @@ const AdminPanel = () => {
                                                         </td>
                                                         <td className="px-4 fw-bold text-center">₱{o.totalAmount?.toFixed(2)}</td>
                                                         <td className="px-4 text-center">
-                                                            <span className={`badge rounded-pill ${o.status === 'PENDING' ? 'bg-warning text-dark' : o.status === 'COMPLETED' ? 'bg-success' : 'bg-info text-dark'}`}>
+                                                            <span className={`badge rounded-pill ${o.status === 'PENDING' ? 'bg-warning text-dark' : o.status === 'COMPLETED' ? 'bg-success' : o.status === 'CANCELLED' ? 'bg-danger' : 'bg-info text-dark'}`}>
                                                                 {o.status}
                                                             </span>
+                                                            {o.status === 'CANCELLED' && o.cancellationReason && (
+                                                                <div className="mt-1" style={{ fontSize: '0.72rem', color: '#d33', fontStyle: 'italic', maxWidth: '180px', margin: '4px auto 0' }}>
+                                                                    <i className="bi bi-info-circle me-1"></i>{o.cancellationReason}
+                                                                </div>
+                                                            )}
                                                         </td>
                                                         <td className="px-4 text-center">
                                                             <select className="form-select form-select-sm d-inline-block w-auto" value={o.status} onChange={(e) => handleUpdateStatus('orders', o.id, e.target.value)}>
@@ -1026,6 +1143,11 @@ const AdminPanel = () => {
                                                             <span className={`badge rounded-pill ${r.status === 'PENDING' ? 'bg-warning text-dark' : r.status === 'CONFIRMED' ? 'bg-success' : 'bg-danger'}`}>
                                                                 {r.status}
                                                             </span>
+                                                            {r.status === 'CANCELLED' && r.cancellationReason && (
+                                                                <div className="mt-1" style={{ fontSize: '0.72rem', color: '#d33', fontStyle: 'italic', maxWidth: '180px', margin: '4px auto 0' }}>
+                                                                    <i className="bi bi-info-circle me-1"></i>{r.cancellationReason}
+                                                                </div>
+                                                            )}
                                                         </td>
                                                         <td className="px-4 text-center">
                                                             <select className="form-select form-select-sm d-inline-block w-auto" value={r.status} onChange={(e) => handleUpdateStatus('reservations', r.id, e.target.value)}>
@@ -1320,8 +1442,34 @@ const AdminPanel = () => {
                                                             )}
 
                                                             <div className="col-md-12 mt-3">
-                                                                <label className="form-label small fw-bold text-muted">Image URL</label>
-                                                                <input type="text" className="form-control bg-white" value={productForm.imageUrl} onChange={e => setProductForm(p => ({ ...p, imageUrl: e.target.value }))} />
+                                                                <label className="form-label small fw-bold text-muted">Menu Image</label>
+                                                                <input 
+                                                                    type="file" 
+                                                                    className="form-control bg-white" 
+                                                                    accept="image/*"
+                                                                    onChange={handleProductImageChange} 
+                                                                />
+                                                                {productImagePreview && (
+                                                                    <div className="mt-2 position-relative d-inline-block" style={{ border: '1px solid rgba(0,0,0,0.08)', borderRadius: '12px', overflow: 'hidden', background: '#fff' }}>
+                                                                        <img 
+                                                                            src={productImagePreview} 
+                                                                            alt="Preview" 
+                                                                            style={{ maxHeight: '120px', objectFit: 'cover', borderRadius: '12px' }} 
+                                                                        />
+                                                                        <button
+                                                                            type="button"
+                                                                            className="btn btn-danger btn-sm position-absolute top-0 end-0 m-1 rounded-circle d-flex align-items-center justify-content-center"
+                                                                            style={{ width: '24px', height: '24px', padding: 0 }}
+                                                                            onClick={() => {
+                                                                                setProductImageFile(null);
+                                                                                setProductImagePreview(null);
+                                                                                setProductForm(prev => ({ ...prev, imageUrl: '' }));
+                                                                            }}
+                                                                        >
+                                                                            <i className="bi bi-x"></i>
+                                                                        </button>
+                                                                    </div>
+                                                                )}
                                                             </div>
                                                         </div>
                                                         <div className="mt-3 pt-2 d-flex justify-content-end gap-2">
@@ -1398,7 +1546,7 @@ const AdminPanel = () => {
                                                                                     <div className="d-flex align-items-center">
                                                                                         {p.imageUrl ? (
                                                                                             <img 
-                                                                                                src={p.imageUrl.startsWith('http') || p.imageUrl.startsWith('/') || p.imageUrl.startsWith('data:') ? p.imageUrl : `/img/${p.imageUrl}`} 
+                                                                                                src={p.imageUrl.startsWith('http') || p.imageUrl.startsWith('data:') ? p.imageUrl : (p.imageUrl.startsWith('/uploads/') ? `${API_URL}${p.imageUrl}` : (p.imageUrl.startsWith('/') ? p.imageUrl : `/img/${p.imageUrl}`))} 
                                                                                                 alt={p.name} 
                                                                                                 className="rounded-3 me-3 object-fit-cover shadow-sm" 
                                                                                                 style={{ width: '42px', height: '42px', border: '1px solid rgba(0,0,0,0.08)' }} 
@@ -1487,7 +1635,7 @@ const AdminPanel = () => {
                                                                  <tr key={p.id}>
                                                                      <td className="px-4 py-3">
                                                                          <div className="d-flex align-items-center">
-                                                                             {p.imageUrl ? <img src={p.imageUrl.startsWith('http') || p.imageUrl.startsWith('/') || p.imageUrl.startsWith('data:') ? p.imageUrl : `/img/${p.imageUrl}`} alt={p.name} className="rounded-3 me-3 object-fit-cover shadow-sm" style={{ width: '42px', height: '42px', border: '1px solid rgba(0,0,0,0.08)' }} /> : <div className="bg-light rounded-3 me-3 d-flex align-items-center justify-content-center text-muted border" style={{ width: '42px', height: '42px' }}><i className="bi bi-image"></i></div>}
+                                                                             {p.imageUrl ? <img src={p.imageUrl.startsWith('http') || p.imageUrl.startsWith('data:') ? p.imageUrl : (p.imageUrl.startsWith('/uploads/') ? `${API_URL}${p.imageUrl}` : (p.imageUrl.startsWith('/') ? p.imageUrl : `/img/${p.imageUrl}`))} alt={p.name} className="rounded-3 me-3 object-fit-cover shadow-sm" style={{ width: '42px', height: '42px', border: '1px solid rgba(0,0,0,0.08)' }} /> : <div className="bg-light rounded-3 me-3 d-flex align-items-center justify-content-center text-muted border" style={{ width: '42px', height: '42px' }}><i className="bi bi-image"></i></div>}
                                                                              <span className="fw-bold text-dark">{p.name}</span>
                                                                          </div>
                                                                      </td>
@@ -1523,7 +1671,7 @@ const AdminPanel = () => {
                                                                  <tr key={p.id}>
                                                                      <td className="px-4 py-3">
                                                                          <div className="d-flex align-items-center">
-                                                                             {p.imageUrl ? <img src={p.imageUrl.startsWith('http') || p.imageUrl.startsWith('/') || p.imageUrl.startsWith('data:') ? p.imageUrl : `/img/${p.imageUrl}`} alt={p.name} className="rounded-3 me-3 object-fit-cover shadow-sm" style={{ width: '42px', height: '42px', border: '1px solid rgba(0,0,0,0.08)' }} /> : <div className="bg-light rounded-3 me-3 d-flex align-items-center justify-content-center text-muted border" style={{ width: '42px', height: '42px' }}><i className="bi bi-image"></i></div>}
+                                                                             {p.imageUrl ? <img src={p.imageUrl.startsWith('http') || p.imageUrl.startsWith('data:') ? p.imageUrl : (p.imageUrl.startsWith('/uploads/') ? `${API_URL}${p.imageUrl}` : (p.imageUrl.startsWith('/') ? p.imageUrl : `/img/${p.imageUrl}`))} alt={p.name} className="rounded-3 me-3 object-fit-cover shadow-sm" style={{ width: '42px', height: '42px', border: '1px solid rgba(0,0,0,0.08)' }} /> : <div className="bg-light rounded-3 me-3 d-flex align-items-center justify-content-center text-muted border" style={{ width: '42px', height: '42px' }}><i className="bi bi-image"></i></div>}
                                                                              <span className="fw-bold text-dark">{p.name}</span>
                                                                          </div>
                                                                      </td>

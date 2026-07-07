@@ -565,6 +565,16 @@ const Profile = () => {
                                                 )}
                                             </div>
 
+                                            {order.status === 'CANCELLED' && order.cancellationReason && (
+                                                <div className="mt-3 p-3 rounded-3 d-flex align-items-start gap-2" style={{ backgroundColor: 'rgba(231, 76, 60, 0.06)', border: '1.5px solid rgba(231, 76, 60, 0.15)', borderLeft: '4px solid #e74c3c', borderRadius: '10px' }}>
+                                                    <i className="bi bi-info-circle-fill" style={{ color: '#e74c3c', fontSize: '1rem', marginTop: '1px', flexShrink: 0 }}></i>
+                                                    <div>
+                                                        <div className="fw-bold small" style={{ color: '#c0392b', marginBottom: '2px' }}>Reason for Cancellation</div>
+                                                        <div className="small" style={{ color: '#6c757d' }}>{order.cancellationReason}</div>
+                                                    </div>
+                                                </div>
+                                            )}
+
                                             {order.status === 'COMPLETED' && (
                                                 <div className="mt-3 pt-3 border-top d-flex justify-content-between align-items-center">
                                                     {order.feedback ? (
@@ -780,6 +790,16 @@ const Profile = () => {
                                                      )}
                                                  </div>
                                              </div>
+
+                                             {res.status === 'CANCELLED' && res.cancellationReason && (
+                                                 <div className="mt-3 p-3 rounded-3 d-flex align-items-start gap-2" style={{ backgroundColor: 'rgba(231, 76, 60, 0.06)', border: '1.5px solid rgba(231, 76, 60, 0.15)', borderLeft: '4px solid #e74c3c', borderRadius: '10px' }}>
+                                                     <i className="bi bi-info-circle-fill" style={{ color: '#e74c3c', fontSize: '1rem', marginTop: '1px', flexShrink: 0 }}></i>
+                                                     <div>
+                                                         <div className="fw-bold small" style={{ color: '#c0392b', marginBottom: '2px' }}>Reason for Cancellation</div>
+                                                         <div className="small" style={{ color: '#6c757d' }}>{res.cancellationReason}</div>
+                                                     </div>
+                                                 </div>
+                                             )}
  
                                              {res.status === 'PENDING' && (
                                                  <div className="d-flex justify-content-end mt-3 gap-2">

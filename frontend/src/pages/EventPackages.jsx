@@ -30,7 +30,7 @@ const EventPackages = () => {
                 // Filter out Event Packages
                 const eventPkgs = allProducts.filter(p => p.category === 'Event Packages').map(p => ({
                     ...p,
-                    imageUrl: p.imageUrl && !p.imageUrl.startsWith('http') && !p.imageUrl.startsWith('/') ? `/img/${p.imageUrl}` : p.imageUrl
+                    imageUrl: p.imageUrl && p.imageUrl.startsWith('/uploads/') ? `${API_URL}${p.imageUrl}` : (p.imageUrl && !p.imageUrl.startsWith('http') && !p.imageUrl.startsWith('/') ? `/img/${p.imageUrl}` : p.imageUrl)
                 }));
                 
                 setPackages(eventPkgs);

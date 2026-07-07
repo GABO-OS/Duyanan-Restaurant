@@ -46,6 +46,9 @@ public class Reservation {
     @Column(name = "event_type")
     private String eventType;
 
+    @Column(name = "cancellation_reason")
+    private String cancellationReason;
+
     @Column(nullable = false)
     private LocalDateTime createdAt = LocalDateTime.now();
 }

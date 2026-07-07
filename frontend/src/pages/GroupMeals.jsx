@@ -23,7 +23,7 @@ const GroupMeals = () => {
                 // Filter only Group Meals
                 const groupMeals = allProducts.filter(p => p.category === 'Group Meals').map(p => ({
                     ...p,
-                    imageUrl: p.imageUrl && !p.imageUrl.startsWith('http') && !p.imageUrl.startsWith('/') ? `/img/${p.imageUrl}` : p.imageUrl
+                    imageUrl: p.imageUrl && p.imageUrl.startsWith('/uploads/') ? `${API_URL}${p.imageUrl}` : (p.imageUrl && !p.imageUrl.startsWith('http') && !p.imageUrl.startsWith('/') ? `/img/${p.imageUrl}` : p.imageUrl)
                 }));
                 
                 setMeals(groupMeals);
