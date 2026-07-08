@@ -174,6 +174,8 @@ const CartPage = () => {
     const [isCheckingOut, setIsCheckingOut] = useState(false);
     const [step, setStep] = useState(1);
     const [checkoutForm, setCheckoutForm] = useState({
+        orderType: 'PICKUP',
+        deliveryZoneFee: 0,
         recipientName: '',
         contactNumber: '',
         deliveryAddress: '',
@@ -185,6 +187,7 @@ const CartPage = () => {
 
     const itemCount = cart.reduce((sum, item) => sum + item.quantity, 0);
     const total = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+    const finalTotal = total + (checkoutForm.orderType === 'DELIVERY' ? Number(checkoutForm.deliveryZoneFee) : 0);
 
     const handleIncrement = (item) => {
         updateQuantity(item.cartItemId, item.quantity + 1);
@@ -259,19 +262,31 @@ const CartPage = () => {
     };
 
     const handlePlaceOrder = async () => {
-        if (!checkoutForm.recipientName || !checkoutForm.contactNumber || !checkoutForm.deliveryAddress) {
+        if (!checkoutForm.recipientName || !checkoutForm.contactNumber) {
             Swal.fire({
                 icon: 'warning',
                 title: 'Required Fields',
-                text: 'Please fill in all recipient and delivery information.',
+                text: 'Please fill in recipient name and contact number.',
                 confirmButtonColor: '#A04000'
             });
             return;
         }
 
+        if (checkoutForm.orderType === 'DELIVERY') {
+            if (!checkoutForm.deliveryAddress || checkoutForm.deliveryZoneFee == 0) {
+                Swal.fire({
+                    icon: 'warning',
+                    title: 'Delivery Details Required',
+                    text: 'Please provide a delivery address and select a delivery zone in Padre Burgos.',
+                    confirmButtonColor: '#A04000'
+                });
+                return;
+            }
+        }
+
         const result = await Swal.fire({
             title: 'Place Order?',
-            html: `<div style="font-size:0.95rem">Confirm order for <b>${itemCount} item${itemCount !== 1 ? 's' : ''}</b> totaling <b style="color:#a04000">₱${total.toFixed(2)}</b> via <b>${checkoutForm.paymentMethod === 'COD' ? 'Cash on Delivery' : 'G-Cash'}</b>?</div>`,
+            html: `<div style="font-size:0.95rem">Confirm order for <b>${itemCount} item${itemCount !== 1 ? 's' : ''}</b> totaling <b style="color:#a04000">₱${finalTotal.toFixed(2)}</b> via <b>${checkoutForm.paymentMethod === 'COD' ? 'Cash on Delivery' : 'G-Cash'}</b>?</div>`,
             icon: 'question',
             showCancelButton: true,
             confirmButtonColor: '#A04000',
@@ -283,7 +298,8 @@ const CartPage = () => {
             setIsCheckingOut(true);
             try {
                 // Construct notes including recipient name, contact, and payment method info
-                const combinedNotes = `Recipient: ${checkoutForm.recipientName} | Contact: ${checkoutForm.contactNumber} | Address: ${checkoutForm.deliveryAddress} | Payment: ${checkoutForm.paymentMethod} | Notes: ${checkoutForm.notes || 'None'}`;
+                const addressNote = checkoutForm.orderType === 'DELIVERY' ? ` | Address: ${checkoutForm.deliveryAddress}` : ' | Store Pick Up';
+                const combinedNotes = `Type: ${checkoutForm.orderType} | Recipient: ${checkoutForm.recipientName} | Contact: ${checkoutForm.contactNumber}${addressNote} | Payment: ${checkoutForm.paymentMethod} | Notes: ${checkoutForm.notes || 'None'}`;
                 
                 const response = await fetch(`${API_URL}/api/orders`, {
                     method: 'POST',
@@ -292,6 +308,9 @@ const CartPage = () => {
                         'Authorization': `Bearer ${user.token}`
                     },
                     body: JSON.stringify({
+                        orderType: checkoutForm.orderType,
+                        deliveryFee: checkoutForm.orderType === 'DELIVERY' ? Number(checkoutForm.deliveryZoneFee) : 0,
+                        deliveryAddress: checkoutForm.orderType === 'DELIVERY' ? checkoutForm.deliveryAddress : '',
                         notes: combinedNotes,
                         items: cart.map(item => ({
                             productId: item.id,
@@ -305,10 +324,11 @@ const CartPage = () => {
 
                 if (response.ok) {
                     setOrderResult({
-                        id: data.id || 'N/A',
-                        total: total,
+                        id: data.orderId || data.id || 'N/A',
+                        total: finalTotal,
+                        orderType: checkoutForm.orderType,
                         recipientName: checkoutForm.recipientName,
-                        deliveryAddress: checkoutForm.deliveryAddress,
+                        deliveryAddress: checkoutForm.orderType === 'DELIVERY' ? checkoutForm.deliveryAddress : 'Pick Up at Store',
                         paymentMethod: checkoutForm.paymentMethod
                     });
                     
@@ -476,8 +496,12 @@ const CartPage = () => {
                                         <span style={{ fontWeight: 600, fontSize: '0.9rem' }}>₱{total.toFixed(2)}</span>
                                     </div>
                                     <div className="summary-row">
-                                        <span style={{ color: '#888', fontSize: '0.9rem' }}>Delivery</span>
-                                        <span style={{ fontWeight: 600, fontSize: '0.9rem', color: '#27ae60' }}>Free</span>
+                                        <span style={{ color: '#888', fontSize: '0.9rem' }}>
+                                            {checkoutForm.orderType === 'DELIVERY' ? 'Delivery Fee' : checkoutForm.orderType === 'DINE_IN' ? 'Dine-In' : 'Pick-Up'}
+                                        </span>
+                                        <span style={{ fontWeight: 600, fontSize: '0.9rem', color: checkoutForm.orderType === 'DELIVERY' ? 'var(--primary-brown)' : '#27ae60' }}>
+                                            {checkoutForm.orderType === 'DELIVERY' ? `₱${Number(checkoutForm.deliveryZoneFee).toFixed(2)}` : 'Free'}
+                                        </span>
                                     </div>
 
                                     <div className="summary-divider"></div>
@@ -485,7 +509,7 @@ const CartPage = () => {
                                     <div className="summary-row total">
                                         <span style={{ fontWeight: 700, fontSize: '1.05rem', color: '#333' }}>Total</span>
                                         <span style={{ fontWeight: 800, fontSize: '1.25rem', color: 'var(--primary-brown)' }}>
-                                            ₱{total.toFixed(2)}
+                                            ₱{finalTotal.toFixed(2)}
                                         </span>
                                     </div>
 
@@ -533,6 +557,36 @@ const CartPage = () => {
                                     </h5>
                                     
                                     <div className="form-group-custom">
+                                        <label>Order Type <span className="text-danger">*</span></label>
+                                        <div className="payment-options">
+                                            <div 
+                                                className={`payment-option-card ${checkoutForm.orderType === 'DINE_IN' ? 'selected' : ''}`}
+                                                onClick={() => setCheckoutForm(prev => ({ ...prev, orderType: 'DINE_IN', deliveryZoneFee: 0 }))}
+                                                style={{ flex: 1, padding: '10px' }}
+                                            >
+                                                <i className="bi bi-cup-hot"></i>
+                                                <span>Dine In</span>
+                                            </div>
+                                            <div 
+                                                className={`payment-option-card ${checkoutForm.orderType === 'PICKUP' ? 'selected' : ''}`}
+                                                onClick={() => setCheckoutForm(prev => ({ ...prev, orderType: 'PICKUP', deliveryZoneFee: 0 }))}
+                                                style={{ flex: 1, padding: '10px' }}
+                                            >
+                                                <i className="bi bi-shop"></i>
+                                                <span>Pick Up</span>
+                                            </div>
+                                            <div 
+                                                className={`payment-option-card ${checkoutForm.orderType === 'DELIVERY' ? 'selected' : ''}`}
+                                                onClick={() => setCheckoutForm(prev => ({ ...prev, orderType: 'DELIVERY' }))}
+                                                style={{ flex: 1, padding: '10px' }}
+                                            >
+                                                <i className="bi bi-truck"></i>
+                                                <span>Delivery</span>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div className="form-group-custom">
                                         <label>Recipient Full Name <span className="text-danger">*</span></label>
                                         <input 
                                             type="text" 
@@ -556,17 +610,70 @@ const CartPage = () => {
                                         />
                                     </div>
 
-                                    <div className="form-group-custom">
-                                        <label>Delivery Address <span className="text-danger">*</span></label>
-                                        <textarea 
-                                            name="deliveryAddress"
-                                            value={checkoutForm.deliveryAddress}
-                                            onChange={handleFormChange}
-                                            rows="3"
-                                            placeholder="Enter complete house number, street, barangay, and municipality"
-                                            required
-                                        />
-                                    </div>
+                                    {checkoutForm.orderType === 'DELIVERY' && (
+                                        <>
+                                            <div className="form-group-custom">
+                                                <label>Delivery Barangay (Padre Burgos ONLY) <span className="text-danger">*</span></label>
+                                                <select 
+                                                    name="deliveryZoneSelection"
+                                                    value={`${checkoutForm.deliveryBarangay || ''}|${checkoutForm.deliveryZoneFee || 0}`}
+                                                    onChange={(e) => {
+                                                        const [brgy, feeStr] = e.target.value.split('|');
+                                                        const fee = Number(feeStr);
+                                                        setCheckoutForm(prev => ({
+                                                            ...prev,
+                                                            deliveryBarangay: brgy,
+                                                            deliveryZoneFee: fee,
+                                                            deliveryAddress: brgy ? `${brgy}, Padre Burgos, Quezon` : prev.deliveryAddress
+                                                        }));
+                                                    }}
+                                                    required
+                                                >
+                                                    <option value="|0" disabled>Select your barangay...</option>
+                                                    <optgroup label="Poblacion / Nearby (₱30.00)">
+                                                        <option value="Basiao (Poblacion)|30">Basiao (Poblacion)</option>
+                                                        <option value="Burgos (Poblacion)|30">Burgos (Poblacion)</option>
+                                                        <option value="Campo (Poblacion)|30">Campo (Poblacion)</option>
+                                                    </optgroup>
+                                                    <optgroup label="Mid Barangays (₱50.00)">
+                                                        <option value="Cabuyao Norte|50">Cabuyao Norte</option>
+                                                        <option value="Cabuyao Sur|50">Cabuyao Sur</option>
+                                                        <option value="Danlagan|50">Danlagan</option>
+                                                        <option value="Duhat|50">Duhat</option>
+                                                        <option value="Hinguiwin|50">Hinguiwin</option>
+                                                        <option value="Marquez|50">Marquez</option>
+                                                        <option value="Rizal|50">Rizal</option>
+                                                    </optgroup>
+                                                    <optgroup label="Far Barangays (₱80.00)">
+                                                        <option value="Kinagunan Ibaba|80">Kinagunan Ibaba</option>
+                                                        <option value="Kinagunan Ilaya|80">Kinagunan Ilaya</option>
+                                                        <option value="Lipata|80">Lipata</option>
+                                                        <option value="Marao|80">Marao</option>
+                                                        <option value="Punta|80">Punta</option>
+                                                        <option value="San Isidro|80">San Isidro</option>
+                                                        <option value="Sipa|80">Sipa</option>
+                                                        <option value="Villapaz|80">Villapaz</option>
+                                                        <option value="Yawe|80">Yawe</option>
+                                                    </optgroup>
+                                                </select>
+                                                <div style={{ fontSize: '0.75rem', color: '#e74c3c', marginTop: '4px', fontWeight: 'bold' }}>
+                                                    <i className="bi bi-info-circle me-1"></i> Delivery is exclusively available within Padre Burgos municipality.
+                                                </div>
+                                            </div>
+
+                                            <div className="form-group-custom">
+                                                <label>Exact Delivery Address <span className="text-danger">*</span></label>
+                                                <textarea 
+                                                    name="deliveryAddress"
+                                                    value={checkoutForm.deliveryAddress}
+                                                    onChange={handleFormChange}
+                                                    rows="3"
+                                                    placeholder="Enter house number, street, landmarks..."
+                                                    required
+                                                />
+                                            </div>
+                                        </>
+                                    )}
 
                                     <div className="form-group-custom">
                                         <label>Payment Method <span className="text-danger">*</span></label>
@@ -627,13 +734,37 @@ const CartPage = () => {
                                         Order Summary
                                     </h5>
 
+                                    {checkoutForm.recipientName && (
+                                        <div className="summary-row" style={{ marginBottom: '15px' }}>
+                                            <span style={{ color: '#888', fontSize: '0.9rem' }}>Recipient</span>
+                                            <span style={{ fontWeight: 600, fontSize: '0.9rem', textAlign: 'right', maxWidth: '65%', wordBreak: 'break-word' }}>{checkoutForm.recipientName}</span>
+                                        </div>
+                                    )}
+
+                                    <div style={{ borderBottom: '1px dashed #eee', paddingBottom: '10px', marginBottom: '10px' }}>
+                                        <div style={{ color: '#888', fontSize: '0.9rem', fontWeight: 600, marginBottom: '8px' }}>Order Items</div>
+                                        {cart.map((item, idx) => (
+                                            <div key={idx} className="d-flex justify-content-between" style={{ marginBottom: '6px' }}>
+                                                <span style={{ color: '#555', fontSize: '0.85rem', paddingRight: '10px' }}>
+                                                    <span style={{ fontWeight: 'bold', color: 'var(--primary-brown)', marginRight: '6px' }}>{item.quantity}x</span> 
+                                                    {item.name} {item.variant ? <span style={{ fontStyle: 'italic', fontSize: '0.8rem' }}>({item.variant})</span> : ''}
+                                                </span>
+                                                <span style={{ fontWeight: 600, fontSize: '0.85rem', whiteSpace: 'nowrap' }}>₱{(item.price * item.quantity).toFixed(2)}</span>
+                                            </div>
+                                        ))}
+                                    </div>
+
                                     <div className="summary-row">
-                                        <span style={{ color: '#888', fontSize: '0.9rem' }}>Items ({itemCount})</span>
+                                        <span style={{ color: '#888', fontSize: '0.9rem' }}>Subtotal ({itemCount} items)</span>
                                         <span style={{ fontWeight: 600, fontSize: '0.9rem' }}>₱{total.toFixed(2)}</span>
                                     </div>
                                     <div className="summary-row">
-                                        <span style={{ color: '#888', fontSize: '0.9rem' }}>Delivery</span>
-                                        <span style={{ fontWeight: 600, fontSize: '0.9rem', color: '#27ae60' }}>Free</span>
+                                        <span style={{ color: '#888', fontSize: '0.9rem' }}>
+                                            {checkoutForm.orderType === 'DELIVERY' ? 'Delivery Fee' : checkoutForm.orderType === 'DINE_IN' ? 'Dine-In' : 'Pick-Up'}
+                                        </span>
+                                        <span style={{ fontWeight: 600, fontSize: '0.9rem', color: checkoutForm.orderType === 'DELIVERY' ? 'var(--primary-brown)' : '#27ae60' }}>
+                                            {checkoutForm.orderType === 'DELIVERY' ? `₱${Number(checkoutForm.deliveryZoneFee).toFixed(2)}` : 'Free'}
+                                        </span>
                                     </div>
 
                                     <div className="summary-divider"></div>
@@ -641,7 +772,7 @@ const CartPage = () => {
                                     <div className="summary-row total">
                                         <span style={{ fontWeight: 700, fontSize: '1.05rem', color: '#333' }}>Total</span>
                                         <span style={{ fontWeight: 800, fontSize: '1.25rem', color: 'var(--primary-brown)' }}>
-                                            ₱{total.toFixed(2)}
+                                            ₱{finalTotal.toFixed(2)}
                                         </span>
                                     </div>
 

@@ -799,12 +799,20 @@ const Menu = () => {
                                                                     </span>
                                                                     <button 
                                                                         className="btn btn-sm px-3 fw-bold rounded-pill text-nowrap"
-                                                                        style={{ backgroundColor: 'rgba(211, 84, 0, 0.08)', color: 'var(--accent-orange)', fontSize: '0.8rem', transition: 'all 0.2s ease', border: '1px solid rgba(211, 84, 0, 0.15)' }}
-                                                                        onMouseOver={(e) => { e.currentTarget.style.backgroundColor = 'var(--accent-orange)'; e.currentTarget.style.color = '#fff'; }}
-                                                                        onMouseOut={(e) => { e.currentTarget.style.backgroundColor = 'rgba(211, 84, 0, 0.08)'; e.currentTarget.style.color = 'var(--accent-orange)'; }}
-                                                                        onClick={() => handleAddToCart(product)}
+                                                                        style={{
+                                                                            backgroundColor: product.outOfStock ? '#f5f5f5' : 'rgba(211, 84, 0, 0.08)',
+                                                                            color: product.outOfStock ? '#aaa' : 'var(--accent-orange)',
+                                                                            fontSize: '0.8rem',
+                                                                            transition: 'all 0.2s ease',
+                                                                            border: product.outOfStock ? '1px solid #ddd' : '1px solid rgba(211, 84, 0, 0.15)',
+                                                                            cursor: product.outOfStock ? 'not-allowed' : 'pointer'
+                                                                        }}
+                                                                        onMouseOver={(e) => { if (!product.outOfStock) { e.currentTarget.style.backgroundColor = 'var(--accent-orange)'; e.currentTarget.style.color = '#fff'; } }}
+                                                                        onMouseOut={(e) => { if (!product.outOfStock) { e.currentTarget.style.backgroundColor = 'rgba(211, 84, 0, 0.08)'; e.currentTarget.style.color = 'var(--accent-orange)'; } }}
+                                                                        onClick={() => !product.outOfStock && handleAddToCart(product)}
+                                                                        disabled={product.outOfStock}
                                                                     >
-                                                                        <i className="bi bi-plus-lg me-1"></i>Add
+                                                                        {product.outOfStock ? <><i className="bi bi-x-circle me-1"></i>Out of Stock</> : <><i className="bi bi-plus-lg me-1"></i>Add</>}
                                                                     </button>
                                                                 </div>
                                                             </div>
@@ -843,23 +851,36 @@ const Menu = () => {
                                                             <div className="card h-100 border-0 bg-white" style={{ borderRadius: '12px', boxShadow: '0 2px 12px rgba(0,0,0,0.03)', border: '1px solid rgba(0,0,0,0.05)' }}>
                                                                 <div className="d-flex h-100 align-items-center p-3">
                                                                     {/* Image Container */}
-                                                                    <div style={{ width: '120px', height: '120px', flexShrink: 0, overflow: 'hidden', borderRadius: '10px' }}>
+                                                                    <div style={{ width: '120px', height: '120px', flexShrink: 0, overflow: 'hidden', borderRadius: '10px', position: 'relative' }}>
                                                                         <img 
                                                                             src={product.imageUrl || 'https://placehold.co/300x200?text=No+Image'} 
                                                                             alt={product.name} 
-                                                                            style={{ width: '100%', height: '100%', objectFit: 'cover' }} 
+                                                                            style={{ width: '100%', height: '100%', objectFit: 'cover', filter: product.outOfStock ? 'grayscale(80%)' : 'none', opacity: product.outOfStock ? 0.7 : 1 }} 
                                                                         />
+                                                                        {product.outOfStock && (
+                                                                            <div style={{ position: 'absolute', inset: 0, backgroundColor: 'rgba(0,0,0,0.55)', display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: '10px' }}>
+                                                                                <span style={{ color: '#fff', fontWeight: 800, fontSize: '0.65rem', letterSpacing: '0.5px', textAlign: 'center', lineHeight: '1.3', padding: '2px 6px', backgroundColor: '#e74c3c', borderRadius: '4px' }}>OUT OF<br/>STOCK</span>
+                                                                            </div>
+                                                                        )}
                                                                     </div>
                                                                     
                                                                     {/* Content Container */}
-                                                                    <div className="ms-3 d-flex flex-column h-100 justify-content-center w-100 pt-1">
-                                                                        <h5 className="mb-1" style={{ color: '#222', fontWeight: '700', fontSize: '1.05rem', lineHeight: '1.3' }}>
+                                                                    <div className="ms-3 d-flex flex-column justify-content-center w-100" style={{ minWidth: 0 }}>
+                                                                        <h5 className="mb-1" style={{ color: product.outOfStock ? '#aaa' : '#222', fontWeight: '700', fontSize: '1.05rem', lineHeight: '1.3' }}>
                                                                             {product.category === 'Milk Shakes' && product.flavors ? product.flavors : product.name}
                                                                         </h5>
-                                                                        <p className="text-muted mb-2" style={{ fontSize: '0.82rem', lineHeight: '1.3', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
-                                                                            {product.description}
-                                                                        </p>
-                                                                        <div className="d-flex justify-content-between align-items-center mt-auto pt-1">
+                                                                        {product.outOfStock ? (
+                                                                            <span className="badge mb-2" style={{ backgroundColor: '#fdecea', color: '#e74c3c', border: '1px solid #f5c6cb', fontSize: '0.72rem', fontWeight: 700, width: 'fit-content', padding: '3px 8px', borderRadius: '6px' }}>
+                                                                                <i className="bi bi-x-circle me-1"></i>Out of Stock
+                                                                            </span>
+                                                                        ) : (
+                                                                            product.description && (
+                                                                                <p className="text-muted mb-2" style={{ fontSize: '0.82rem', lineHeight: '1.3', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
+                                                                                    {product.description}
+                                                                                </p>
+                                                                            )
+                                                                        )}
+                                                                        <div className="d-flex justify-content-between align-items-center">
                                                                             <div className="d-flex flex-column">
                                                                                 {['Milk Shakes', 'Drinks'].includes(product.category) && (
                                                                                     <>
@@ -925,35 +946,37 @@ const Menu = () => {
                                                                                     </>
                                                                                 )}
                                                                             </div>
-                                                                            <button 
-                                                                                className="btn btn-sm px-3 fw-bold rounded-pill text-nowrap" 
-                                                                                style={{ 
-                                                                                    backgroundColor: 'rgba(211, 84, 0, 0.08)', 
-                                                                                    color: 'var(--accent-orange)',
-                                                                                    fontSize: '0.8rem',
-                                                                                    transition: 'all 0.2s ease',
-                                                                                    opacity: isAuthenticated ? 1 : 0.75,
-                                                                                    cursor: isAuthenticated ? 'pointer' : 'not-allowed',
-                                                                                    border: '1px solid rgba(211, 84, 0, 0.15)'
-                                                                                }}
-                                                                                onMouseOver={(e) => {
-                                                                                    if (isAuthenticated) {
-                                                                                        e.currentTarget.style.backgroundColor = 'var(--accent-orange)';
-                                                                                        e.currentTarget.style.color = '#fff';
-                                                                                    }
-                                                                                }}
-                                                                                onMouseOut={(e) => {
-                                                                                    if (isAuthenticated) {
-                                                                                        e.currentTarget.style.backgroundColor = 'rgba(211, 84, 0, 0.08)';
-                                                                                        e.currentTarget.style.color = 'var(--accent-orange)';
-                                                                                    }
-                                                                                }}
-                                                                                onClick={() => handleAddToCart(product)}
-                                                                                title={!isAuthenticated ? 'Login to add items to cart' : ''}
-                                                                            >
-                                                                                {!isAuthenticated && <i className="bi bi-lock-fill me-1" style={{ fontSize: '0.7rem' }}></i>}
-                                                                                Add Order
-                                                                            </button>
+                                                                            {!product.outOfStock && (
+                                                                                <button 
+                                                                                    className="btn btn-sm px-3 fw-bold rounded-pill text-nowrap" 
+                                                                                    style={{ 
+                                                                                        backgroundColor: 'rgba(211, 84, 0, 0.08)', 
+                                                                                        color: 'var(--accent-orange)',
+                                                                                        fontSize: '0.8rem',
+                                                                                        transition: 'all 0.2s ease',
+                                                                                        opacity: isAuthenticated ? 1 : 0.75,
+                                                                                        cursor: isAuthenticated ? 'pointer' : 'not-allowed',
+                                                                                        border: '1px solid rgba(211, 84, 0, 0.15)'
+                                                                                    }}
+                                                                                    onMouseOver={(e) => {
+                                                                                        if (isAuthenticated) {
+                                                                                            e.currentTarget.style.backgroundColor = 'var(--accent-orange)';
+                                                                                            e.currentTarget.style.color = '#fff';
+                                                                                        }
+                                                                                    }}
+                                                                                    onMouseOut={(e) => {
+                                                                                        if (isAuthenticated) {
+                                                                                            e.currentTarget.style.backgroundColor = 'rgba(211, 84, 0, 0.08)';
+                                                                                            e.currentTarget.style.color = 'var(--accent-orange)';
+                                                                                        }
+                                                                                    }}
+                                                                                    onClick={() => handleAddToCart(product)}
+                                                                                    title={!isAuthenticated ? 'Login to add items to cart' : ''}
+                                                                                >
+                                                                                    {!isAuthenticated && <i className="bi bi-lock-fill me-1" style={{ fontSize: '0.7rem' }}></i>}
+                                                                                    Add Order
+                                                                                </button>
+                                                                            )}
                                                                         </div>
                                                                     </div>
                                                                 </div>

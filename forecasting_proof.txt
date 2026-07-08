@@ -1,7 +1,7 @@
 DUYANAN RESTAURANT - PROJECTED REVENUE PROOF OF CALCULATION (HOLT-WINTERS)
 ==========================================================================
 Date: 2026-06-08
-Calculated Stat: Projected Revenue (Next Month)
+Calculated Stat: Projected Revenue (Next Month) 
 Displayed Value: ₱329,749.56
 
 This document provides the mathematical proof and complete details of

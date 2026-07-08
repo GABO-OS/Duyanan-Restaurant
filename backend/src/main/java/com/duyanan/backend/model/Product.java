@@ -31,6 +31,7 @@ public class Product {
     private String imageUrl;
     private String category;
     private String flavors;
+    private boolean outOfStock = false;
 
     @ElementCollection
     @CollectionTable(name = "product_combos", joinColumns = @JoinColumn(name = "product_id"))

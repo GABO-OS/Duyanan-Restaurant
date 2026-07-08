@@ -551,6 +551,15 @@ const Profile = () => {
                                                     </div>
                                                 </div>
                                             )}
+                                            <div className="mb-3 small p-3 rounded-3" style={{ backgroundColor: '#f9f9f9', border: '1px solid #eee' }}>
+                                                <div className="d-flex justify-content-between mb-1">
+                                                    <span><strong><i className={order.orderType === 'DELIVERY' ? 'bi bi-truck' : order.orderType === 'DINE_IN' ? 'bi bi-cup-hot' : 'bi bi-shop'}></i> Type:</strong> {order.orderType === 'DELIVERY' ? 'Delivery' : order.orderType === 'DINE_IN' ? 'Dine In' : 'Pick Up'}</span>
+                                                    {order.orderType === 'DELIVERY' && <span><strong>Delivery Fee:</strong> ₱{order.deliveryFee?.toFixed(2) || '0.00'}</span>}
+                                                </div>
+                                                {order.orderType === 'DELIVERY' && order.deliveryAddress && (
+                                                    <div className="mt-1"><strong>Address:</strong> {order.deliveryAddress}</div>
+                                                )}
+                                            </div>
                                             <div className="order-items-preview bg-light rounded-3 p-3 mt-3">
                                                 {order.items?.map((item, idx) => (
                                                     <div key={idx} className="d-flex justify-content-between mb-2 small">

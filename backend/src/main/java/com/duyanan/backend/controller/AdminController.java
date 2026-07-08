@@ -88,6 +88,8 @@ public class AdminController {
                 existing.getCustomCombos().addAll(product.getCustomCombos());
             }
 
+            existing.setOutOfStock(product.isOutOfStock());
+
             productRepository.save(existing);
             return ResponseEntity.ok(existing);
         }).orElse(ResponseEntity.notFound().build());

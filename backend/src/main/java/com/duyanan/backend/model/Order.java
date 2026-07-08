@@ -35,6 +35,15 @@ public class Order {
 
     private String notes;
 
+    @Column(nullable = false)
+    private String orderType = "PICKUP"; // PICKUP or DELIVERY
+
+    @Column
+    private Double deliveryFee = 0.0;
+
+    @Column
+    private String deliveryAddress;
+
     @Column(name = "cancellation_reason")
     private String cancellationReason;
 

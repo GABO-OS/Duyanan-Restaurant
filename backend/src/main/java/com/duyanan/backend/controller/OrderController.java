@@ -48,6 +48,15 @@ public class OrderController {
             order.setOrderDate(LocalDateTime.now());
             order.setStatus("PENDING");
 
+            String orderType = body.get("orderType") != null ? (String) body.get("orderType") : "PICKUP";
+            order.setOrderType(orderType);
+            
+            if ("DELIVERY".equalsIgnoreCase(orderType)) {
+                order.setDeliveryAddress((String) body.get("deliveryAddress"));
+                Double fee = body.get("deliveryFee") != null ? Double.valueOf(body.get("deliveryFee").toString()) : 0.0;
+                order.setDeliveryFee(fee);
+            }
+
             // Parse items from request body
             @SuppressWarnings("unchecked")
             List<Map<String, Object>> itemsData = (List<Map<String, Object>>) body.get("items");
@@ -86,7 +95,7 @@ public class OrderController {
                 totalAmount += item.getSubtotal();
             }
 
-            order.setTotalAmount(totalAmount);
+            order.setTotalAmount(totalAmount + (order.getDeliveryFee() != null ? order.getDeliveryFee() : 0.0));
             Order saved = orderRepository.save(order);
 
             return ResponseEntity.ok(Map.of(

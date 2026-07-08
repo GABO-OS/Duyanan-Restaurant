@@ -373,6 +373,25 @@ const AdminPanel = () => {
         }
     };
 
+    // ── Out of Stock Toggle ────────────────────────────────
+    const handleToggleOutOfStock = async (p) => {
+        try {
+            const updatedProduct = { ...p, outOfStock: !p.outOfStock };
+            const res = await fetch(`${API_URL}/api/admin/products/${p.id}`, {
+                method: 'PUT',
+                headers: authHeaders(),
+                body: JSON.stringify(updatedProduct)
+            });
+            if (res.ok) {
+                fetchData();
+            } else {
+                Swal.fire('Error', 'Failed to update stock status.', 'error');
+            }
+        } catch (e) {
+            Swal.fire('Error', 'Failed to update stock status.', 'error');
+        }
+    };
+
     // ── Orders & Reservations Status ──────────────────────
     const handleUpdateStatus = async (type, id, status) => {
         // If cancelling, show a modal requiring a reason
@@ -1044,7 +1063,16 @@ const AdminPanel = () => {
                                                         <td className="px-4 text-start">
                                                             <div className="fw-bold text-dark">{o.user?.firstName} {o.user?.lastName}</div>
                                                             <div className="small text-muted" style={{ lineHeight: '1.2' }}><i className="bi bi-telephone-fill me-1" style={{ fontSize: '0.75rem' }}></i>{o.user?.phone || 'N/A'}</div>
-                                                            <div className="small text-muted text-truncate" style={{ maxWidth: '200px', lineHeight: '1.2' }} title={o.user?.address || 'N/A'}><i className="bi bi-geo-alt-fill me-1" style={{ fontSize: '0.75rem' }}></i>{o.user?.address || 'N/A'}</div>
+                                                            <div className="small mt-1" style={{ lineHeight: '1.2' }}>
+                                                                <span className={`badge ${o.orderType === 'DELIVERY' ? 'bg-primary' : 'bg-secondary'}`} style={{ fontSize: '0.7rem' }}>
+                                                                    {o.orderType === 'DELIVERY' ? 'Delivery' : o.orderType === 'DINE_IN' ? 'Dine In' : 'Pick Up'}
+                                                                </span>
+                                                                {o.orderType === 'DELIVERY' && o.deliveryAddress && (
+                                                                    <div className="text-truncate text-muted mt-1" style={{ maxWidth: '200px', fontSize: '0.75rem' }} title={o.deliveryAddress}>
+                                                                        <i className="bi bi-geo-alt-fill me-1"></i>{o.deliveryAddress}
+                                                                    </div>
+                                                                )}
+                                                            </div>
                                                         </td>
                                                         <td className="px-4 text-center">
                                                             <div className="bg-light p-2 rounded mx-auto text-start" style={{ fontSize: '0.8rem', width: 'max-content' }}>
@@ -1058,7 +1086,12 @@ const AdminPanel = () => {
                                                         <td className="px-4 text-center">
                                                             <div className="small">{new Date(o.orderDate || Date.now()).toLocaleString()}</div>
                                                         </td>
-                                                        <td className="px-4 fw-bold text-center">₱{o.totalAmount?.toFixed(2)}</td>
+                                                        <td className="px-4 text-center">
+                                                            <div className="fw-bold">₱{o.totalAmount?.toFixed(2)}</div>
+                                                            {o.orderType === 'DELIVERY' && o.deliveryFee > 0 && (
+                                                                <div className="text-muted fw-normal" style={{ fontSize: '0.7rem' }}>(inc. ₱{o.deliveryFee?.toFixed(2)} fee)</div>
+                                                            )}
+                                                        </td>
                                                         <td className="px-4 text-center">
                                                             <span className={`badge rounded-pill ${o.status === 'PENDING' ? 'bg-warning text-dark' : o.status === 'COMPLETED' ? 'bg-success' : o.status === 'CANCELLED' ? 'bg-danger' : 'bg-info text-dark'}`}>
                                                                 {o.status}
@@ -1558,6 +1591,9 @@ const AdminPanel = () => {
                                                                                         )}
                                                                                         <div>
                                                                                             <span className="fw-bold text-dark">{p.name}</span>
+                                                                                            {p.outOfStock && (
+                                                                                                <span className="badge ms-2" style={{ backgroundColor: '#e74c3c', fontSize: '0.7rem', letterSpacing: '0.5px' }}>OUT OF STOCK</span>
+                                                                                            )}
                                                                                             {p.description && <div className="text-muted small text-truncate" style={{ maxWidth: '300px' }}>{p.description}</div>}
                                                                                         </div>
                                                                                     </div>
@@ -1598,6 +1634,21 @@ const AdminPanel = () => {
                                                                                     )}
                                                                                 </td>
                                                                                 <td className="px-4 text-end py-3 text-nowrap">
+                                                                                    <button
+                                                                                        className={`btn btn-sm me-2 fw-bold px-3 py-1`}
+                                                                                        style={{
+                                                                                            fontSize: '0.75rem',
+                                                                                            borderRadius: '20px',
+                                                                                            backgroundColor: p.outOfStock ? '#e74c3c' : '#e8f5e9',
+                                                                                            color: p.outOfStock ? '#fff' : '#27ae60',
+                                                                                            border: p.outOfStock ? '1.5px solid #c0392b' : '1.5px solid #27ae60'
+                                                                                        }}
+                                                                                        onClick={() => handleToggleOutOfStock(p)}
+                                                                                        title={p.outOfStock ? 'Mark as Available' : 'Mark as Out of Stock'}
+                                                                                    >
+                                                                                        <i className={`bi ${p.outOfStock ? 'bi-x-circle me-1' : 'bi-check-circle me-1'}`}></i>
+                                                                                        {p.outOfStock ? 'Out of Stock' : 'In Stock'}
+                                                                                    </button>
                                                                                     <button className="btn btn-sm text-primary p-2 me-2" onClick={() => handleEditProduct(p)} title="Edit Item"><i className="bi bi-pencil-square fs-5"></i></button>
                                                                                     <button className="btn btn-sm text-danger p-2" onClick={() => handleDeleteProduct(p.id)} title="Delete Item"><i className="bi bi-trash fs-5"></i></button>
                                                                                 </td>
