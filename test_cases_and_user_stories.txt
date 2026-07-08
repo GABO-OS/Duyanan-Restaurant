@@ -1,0 +1,1131 @@
+================================================================================
+      DUYANAN RESTAURANT SYSTEM - TEST CASES AND USER STORIES
+================================================================================
+System        : Duyanan Restaurant Online Ordering System
+Document Type : Software Testing Documentation
+Version       : 2.0
+Date          : July 9, 2026
+Prepared by   : QA Team
+================================================================================
+
+
+================================================================================
+TABLE OF CONTENTS
+================================================================================
+  MODULE 1: USER ACCOUNT MANAGEMENT
+    Feature 1.1 - User Registration
+    Feature 1.2 - User Login / Authentication
+    Feature 1.3 - Profile Management
+
+  MODULE 2: MENU & PRODUCT CATALOG
+    Feature 2.1 - Browse Menu by Category
+    Feature 2.2 - View Product Details & Variants
+    Feature 2.3 - Out-of-Stock Product Handling
+
+  MODULE 3: SHOPPING CART & ORDER PLACEMENT
+    Feature 3.1 - Add / Remove Items from Cart
+    Feature 3.2 - Place a Pickup Order
+    Feature 3.3 - Place a Delivery Order
+
+  MODULE 4: ORDER MANAGEMENT & HISTORY
+    Feature 4.1 - View Order History & Track Order Status
+    Feature 4.2 - Cancel an Order
+    Feature 4.3 - Submit Order Feedback & Rating
+================================================================================
+
+
+
+
+================================================================================
+MODULE 1: USER ACCOUNT MANAGEMENT
+================================================================================
+Description:
+  This module handles all functionalities related to customer accounts on
+  the Duyanan Restaurant online ordering system. It covers account creation,
+  secure login, and profile maintenance. A valid account is required before
+  a customer can place online orders.
+
+--------------------------------------------------------------------------------
+FEATURE 1.1 - USER REGISTRATION
+--------------------------------------------------------------------------------
+
+USER STORY:
+  As a new customer,
+  I want to register an account on the Duyanan Restaurant website,
+  So that I can log in and place online food orders.
+
+ACCEPTANCE CRITERIA (Given-When-Then):
+  SCENARIO 1 - Successful Registration:
+    Given I am on the registration page
+    When I fill in all required fields (first name, last name, unique email,
+         phone, address, and password) and click "Register"
+    Then my account should be created successfully
+    And I should be redirected to the login page
+    And a success message should be displayed
+
+  SCENARIO 2 - Registration with Duplicate Email:
+    Given I am on the registration page
+    When I enter an email address that is already associated with an
+         existing account
+    Then the system should reject the registration
+    And display an error: "Email is already in use"
+
+  SCENARIO 3 - Registration with Missing Required Fields:
+    Given I am on the registration page
+    When I submit the form while leaving required fields blank
+    Then the system should not proceed with registration
+    And validation error messages should appear for each empty required field
+
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+TEST CASE 1.1.1
+  Test Case ID   : TC-UAM-001
+  Requirement ID : REQ-UAM-001
+  Test Scenario  : Register a new customer account with valid details
+  Preconditions  : User is on the registration page; the email is not yet
+                   registered in the system
+  Test Data      :
+    First Name   : Maria
+    Last Name    : Santos
+    Email        : maria.santos@gmail.com
+    Phone        : 09123456789
+    Address      : 123 Mango Street, Cebu City
+    Password     : Maria@1234
+  Test Steps     :
+    1. Navigate to the registration page
+    2. Enter "Maria" in the First Name field
+    3. Enter "Santos" in the Last Name field
+    4. Enter "maria.santos@gmail.com" in the Email field
+    5. Enter "09123456789" in the Phone field
+    6. Enter "123 Mango Street, Cebu City" in the Address field
+    7. Enter "Maria@1234" in the Password field
+    8. Click the "Register" button
+  Expected Result:
+    - Account is created successfully in the database
+    - User is redirected to the login page
+    - Success message is displayed: "Registration successful"
+
+TEST CASE 1.1.2
+  Test Case ID   : TC-UAM-002
+  Requirement ID : REQ-UAM-001
+  Test Scenario  : Register using an email that already exists in the system
+  Preconditions  : An account with email "existing@gmail.com" already exists
+                   in the database
+  Test Data      :
+    First Name   : Juan
+    Last Name    : Dela Cruz
+    Email        : existing@gmail.com
+    Phone        : 09987654321
+    Password     : Juan@5678
+  Test Steps     :
+    1. Navigate to the registration page
+    2. Fill in all fields using the test data above
+    3. Click the "Register" button
+  Expected Result:
+    - Registration is rejected
+    - Error message displayed: "Email is already in use"
+    - User remains on the registration page
+
+TEST CASE 1.1.3
+  Test Case ID   : TC-UAM-003
+  Requirement ID : REQ-UAM-001
+  Test Scenario  : Submit the registration form with all required fields blank
+  Preconditions  : User is on the registration page
+  Test Data      :
+    First Name   : (blank)
+    Last Name    : (blank)
+    Email        : (blank)
+    Password     : (blank)
+  Test Steps     :
+    1. Navigate to the registration page
+    2. Leave all required fields blank
+    3. Click the "Register" button
+  Expected Result:
+    - Registration does not proceed
+    - Inline validation errors appear under each blank required field
+    - Messages include: "First name is required", "Email is required",
+      "Password is required"
+
+--------------------------------------------------------------------------------
+FEATURE 1.2 - USER LOGIN / AUTHENTICATION
+--------------------------------------------------------------------------------
+
+USER STORY:
+  As a registered customer,
+  I want to log in to my account using my email and password,
+  So that I can access my order history and place new online orders.
+
+ACCEPTANCE CRITERIA (Given-When-Then):
+  SCENARIO 1 - Successful Login:
+    Given I have a registered account
+    When I enter the correct email and password on the login page
+    Then I should be authenticated and redirected to the home/menu page
+    And my username should appear in the navigation bar
+
+  SCENARIO 2 - Login with Wrong Password:
+    Given I have a registered account
+    When I enter the correct email but a wrong password
+    Then login should fail
+    And I should see an error: "Invalid credentials"
+
+  SCENARIO 3 - Login with Non-Existent Email:
+    Given no account exists with the email I entered
+    When I attempt to log in
+    Then login should fail
+    And I should see an error: "No account found with this email"
+
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+TEST CASE 1.2.1
+  Test Case ID   : TC-UAM-004
+  Requirement ID : REQ-UAM-002
+  Test Scenario  : Login with correct email and password
+  Preconditions  : Account "maria.santos@gmail.com" / "Maria@1234" exists
+  Test Data      :
+    Email        : maria.santos@gmail.com
+    Password     : Maria@1234
+  Test Steps     :
+    1. Navigate to the login page
+    2. Enter "maria.santos@gmail.com" in the Email field
+    3. Enter "Maria@1234" in the Password field
+    4. Click the "Login" button
+  Expected Result:
+    - User is authenticated successfully
+    - User is redirected to the home/menu page
+    - User's name appears in the top navigation bar
+
+TEST CASE 1.2.2
+  Test Case ID   : TC-UAM-005
+  Requirement ID : REQ-UAM-002
+  Test Scenario  : Login with a wrong password
+  Preconditions  : Account with email "maria.santos@gmail.com" exists
+  Test Data      :
+    Email        : maria.santos@gmail.com
+    Password     : WrongPassword99
+  Test Steps     :
+    1. Navigate to the login page
+    2. Enter "maria.santos@gmail.com" in the Email field
+    3. Enter "WrongPassword99" in the Password field
+    4. Click the "Login" button
+  Expected Result:
+    - Login fails
+    - Error message displayed: "Invalid credentials"
+    - User remains on the login page
+
+TEST CASE 1.2.3
+  Test Case ID   : TC-UAM-006
+  Requirement ID : REQ-UAM-002
+  Test Scenario  : Login with a non-existent email address
+  Preconditions  : No account with "ghost@email.com" exists in the database
+  Test Data      :
+    Email        : ghost@email.com
+    Password     : anyPassword123
+  Test Steps     :
+    1. Navigate to the login page
+    2. Enter "ghost@email.com" in the Email field
+    3. Enter "anyPassword123" in the Password field
+    4. Click the "Login" button
+  Expected Result:
+    - Login fails
+    - Error message displayed: "No account found with this email"
+    - User remains on the login page
+
+--------------------------------------------------------------------------------
+FEATURE 1.3 - PROFILE MANAGEMENT
+--------------------------------------------------------------------------------
+
+USER STORY:
+  As a logged-in customer,
+  I want to view and update my profile details such as phone and address,
+  So that my delivery information is always current when I place online orders.
+
+ACCEPTANCE CRITERIA (Given-When-Then):
+  SCENARIO 1 - View Profile Information:
+    Given I am logged in
+    When I navigate to my profile page
+    Then I should see my stored details: name, email, phone, and address
+
+  SCENARIO 2 - Update Delivery Address Successfully:
+    Given I am logged in and on the profile page
+    When I update my phone number or delivery address and click "Save Changes"
+    Then my updated information should be saved to the database
+    And a success message should be displayed
+
+  SCENARIO 3 - Update Profile with an Invalid Phone Number:
+    Given I am on my profile page
+    When I enter a phone number in an invalid format (e.g., with letters)
+    Then a validation error should appear
+    And the profile should not be saved
+
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+TEST CASE 1.3.1
+  Test Case ID   : TC-UAM-007
+  Requirement ID : REQ-UAM-003
+  Test Scenario  : View profile page with correct user information
+  Preconditions  : User is logged in as "maria.santos@gmail.com"
+  Test Data      : Active session for user ID 1
+  Test Steps     :
+    1. Log in as "maria.santos@gmail.com"
+    2. Click on "Profile" in the navigation bar
+  Expected Result:
+    - Profile page loads correctly
+    - User's first name, last name, email, phone, and address are visible
+
+TEST CASE 1.3.2
+  Test Case ID   : TC-UAM-008
+  Requirement ID : REQ-UAM-003
+  Test Scenario  : Update phone number and delivery address
+  Preconditions  : User is logged in and on the profile page
+  Test Data      :
+    Phone        : 09222222222
+    Address      : 456 Coconut Ave, Mandaue City
+  Test Steps     :
+    1. Log in and navigate to the Profile page
+    2. Clear the Phone field and type "09222222222"
+    3. Clear the Address field and type "456 Coconut Ave, Mandaue City"
+    4. Click "Save Changes"
+  Expected Result:
+    - Profile is updated successfully in the database
+    - Success message: "Profile updated successfully"
+    - New phone and address values are shown on the profile page
+
+TEST CASE 1.3.3
+  Test Case ID   : TC-UAM-009
+  Requirement ID : REQ-UAM-003
+  Test Scenario  : Attempt to update profile with an invalid phone number
+  Preconditions  : User is logged in and on the Profile page
+  Test Data      :
+    Phone        : ABCD-EFGH
+  Test Steps     :
+    1. Log in and navigate to Profile page
+    2. Clear the Phone field and enter "ABCD-EFGH"
+    3. Click "Save Changes"
+  Expected Result:
+    - Profile is NOT updated
+    - Validation error: "Please enter a valid phone number"
+    - Page remains on the profile form
+
+
+
+
+================================================================================
+MODULE 2: MENU & PRODUCT CATALOG
+================================================================================
+Description:
+  This module covers how customers browse the online menu, filter products
+  by category, view individual product details (pricing variants, flavors,
+  descriptions), and how unavailable products are presented.
+
+--------------------------------------------------------------------------------
+FEATURE 2.1 - BROWSE MENU BY CATEGORY
+--------------------------------------------------------------------------------
+
+USER STORY:
+  As a customer visiting the website,
+  I want to browse the restaurant's menu organized by category,
+  So that I can quickly find the type of food or drink I want to order.
+
+ACCEPTANCE CRITERIA (Given-When-Then):
+  SCENARIO 1 - View All Categories on Menu Page:
+    Given I navigate to the Menu page
+    When the page finishes loading
+    Then all product categories should be visible as filter tabs or sections
+
+  SCENARIO 2 - Filter Products by Category:
+    Given I am on the Menu page
+    When I click on a specific category (e.g., "Drinks")
+    Then only products belonging to that category should be displayed
+
+  SCENARIO 3 - No Products in a Category:
+    Given a category exists but has no active products assigned
+    When I select that category
+    Then a message should display: "No items available in this category"
+
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+TEST CASE 2.1.1
+  Test Case ID   : TC-MPC-001
+  Requirement ID : REQ-MPC-001
+  Test Scenario  : Menu page loads and displays all product categories
+  Preconditions  : At least one product exists per category; user is on the
+                   Menu page (login not required)
+  Test Data      : N/A (uses seeded product data)
+  Test Steps     :
+    1. Navigate to the Menu page from the navigation bar
+    2. Observe the category tabs or filter buttons
+  Expected Result:
+    - All available categories are visible (e.g., Drinks, Meals, Combos)
+    - Products are grouped or filterable by category
+
+TEST CASE 2.1.2
+  Test Case ID   : TC-MPC-002
+  Requirement ID : REQ-MPC-001
+  Test Scenario  : Filter menu products by selecting "Drinks" category
+  Preconditions  : At least 3 drink products exist in the database
+  Test Data      :
+    Selected Category : Drinks
+  Test Steps     :
+    1. Navigate to the Menu page
+    2. Click on the "Drinks" category tab or filter button
+  Expected Result:
+    - Only drink products are displayed
+    - Products from other categories are hidden
+
+TEST CASE 2.1.3
+  Test Case ID   : TC-MPC-003
+  Requirement ID : REQ-MPC-001
+  Test Scenario  : Select a category that currently has no products
+  Preconditions  : A category labeled "Seasonal" exists but has no products
+  Test Data      :
+    Selected Category : Seasonal
+  Test Steps     :
+    1. Navigate to the Menu page
+    2. Click the "Seasonal" category filter
+  Expected Result:
+    - No product cards are shown
+    - A message appears: "No items available in this category"
+
+--------------------------------------------------------------------------------
+FEATURE 2.2 - VIEW PRODUCT DETAILS & VARIANTS
+--------------------------------------------------------------------------------
+
+USER STORY:
+  As a customer browsing the online menu,
+  I want to view the full details of a product including pricing variants
+  and available flavors,
+  So that I can choose the right size and option before adding it to my cart.
+
+ACCEPTANCE CRITERIA (Given-When-Then):
+  SCENARIO 1 - View Product Details Modal:
+    Given I am on the Menu page
+    When I click on a product card
+    Then a detail view or modal should open showing: name, image, description,
+         all price variants (solo, a la carte, 1L, 1.5L, 2L), and flavors
+
+  SCENARIO 2 - Select a Price Variant:
+    Given a product detail view is open
+    When I select a specific size/variant (e.g., "1 Liter")
+    Then the displayed price should update to reflect the selected variant
+
+  SCENARIO 3 - View Product with Single Pricing Option:
+    Given a product has only one price variant (solo price only)
+    When I click on that product
+    Then only the applicable pricing option should be shown
+    And no other variant options should appear
+
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+TEST CASE 2.2.1
+  Test Case ID   : TC-MPC-004
+  Requirement ID : REQ-MPC-002
+  Test Scenario  : Open product details for a drink with multiple size variants
+  Preconditions  : Product "Buko Lemonade" exists with Solo, 1L, 1.5L, and
+                   2L pricing
+  Test Data      :
+    Product Name  : Buko Lemonade
+    Price Solo    : PHP 45.00
+    Price 1 Liter : PHP 120.00
+    Price 1.5L    : PHP 170.00
+    Price 2 Liter : PHP 220.00
+  Test Steps     :
+    1. Navigate to the Menu page
+    2. Locate "Buko Lemonade" in the Drinks category
+    3. Click on the product card
+  Expected Result:
+    - Product detail modal opens
+    - Name, image, description, all price variants, and flavor options
+      are displayed correctly
+
+TEST CASE 2.2.2
+  Test Case ID   : TC-MPC-005
+  Requirement ID : REQ-MPC-002
+  Test Scenario  : Select "1 Liter" variant and verify price updates
+  Preconditions  : "Buko Lemonade" product detail modal is open
+  Test Data      :
+    Selected Variant : 1 Liter
+    Expected Price   : PHP 120.00
+  Test Steps     :
+    1. Open the product detail for "Buko Lemonade"
+    2. Click or select the "1 Liter" size option
+  Expected Result:
+    - The displayed price updates to PHP 120.00
+    - The selected variant is visually highlighted
+
+TEST CASE 2.2.3
+  Test Case ID   : TC-MPC-006
+  Requirement ID : REQ-MPC-002
+  Test Scenario  : View a product that only has a solo price option
+  Preconditions  : Product "Chicken BBQ Meal" has only a solo price set
+  Test Data      :
+    Product Name  : Chicken BBQ Meal
+    Price Solo    : PHP 150.00
+    Other Variants: null / not set
+  Test Steps     :
+    1. Navigate to the Menu page
+    2. Click on "Chicken BBQ Meal"
+  Expected Result:
+    - Only the solo price option (PHP 150.00) is displayed
+    - No 1L, 1.5L, or 2L options are shown
+
+--------------------------------------------------------------------------------
+FEATURE 2.3 - OUT-OF-STOCK PRODUCT HANDLING
+--------------------------------------------------------------------------------
+
+USER STORY:
+  As a customer browsing the online menu,
+  I want to clearly see which products are out of stock,
+  So that I don't waste time trying to add unavailable items to my cart.
+
+ACCEPTANCE CRITERIA (Given-When-Then):
+  SCENARIO 1 - Out-of-Stock Badge is Displayed:
+    Given a product is marked as out of stock by the admin
+    When I browse the menu
+    Then the product card should show a visible "Out of Stock" badge or label
+
+  SCENARIO 2 - Cannot Add Out-of-Stock Item to Cart:
+    Given a product is marked out of stock
+    When I click on that product card
+    Then the "Add to Cart" button should be disabled or absent
+
+  SCENARIO 3 - In-Stock Product Can Be Added to Cart:
+    Given a product is available (outOfStock = false)
+    When I open its detail view
+    Then the "Add to Cart" button should be enabled and clickable
+
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+TEST CASE 2.3.1
+  Test Case ID   : TC-MPC-007
+  Requirement ID : REQ-MPC-003
+  Test Scenario  : Out-of-stock product displays an "Out of Stock" badge
+  Preconditions  : Product "Ube Cheese Pie" is marked outOfStock = true
+  Test Data      :
+    Product Name : Ube Cheese Pie
+    outOfStock   : true
+  Test Steps     :
+    1. Navigate to the Menu page
+    2. Locate "Ube Cheese Pie" in the product list
+  Expected Result:
+    - "Ube Cheese Pie" product card is visible
+    - An "Out of Stock" label or badge is clearly displayed on the card
+
+TEST CASE 2.3.2
+  Test Case ID   : TC-MPC-008
+  Requirement ID : REQ-MPC-003
+  Test Scenario  : "Add to Cart" button is disabled for an out-of-stock product
+  Preconditions  : Product "Ube Cheese Pie" is marked outOfStock = true
+  Test Data      :
+    Product Name : Ube Cheese Pie
+    outOfStock   : true
+  Test Steps     :
+    1. Navigate to the Menu page
+    2. Click on "Ube Cheese Pie"
+  Expected Result:
+    - Product detail view opens
+    - "Add to Cart" button is grayed out (disabled) or not present
+    - Customer cannot add the item to the cart
+
+TEST CASE 2.3.3
+  Test Case ID   : TC-MPC-009
+  Requirement ID : REQ-MPC-003
+  Test Scenario  : In-stock product can be added to the cart
+  Preconditions  : Product "Buko Lemonade" has outOfStock = false
+  Test Data      :
+    Product Name : Buko Lemonade
+    outOfStock   : false
+  Test Steps     :
+    1. Navigate to the Menu page
+    2. Click on "Buko Lemonade"
+  Expected Result:
+    - Product detail view opens
+    - "Add to Cart" button is visible and enabled
+    - Clicking it proceeds to add the item to the cart
+
+
+
+
+================================================================================
+MODULE 3: SHOPPING CART & ORDER PLACEMENT
+================================================================================
+Description:
+  This module covers the full shopping cart experience including adding items,
+  adjusting quantities, removing products, and placing an order either for
+  pickup at the restaurant or for delivery to a specified address.
+
+--------------------------------------------------------------------------------
+FEATURE 3.1 - ADD / REMOVE ITEMS FROM CART
+--------------------------------------------------------------------------------
+
+USER STORY:
+  As a logged-in customer,
+  I want to add products to my cart and adjust quantities or remove items,
+  So that I can finalize exactly what I want before placing my online order.
+
+ACCEPTANCE CRITERIA (Given-When-Then):
+  SCENARIO 1 - Add Item to Cart:
+    Given I am logged in and viewing a product on the Menu page
+    When I select a variant and click "Add to Cart"
+    Then the item should appear in my cart with the correct price and quantity
+
+  SCENARIO 2 - Update Item Quantity in Cart:
+    Given I have an item in my cart
+    When I increase or decrease its quantity using the cart controls
+    Then the cart subtotal should update accordingly
+
+  SCENARIO 3 - Remove Item from Cart:
+    Given I have one or more items in my cart
+    When I click the "Remove" button on a specific item
+    Then that item should be deleted from the cart
+    And the cart total should reflect the removal
+
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+TEST CASE 3.1.1
+  Test Case ID   : TC-SCP-001
+  Requirement ID : REQ-SCP-001
+  Test Scenario  : Add a product to the cart from the menu
+  Preconditions  : User is logged in; "Buko Lemonade" is available in the menu
+  Test Data      :
+    Product      : Buko Lemonade
+    Variant      : Solo
+    Price        : PHP 45.00
+    Quantity     : 2
+  Test Steps     :
+    1. Log in and navigate to the Menu page
+    2. Click on "Buko Lemonade"
+    3. Select the "Solo" variant
+    4. Set the quantity to 2
+    5. Click "Add to Cart"
+    6. Navigate to the Cart page
+  Expected Result:
+    - "Buko Lemonade (Solo) x2" is listed in the cart
+    - Cart subtotal shows PHP 90.00
+
+TEST CASE 3.1.2
+  Test Case ID   : TC-SCP-002
+  Requirement ID : REQ-SCP-001
+  Test Scenario  : Update the quantity of an item already in the cart
+  Preconditions  : "Buko Lemonade x2" is already in the cart
+  Test Data      :
+    Product      : Buko Lemonade
+    Old Quantity : 2
+    New Quantity : 4
+    Price/unit   : PHP 45.00
+  Test Steps     :
+    1. Navigate to the Cart page
+    2. Locate "Buko Lemonade"
+    3. Click the "+" button to increase quantity from 2 to 4
+  Expected Result:
+    - Quantity updates to 4
+    - Cart subtotal updates to PHP 180.00
+
+TEST CASE 3.1.3
+  Test Case ID   : TC-SCP-003
+  Requirement ID : REQ-SCP-001
+  Test Scenario  : Remove an item from the cart
+  Preconditions  : Cart contains "Buko Lemonade x2" and "Chicken BBQ Meal x1"
+  Test Data      :
+    Item to Remove : Chicken BBQ Meal
+    Remaining Item : Buko Lemonade
+  Test Steps     :
+    1. Navigate to the Cart page
+    2. Locate "Chicken BBQ Meal" in the cart
+    3. Click the "Remove" or trash icon button
+    4. Confirm removal (if a confirmation prompt appears)
+  Expected Result:
+    - "Chicken BBQ Meal" is removed from the cart
+    - Only "Buko Lemonade" remains in the cart
+    - Cart total is recalculated without "Chicken BBQ Meal"
+
+--------------------------------------------------------------------------------
+FEATURE 3.2 - PLACE A PICKUP ORDER
+--------------------------------------------------------------------------------
+
+USER STORY:
+  As a logged-in customer,
+  I want to place an online order for pickup at the restaurant,
+  So that my food is ready and waiting when I arrive.
+
+ACCEPTANCE CRITERIA (Given-When-Then):
+  SCENARIO 1 - Place Pickup Order Successfully:
+    Given I have items in my cart
+    When I select "Pickup" as the order type and confirm the order
+    Then an order should be created with status "PENDING" and type "PICKUP"
+    And a confirmation message should be displayed
+
+  SCENARIO 2 - Place Pickup Order with Optional Note:
+    Given I have items in my cart and choose "Pickup"
+    When I add a special note (e.g., "extra sauce") before confirming
+    Then the order should be placed and the note should be saved with the order
+
+  SCENARIO 3 - Cannot Place Order with Empty Cart:
+    Given my cart is empty
+    When I attempt to proceed to checkout or place an order
+    Then the system should prevent the action
+    And display: "Your cart is empty. Please add items before ordering."
+
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+TEST CASE 3.2.1
+  Test Case ID   : TC-SCP-004
+  Requirement ID : REQ-SCP-002
+  Test Scenario  : Place a pickup order with items in the cart
+  Preconditions  : User is logged in; cart has "Buko Lemonade x2"
+  Test Data      :
+    Order Type   : PICKUP
+    Cart Items   : Buko Lemonade (Solo) x2
+    Total Amount : PHP 90.00
+  Test Steps     :
+    1. Navigate to the Cart page
+    2. Select "Pickup" as the order type
+    3. Click "Place Order"
+    4. Confirm the order in the confirmation dialog
+  Expected Result:
+    - Order is created with status "PENDING" and type "PICKUP"
+    - Success message: "Order placed successfully!"
+    - Cart is cleared
+    - Order appears in the user's Order History
+
+TEST CASE 3.2.2
+  Test Case ID   : TC-SCP-005
+  Requirement ID : REQ-SCP-002
+  Test Scenario  : Place a pickup order with a special note
+  Preconditions  : User is logged in; cart has at least one item
+  Test Data      :
+    Order Type   : PICKUP
+    Notes        : "Extra rice please"
+  Test Steps     :
+    1. Navigate to the Cart page
+    2. Select "Pickup" as the order type
+    3. Type "Extra rice please" in the Notes/Special Instructions field
+    4. Click "Place Order" and confirm
+  Expected Result:
+    - Order is created successfully with type "PICKUP"
+    - The note "Extra rice please" is stored with the order record
+    - The note is visible in the Order History detail view
+
+TEST CASE 3.2.3
+  Test Case ID   : TC-SCP-006
+  Requirement ID : REQ-SCP-002
+  Test Scenario  : Attempt to place an order with an empty cart
+  Preconditions  : User is logged in; the cart is empty
+  Test Data      : N/A (empty cart)
+  Test Steps     :
+    1. Navigate to the Cart page while cart is empty
+    2. Attempt to click "Place Order" or "Checkout"
+  Expected Result:
+    - Order is NOT placed
+    - Message displayed: "Your cart is empty. Please add items before ordering."
+    - User remains on the cart page
+
+--------------------------------------------------------------------------------
+FEATURE 3.3 - PLACE A DELIVERY ORDER
+--------------------------------------------------------------------------------
+
+USER STORY:
+  As a logged-in customer,
+  I want to place an online order for delivery to my address,
+  So that I can enjoy Duyanan Restaurant food without visiting the restaurant.
+
+ACCEPTANCE CRITERIA (Given-When-Then):
+  SCENARIO 1 - Place Delivery Order with Valid Address:
+    Given I have items in my cart
+    When I select "Delivery", enter a delivery address, and confirm
+    Then an order should be created with type "DELIVERY", the delivery address
+         and delivery fee should be correctly stored
+
+  SCENARIO 2 - Delivery Order Total Includes Delivery Fee:
+    Given I place a delivery order
+    When the order is confirmed
+    Then the total amount should be the sum of item subtotal plus delivery fee
+
+  SCENARIO 3 - Cannot Place Delivery Order Without an Address:
+    Given I select "Delivery" as the order type
+    When I leave the delivery address field blank and try to confirm
+    Then the system should block the order
+    And show a validation error: "Delivery address is required"
+
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+TEST CASE 3.3.1
+  Test Case ID   : TC-SCP-007
+  Requirement ID : REQ-SCP-003
+  Test Scenario  : Place a delivery order with a complete delivery address
+  Preconditions  : User is logged in; cart contains "Buko Lemonade (Solo) x2"
+  Test Data      :
+    Order Type       : DELIVERY
+    Delivery Address : 789 Sampaguita Road, Lapu-Lapu City
+    Delivery Fee     : PHP 50.00
+    Items Subtotal   : PHP 90.00
+    Total Amount     : PHP 140.00
+  Test Steps     :
+    1. Navigate to the Cart page
+    2. Select "Delivery" as the order type
+    3. Enter "789 Sampaguita Road, Lapu-Lapu City" in the delivery address field
+    4. Click "Place Order" and confirm
+  Expected Result:
+    - Order is created with type "DELIVERY"
+    - Delivery address is stored as "789 Sampaguita Road, Lapu-Lapu City"
+    - Delivery fee of PHP 50.00 is applied
+    - Total amount is PHP 140.00
+
+TEST CASE 3.3.2
+  Test Case ID   : TC-SCP-008
+  Requirement ID : REQ-SCP-003
+  Test Scenario  : Verify that the delivery fee is included in the order total
+  Preconditions  : User places a delivery order with items totaling PHP 90.00;
+                   system delivery fee is PHP 50.00
+  Test Data      :
+    Item Subtotal  : PHP 90.00
+    Delivery Fee   : PHP 50.00
+    Expected Total : PHP 140.00
+  Test Steps     :
+    1. Add items to cart (total: PHP 90.00)
+    2. Go to Cart page
+    3. Select "Delivery" and enter a valid address
+    4. Review the order summary before confirming
+  Expected Result:
+    - Order summary displays item subtotal: PHP 90.00
+    - Delivery fee of PHP 50.00 is shown as a separate line
+    - Grand total shown as PHP 140.00
+    - After confirmation, the order record stores totalAmount = 140.00
+
+TEST CASE 3.3.3
+  Test Case ID   : TC-SCP-009
+  Requirement ID : REQ-SCP-003
+  Test Scenario  : Attempt to place a delivery order without entering an address
+  Preconditions  : User is logged in; cart has items; "Delivery" is selected
+  Test Data      :
+    Order Type       : DELIVERY
+    Delivery Address : (blank)
+  Test Steps     :
+    1. Navigate to the Cart page
+    2. Select "Delivery" as the order type
+    3. Leave the delivery address field empty
+    4. Click "Place Order"
+  Expected Result:
+    - Order is NOT placed
+    - Validation error displayed: "Delivery address is required"
+    - User remains on the cart/checkout page
+
+
+
+
+================================================================================
+MODULE 4: ORDER MANAGEMENT & HISTORY
+================================================================================
+Description:
+  This module covers how customers view and manage their online orders after
+  placement. It includes order status tracking, order cancellation, and
+  submitting feedback and star ratings for completed orders.
+
+--------------------------------------------------------------------------------
+FEATURE 4.1 - VIEW ORDER HISTORY & TRACK ORDER STATUS
+--------------------------------------------------------------------------------
+
+USER STORY:
+  As a logged-in customer,
+  I want to view all my past and current orders and their statuses,
+  So that I can track my online order progress in real-time.
+
+ACCEPTANCE CRITERIA (Given-When-Then):
+  SCENARIO 1 - View Full Order History:
+    Given I am logged in
+    When I navigate to my Order History page
+    Then I should see a list of all orders I have placed, with their
+         status, date, total, and order type
+
+  SCENARIO 2 - Track an Updated Order Status:
+    Given my order status was changed by the admin (e.g., to "PREPARING")
+    When I refresh or revisit my Order History page
+    Then the updated order status should be accurately displayed
+
+  SCENARIO 3 - View Order Details:
+    Given I have a past order in my history
+    When I click on a specific order to view its details
+    Then I should see the individual items ordered, quantities, prices,
+         order type, delivery address (if applicable), and notes
+
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+TEST CASE 4.1.1
+  Test Case ID   : TC-OMH-001
+  Requirement ID : REQ-OMH-001
+  Test Scenario  : View all orders in the order history page
+  Preconditions  : User is logged in and has at least 2 placed orders
+  Test Data      : User account with order IDs 101 and 102
+  Test Steps     :
+    1. Log in with the customer account
+    2. Navigate to "Profile" > "My Orders" or the Order History section
+  Expected Result:
+    - A list of all placed orders is displayed
+    - Each order shows: order ID, date placed, status, total amount,
+      and order type (PICKUP or DELIVERY)
+
+TEST CASE 4.1.2
+  Test Case ID   : TC-OMH-002
+  Requirement ID : REQ-OMH-001
+  Test Scenario  : Order status reflects admin update after page refresh
+  Preconditions  : Order #101 exists with status "PENDING"; admin changes
+                   its status to "PREPARING"
+  Test Data      :
+    Order ID     : 101
+    Old Status   : PENDING
+    New Status   : PREPARING
+  Test Steps     :
+    1. Log in as the customer and navigate to Order History
+    2. Note that Order #101 shows status "PENDING"
+    3. Admin logs in separately and updates Order #101 status to "PREPARING"
+    4. Customer refreshes the Order History page
+  Expected Result:
+    - Order #101 now displays status "PREPARING"
+    - The status badge or label is updated correctly
+
+TEST CASE 4.1.3
+  Test Case ID   : TC-OMH-003
+  Requirement ID : REQ-OMH-001
+  Test Scenario  : View full details of a specific delivery order
+  Preconditions  : User has a completed delivery order #102 in their history
+  Test Data      :
+    Order ID         : 102
+    Order Type       : DELIVERY
+    Delivery Address : 789 Sampaguita Road, Lapu-Lapu City
+    Items            : Buko Lemonade x2, Chicken BBQ Meal x1
+    Total Amount     : PHP 290.00
+  Test Steps     :
+    1. Navigate to Order History
+    2. Click on Order #102 to open its detail view
+  Expected Result:
+    - Order detail page/modal opens
+    - Items listed: Buko Lemonade x2 and Chicken BBQ Meal x1
+    - Delivery address and total amount are displayed correctly
+
+--------------------------------------------------------------------------------
+FEATURE 4.2 - CANCEL AN ORDER
+--------------------------------------------------------------------------------
+
+USER STORY:
+  As a logged-in customer who has placed an online order,
+  I want to cancel my order while it is still pending,
+  So that I can change my mind before the restaurant starts preparing it.
+
+ACCEPTANCE CRITERIA (Given-When-Then):
+  SCENARIO 1 - Cancel a Pending Order with a Reason:
+    Given I have an order with status "PENDING"
+    When I click "Cancel Order", provide a reason, and confirm
+    Then the order status should change to "CANCELLED"
+    And the cancellation reason should be saved
+
+  SCENARIO 2 - Cannot Cancel an Order Already Being Prepared:
+    Given my order status is "PREPARING" or beyond
+    When I attempt to cancel it
+    Then the system should block the cancellation
+    And display: "This order can no longer be cancelled"
+
+  SCENARIO 3 - Cancel Without Providing a Reason:
+    Given I have a PENDING order
+    When I attempt to cancel without entering a cancellation reason
+    Then the system should require a reason before allowing cancellation
+    And show: "Please provide a reason for cancellation"
+
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+TEST CASE 4.2.1
+  Test Case ID   : TC-OMH-004
+  Requirement ID : REQ-OMH-002
+  Test Scenario  : Cancel a pending order with a valid reason
+  Preconditions  : Order #103 exists with status "PENDING"
+  Test Data      :
+    Order ID             : 103
+    Cancellation Reason  : "Changed my mind"
+  Test Steps     :
+    1. Navigate to Order History and locate Order #103 (PENDING)
+    2. Click the "Cancel Order" button
+    3. Enter "Changed my mind" in the reason field
+    4. Click "Confirm Cancellation"
+  Expected Result:
+    - Order #103 status changes to "CANCELLED"
+    - Cancellation reason "Changed my mind" is saved in the database
+    - Success message: "Your order has been cancelled"
+
+TEST CASE 4.2.2
+  Test Case ID   : TC-OMH-005
+  Requirement ID : REQ-OMH-002
+  Test Scenario  : Attempt to cancel an order with status "PREPARING"
+  Preconditions  : Order #104 has status "PREPARING"
+  Test Data      :
+    Order ID     : 104
+    Status       : PREPARING
+  Test Steps     :
+    1. Navigate to Order History
+    2. Locate Order #104 (PREPARING)
+    3. Attempt to click "Cancel Order"
+  Expected Result:
+    - Cancellation is blocked
+    - Message displayed: "This order can no longer be cancelled"
+    - Order status remains "PREPARING"
+
+TEST CASE 4.2.3
+  Test Case ID   : TC-OMH-006
+  Requirement ID : REQ-OMH-002
+  Test Scenario  : Attempt to cancel a pending order without providing a reason
+  Preconditions  : Order #105 exists with status "PENDING"
+  Test Data      :
+    Order ID             : 105
+    Cancellation Reason  : (blank)
+  Test Steps     :
+    1. Navigate to Order History and locate Order #105 (PENDING)
+    2. Click "Cancel Order"
+    3. Leave the cancellation reason field blank
+    4. Click "Confirm Cancellation"
+  Expected Result:
+    - Cancellation does NOT proceed
+    - Validation error: "Please provide a reason for cancellation"
+    - Order status remains "PENDING"
+
+--------------------------------------------------------------------------------
+FEATURE 4.3 - SUBMIT ORDER FEEDBACK & RATING
+--------------------------------------------------------------------------------
+
+USER STORY:
+  As a customer who has received a completed online order,
+  I want to submit a star rating and a written comment about my experience,
+  So that the restaurant can use my feedback to improve their food and service.
+
+ACCEPTANCE CRITERIA (Given-When-Then):
+  SCENARIO 1 - Submit Feedback for a Completed Order:
+    Given my order status is "COMPLETED"
+    When I submit a rating (1 to 5 stars) and a comment
+    Then the feedback should be saved and linked to that specific order
+    And a success message should be shown
+
+  SCENARIO 2 - Prevent Duplicate Feedback on the Same Order:
+    Given I have already submitted feedback for a completed order
+    When I attempt to submit feedback again for the same order
+    Then the system should reject the second submission
+    And display: "Feedback already submitted for this order"
+
+  SCENARIO 3 - Cannot Submit Feedback Without a Comment:
+    Given my order is COMPLETED and no feedback has been submitted yet
+    When I select a star rating but leave the comment field blank and submit
+    Then the system should block the submission
+    And show: "Comment is required"
+
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+TEST CASE 4.3.1
+  Test Case ID   : TC-OMH-007
+  Requirement ID : REQ-OMH-003
+  Test Scenario  : Submit feedback with a 5-star rating and a comment
+  Preconditions  : Order #106 exists with status "COMPLETED"; no prior
+                   feedback has been submitted for this order
+  Test Data      :
+    Order ID : 106
+    Rating   : 5 stars
+    Comment  : "The food was amazing and delivery was super fast!"
+  Test Steps     :
+    1. Log in and navigate to Order History
+    2. Locate Order #106 (COMPLETED)
+    3. Click the "Leave Feedback" button
+    4. Select 5 stars
+    5. Type "The food was amazing and delivery was super fast!" in the
+       comment field
+    6. Click "Submit Feedback"
+  Expected Result:
+    - Feedback is saved and linked to Order #106 in the database
+    - Success message: "Thank you for your feedback!"
+    - The "Leave Feedback" button is replaced by "Feedback Submitted"
+
+TEST CASE 4.3.2
+  Test Case ID   : TC-OMH-008
+  Requirement ID : REQ-OMH-003
+  Test Scenario  : Attempt to submit feedback twice for the same completed order
+  Preconditions  : Feedback for Order #106 has already been submitted
+                   (from TC-OMH-007)
+  Test Data      :
+    Order ID : 106
+    Rating   : 3 stars
+    Comment  : "Trying to submit again"
+  Test Steps     :
+    1. Log in and navigate to Order History
+    2. Locate Order #106 (COMPLETED)
+    3. Attempt to click "Leave Feedback"
+  Expected Result:
+    - System prevents a second feedback submission
+    - Message displayed: "Feedback already submitted for this order"
+    - Or the feedback button is disabled/absent
+
+TEST CASE 4.3.3
+  Test Case ID   : TC-OMH-009
+  Requirement ID : REQ-OMH-003
+  Test Scenario  : Submit feedback with a rating but without a comment
+  Preconditions  : Order #107 is COMPLETED; no feedback has been submitted yet
+  Test Data      :
+    Order ID : 107
+    Rating   : 4 stars
+    Comment  : (blank)
+  Test Steps     :
+    1. Navigate to Order #107 feedback form
+    2. Select 4 stars
+    3. Leave the comment field blank
+    4. Click "Submit Feedback"
+  Expected Result:
+    - Feedback is NOT submitted
+    - Validation error displayed: "Comment is required"
+    - The feedback form remains open
+
+
+
+
+================================================================================
+SUMMARY TABLE - TEST CASE QUICK REFERENCE
+================================================================================
+
++-------------+------------+----------------------------------------------+
+| Test Case ID| Module     | Test Scenario                                |
++-------------+------------+----------------------------------------------+
+| TC-UAM-001  | Module 1   | Register with valid details                  |
+| TC-UAM-002  | Module 1   | Register with duplicate email                |
+| TC-UAM-003  | Module 1   | Register with blank required fields          |
+| TC-UAM-004  | Module 1   | Login with valid credentials                 |
+| TC-UAM-005  | Module 1   | Login with wrong password                    |
+| TC-UAM-006  | Module 1   | Login with non-existent email                |
+| TC-UAM-007  | Module 1   | View user profile                            |
+| TC-UAM-008  | Module 1   | Update phone number and delivery address     |
+| TC-UAM-009  | Module 1   | Update profile with invalid phone number     |
++-------------+------------+----------------------------------------------+
+| TC-MPC-001  | Module 2   | Browse all menu categories                   |
+| TC-MPC-002  | Module 2   | Filter products by "Drinks" category         |
+| TC-MPC-003  | Module 2   | Category with no products shows message      |
+| TC-MPC-004  | Module 2   | View product detail with multiple variants   |
+| TC-MPC-005  | Module 2   | Select variant and verify price update       |
+| TC-MPC-006  | Module 2   | Product with only solo price option          |
+| TC-MPC-007  | Module 2   | Out-of-stock badge displayed on product      |
+| TC-MPC-008  | Module 2   | Add to Cart disabled for out-of-stock item   |
+| TC-MPC-009  | Module 2   | In-stock product can be added to cart        |
++-------------+------------+----------------------------------------------+
+| TC-SCP-001  | Module 3   | Add product to cart from menu                |
+| TC-SCP-002  | Module 3   | Update item quantity in cart                 |
+| TC-SCP-003  | Module 3   | Remove item from cart                        |
+| TC-SCP-004  | Module 3   | Place a pickup order                         |
+| TC-SCP-005  | Module 3   | Place pickup order with a special note       |
+| TC-SCP-006  | Module 3   | Cannot place order with empty cart           |
+| TC-SCP-007  | Module 3   | Place delivery order with valid address      |
+| TC-SCP-008  | Module 3   | Delivery fee included in order total         |
+| TC-SCP-009  | Module 3   | Cannot place delivery order without address  |
++-------------+------------+----------------------------------------------+
+| TC-OMH-001  | Module 4   | View all orders in order history             |
+| TC-OMH-002  | Module 4   | Order status reflects admin update           |
+| TC-OMH-003  | Module 4   | View detailed info of a delivery order       |
+| TC-OMH-004  | Module 4   | Cancel a pending order with reason           |
+| TC-OMH-005  | Module 4   | Cannot cancel order already "PREPARING"      |
+| TC-OMH-006  | Module 4   | Cancel fails without providing a reason      |
+| TC-OMH-007  | Module 4   | Submit feedback with rating and comment      |
+| TC-OMH-008  | Module 4   | Prevent duplicate feedback submission        |
+| TC-OMH-009  | Module 4   | Cannot submit feedback without comment       |
++-------------+------------+----------------------------------------------+
+  Total Test Cases: 36 (9 per module)
+================================================================================
+                          END OF DOCUMENT
+================================================================================
