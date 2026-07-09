@@ -3,7 +3,7 @@
 ================================================================================
 System        : Duyanan Restaurant Online Ordering System
 Document Type : Software Testing Documentation
-Version       : 4.0
+Version       : 5.0
 Date          : July 9, 2026
 Prepared by   : QA Team
 ================================================================================
@@ -57,7 +57,7 @@ TEST CASE 1.1.1
     As a new customer,
     I want to register an account using my unique personal details,
     So that my credentials are saved in the system and I can access online ordering.
-  Acceptance Criteria (Given-When-Then):
+  Acceptance Criteria | Successful Registration:
     Given I am on the registration page
     When I fill in all required fields (first name, last name, unique email, phone, address, and password) and click "Register"
     Then my account should be created successfully in the database
@@ -93,9 +93,9 @@ TEST CASE 1.1.2
     As a new customer,
     I want the registration system to prevent me from using an existing email address,
     So that I do not create duplicate accounts under the same email.
-  Acceptance Criteria (Given-When-Then):
+  Acceptance Criteria | Registration with Duplicate Email:
     Given I am on the registration page
-    When I enter an email address that is already registered in the system
+    When I enter an email address that is already associated with an existing account
     Then the registration should fail
     And I should see an error message: "Email is already in use"
   Preconditions  : An account with email "existing@gmail.com" already exists in the database
@@ -122,7 +122,7 @@ TEST CASE 1.1.3
     As a new customer,
     I want the registration form to validate that all required fields are filled out,
     So that I do not register an account with incomplete or missing information.
-  Acceptance Criteria (Given-When-Then):
+  Acceptance Criteria | Registration with Missing Required Fields:
     Given I am on the registration page
     When I leave all required fields blank and click the "Register" button
     Then registration should not proceed
@@ -154,7 +154,7 @@ TEST CASE 1.2.1
     As a registered customer,
     I want to log in using my valid credentials,
     So that I can authenticate my identity and access my personalized online ordering home page.
-  Acceptance Criteria (Given-When-Then):
+  Acceptance Criteria | Successful Login:
     Given I have a registered account
     When I enter my correct email and password on the login page and click "Login"
     Then I should be authenticated successfully
@@ -182,7 +182,7 @@ TEST CASE 1.2.2
     As a registered customer,
     I want the login page to reject incorrect passwords,
     So that unauthorized users cannot gain access to my personal account.
-  Acceptance Criteria (Given-When-Then):
+  Acceptance Criteria | Login with Incorrect Password:
     Given I have a registered account
     When I enter my correct email but an incorrect password and click "Login"
     Then login should fail
@@ -209,7 +209,7 @@ TEST CASE 1.2.3
     As a user,
     I want the system to notify me if I attempt to log in using an email that is not registered,
     So that I can verify my email spelling or create a new account.
-  Acceptance Criteria (Given-When-Then):
+  Acceptance Criteria | Login with Non-Existent Email:
     Given I do not have an account registered with a specific email address
     When I enter that non-existent email and any password, then click "Login"
     Then login should fail
@@ -240,7 +240,7 @@ TEST CASE 1.3.1
     As a logged-in customer,
     I want to view my profile page,
     So that I can verify that my name, email, phone number, and address are correct.
-  Acceptance Criteria (Given-When-Then):
+  Acceptance Criteria | View Profile Information:
     Given I am logged in as a registered customer
     When I click on the "Profile" option in the navigation menu
     Then I should see my stored details (first name, last name, email, phone, and address) accurately displayed
@@ -261,7 +261,7 @@ TEST CASE 1.3.2
     As a logged-in customer,
     I want to modify my delivery address and contact phone number on my profile,
     So that my next online food orders are delivered to the correct location and phone.
-  Acceptance Criteria (Given-When-Then):
+  Acceptance Criteria | Update Delivery Details Successfully:
     Given I am logged in and viewing my profile page
     When I enter a new phone number and address, then click "Save Changes"
     Then my new details should be updated in the database
@@ -288,7 +288,7 @@ TEST CASE 1.3.3
     As a logged-in customer,
     I want the profile page to validate the format of my phone number when updating,
     So that I do not save an invalid or corrupt number that prevents delivery riders from contacting me.
-  Acceptance Criteria (Given-When-Then):
+  Acceptance Criteria | Update Profile with Invalid Phone Number:
     Given I am logged in and on my profile page
     When I enter an invalid phone format (e.g., letters) and click "Save Changes"
     Then the profile update should fail
@@ -328,7 +328,7 @@ TEST CASE 2.1.1
     As a customer browsing the website,
     I want the Menu page to display all product categories,
     So that I can see the food varieties offered by the restaurant.
-  Acceptance Criteria (Given-When-Then):
+  Acceptance Criteria | View All Categories on Menu Page:
     Given I navigate to the Menu page
     When the page finishes loading
     Then I should see category tabs such as Drinks, Meals, and Combos displayed clearly
@@ -349,7 +349,7 @@ TEST CASE 2.1.2
     As a customer browsing the menu,
     I want to select the "Drinks" category filter,
     So that I only see beverage items and filter out other food items.
-  Acceptance Criteria (Given-When-Then):
+  Acceptance Criteria | Filter Products by Category:
     Given I am on the Menu page
     When I click on the "Drinks" category tab
     Then the menu should hide all other food items
@@ -372,7 +372,7 @@ TEST CASE 2.1.3
     As a customer browsing the menu,
     I want the menu page to show a placeholder message if a category is currently empty,
     So that I know the category exists but has no current items.
-  Acceptance Criteria (Given-When-Then):
+  Acceptance Criteria | Empty Category Message:
     Given I am on the Menu page
     When I click on an empty category filter
     Then the product grid should show a message: "No items available in this category"
@@ -398,7 +398,7 @@ TEST CASE 2.2.1
     As a customer,
     I want to click on a drink product card,
     So that I can see the details and all available size variants and pricing (Solo, 1L, 1.5L, 2L).
-  Acceptance Criteria (Given-When-Then):
+  Acceptance Criteria | View Product Details Modal:
     Given I am on the Menu page
     When I click on a product card that has multiple sizes
     Then a details modal should open displaying the product name, image, description, and list of size options with their respective prices
@@ -425,7 +425,7 @@ TEST CASE 2.2.2
     As a customer viewing product details,
     I want to select a different size option (e.g. 1 Liter),
     So that I can see the updated price before adding the item to the cart.
-  Acceptance Criteria (Given-When-Then):
+  Acceptance Criteria | Select Product Variant and Update Price:
     Given the product detail modal is open
     When I click the option for "1 Liter"
     Then the price display should immediately update to the 1 Liter price
@@ -448,7 +448,7 @@ TEST CASE 2.2.3
     As a customer viewing product details of a standard dish,
     I want to see its single solo price without confusing size options,
     So that I can add it to the cart directly.
-  Acceptance Criteria (Given-When-Then):
+  Acceptance Criteria | View Product with Single Pricing Option:
     Given I click on a product that only has a solo price option
     When the product details load
     Then I should see the name and a single price
@@ -477,7 +477,7 @@ TEST CASE 2.3.1
     As a customer browsing the menu,
     I want to easily spot which items are out of stock,
     So that I can avoid selecting them for my order.
-  Acceptance Criteria (Given-When-Then):
+  Acceptance Criteria | Out-of-Stock Badge is Displayed:
     Given a product is marked as out of stock in the database
     When I view the Menu page
     Then the product card should render a visible "Out of Stock" badge
@@ -500,7 +500,7 @@ TEST CASE 2.3.2
     As a customer viewing an out-of-stock product,
     I want the "Add to Cart" button to be disabled,
     So that I am prevented from placing orders for unavailable items.
-  Acceptance Criteria (Given-When-Then):
+  Acceptance Criteria | Cannot Add Out-of-Stock Item to Cart:
     Given I click on a product card marked "Out of Stock"
     When the product detail view opens
     Then the "Add to Cart" button should be disabled (unclickable) or hidden entirely
@@ -524,7 +524,7 @@ TEST CASE 2.3.3
     As a customer viewing an in-stock product,
     I want the "Add to Cart" button to be fully active,
     So that I can click it to add the product to my cart.
-  Acceptance Criteria (Given-When-Then):
+  Acceptance Criteria | In-Stock Product Can Be Added to Cart:
     Given I open the details of an in-stock product (outOfStock = false)
     When I click the "Add to Cart" button
     Then the item should be added to my shopping cart session successfully
@@ -563,10 +563,10 @@ TEST CASE 3.1.1
     As a logged-in customer,
     I want to select items and add them to my cart,
     So that I can gather my selected dishes with correct pricing in my order summary.
-  Acceptance Criteria (Given-When-Then):
+  Acceptance Criteria | Add Item to Cart:
     Given I am logged in and viewing an active product detail view
     When I select quantity "2" and click "Add to Cart"
-    Then the cart should record the item and its subtotal price accurately
+    Then the item should appear in my cart with the correct price and quantity
   Preconditions  : User is logged in; "Buko Lemonade" is available in the menu
   Test Data      :
     Product      : Buko Lemonade
@@ -592,7 +592,7 @@ TEST CASE 3.1.2
     As a customer reviewing my cart,
     I want to modify the quantity of an item using plus or minus buttons,
     So that my order total adjusts dynamically without leaving the cart page.
-  Acceptance Criteria (Given-When-Then):
+  Acceptance Criteria | Update Item Quantity in Cart:
     Given I have items in my cart
     When I click the "+" button to increase the quantity of a specific item
     Then the quantity should increase
@@ -619,7 +619,7 @@ TEST CASE 3.1.3
     As a customer reviewing my cart,
     I want to remove an item I no longer wish to purchase,
     So that my final order contains only the items I want.
-  Acceptance Criteria (Given-When-Then):
+  Acceptance Criteria | Remove Item from Cart:
     Given my cart contains multiple items
     When I click the "Remove" trash icon next to an item
     Then the item should disappear from my cart
@@ -650,7 +650,7 @@ TEST CASE 3.2.1
     As a customer,
     I want to place my order with "Pickup" selected as the fulfillment method,
     So that the restaurant can prepare the food for me to fetch in person.
-  Acceptance Criteria (Given-When-Then):
+  Acceptance Criteria | Place Pickup Order Successfully:
     Given I have items in my shopping cart
     When I choose "Pickup" as my order type and click "Place Order"
     Then the order should be created with status "PENDING" and orderType "PICKUP"
@@ -678,8 +678,8 @@ TEST CASE 3.2.2
   User Story     :
     As a customer placing a pickup order,
     I want to add special preparation notes (e.g. "extra ice"),
-    So that the kitchen staff can prepare my order according to my preference.
-  Acceptance Criteria (Given-When-Then):
+    So that the kitchen team staff can prepare my order according to my preference.
+  Acceptance Criteria | Place Pickup Order with Optional Note:
     Given I have items in my cart and "Pickup" is selected
     When I type special instructions in the notes field and confirm my order
     Then my order should be successfully recorded in the database
@@ -706,7 +706,7 @@ TEST CASE 3.2.3
     As a customer,
     I want the checkout system to block order placement if my cart is empty,
     So that I do not accidentally submit an order without any products.
-  Acceptance Criteria (Given-When-Then):
+  Acceptance Criteria | Cannot Place Order with Empty Cart:
     Given my cart contains no items
     When I attempt to click "Place Order"
     Then the order should not be created
@@ -733,7 +733,7 @@ TEST CASE 3.3.1
     As a customer living far away,
     I want to select the "Delivery" order option and supply my home address,
     So that the restaurant can deliver the fresh food to my doorstep.
-  Acceptance Criteria (Given-When-Then):
+  Acceptance Criteria | Place Delivery Order with Valid Address:
     Given I have items in my shopping cart
     When I choose "Delivery" as the order type, type a valid delivery address, and confirm
     Then the order should be saved in the system with type "DELIVERY"
@@ -764,7 +764,7 @@ TEST CASE 3.3.2
     As a delivery customer,
     I want the checkout screen to show a breakdown of the item total and the delivery fee,
     So that I can see the correct grand total before checking out.
-  Acceptance Criteria (Given-When-Then):
+  Acceptance Criteria | Delivery Order Total Includes Delivery Fee:
     Given I have items in my cart totaling PHP 90.00
     When I select "Delivery" with a shipping fee of PHP 50.00
     Then the checkout overview should show a Grand Total of PHP 140.00
@@ -793,7 +793,7 @@ TEST CASE 3.3.3
     As a customer placing a delivery order,
     I want the system to force me to enter an address if I forget it,
     So that riders have a destination for my food delivery.
-  Acceptance Criteria (Given-When-Then):
+  Acceptance Criteria | Cannot Place Delivery Order Without Address:
     Given I have selected the "Delivery" order type
     When I leave the delivery address input field blank and click "Place Order"
     Then the checkout should block submission
@@ -835,7 +835,7 @@ TEST CASE 4.1.1
     As a customer,
     I want to access my order history dashboard,
     So that I can see a listing of all the pickup and delivery orders I have made.
-  Acceptance Criteria (Given-When-Then):
+  Acceptance Criteria | View Full Order History:
     Given I am logged in as a customer with previous orders
     When I click on the "Order History" or "My Orders" tab
     Then I should see a list showing order IDs, order dates, totals, and active statuses
@@ -856,7 +856,7 @@ TEST CASE 4.1.2
     As a customer tracking my current order,
     I want the order status to change (e.g. from PENDING to PREPARING) on my page after an admin updates it,
     So that I can track the preparation progress of my meal.
-  Acceptance Criteria (Given-When-Then):
+  Acceptance Criteria | Track an Updated Order Status:
     Given I have open order #101 with status "PENDING"
     When an admin updates order #101 to "PREPARING" and I refresh my history page
     Then the status badge on order #101 should update to show "PREPARING"
@@ -882,7 +882,7 @@ TEST CASE 4.1.3
     As a customer reviewing a past order,
     I want to click on the order record,
     So that I can see the exact breakdown of dishes, prices, quantities, and the delivery destination address.
-  Acceptance Criteria (Given-When-Then):
+  Acceptance Criteria | View Order Details:
     Given I am on the Order History page
     When I click on a specific order card (e.g. #102)
     Then a detailed panel should reveal itemized list, subtotal, delivery fee, notes, and recipient address
@@ -913,7 +913,7 @@ TEST CASE 4.2.1
     As a customer who just submitted a mistake order,
     I want to click "Cancel" and explain why I am cancelling while the order is still "PENDING",
     So that the kitchen team is notified to cancel preparation before starting.
-  Acceptance Criteria (Given-When-Then):
+  Acceptance Criteria | Cancel a Pending Order with a Reason:
     Given I have a "PENDING" order in my list
     When I click "Cancel Order", supply a cancellation text reason, and submit
     Then the order status should change to "CANCELLED" in the database
@@ -940,7 +940,7 @@ TEST CASE 4.2.2
     As a customer with an order already in preparation,
     I want the cancellation option to be blocked,
     So that I do not trigger kitchen waste and disruption once my food is already cooking.
-  Acceptance Criteria (Given-When-Then):
+  Acceptance Criteria | Cannot Cancel an Order Already Being Prepared:
     Given my order has a status of "PREPARING"
     When I attempt to click the "Cancel Order" button
     Then the system should block the cancellation
@@ -966,7 +966,7 @@ TEST CASE 4.2.3
     As a customer cancelling an order,
     I want the system to require me to enter a reason,
     So that the restaurant managers can understand the cancellation reason for analytics.
-  Acceptance Criteria (Given-When-Then):
+  Acceptance Criteria | Cancel Without Providing a Reason:
     Given my order is "PENDING"
     When I click "Cancel Order" but leave the reason input completely empty
     Then the cancellation should not go through
@@ -997,7 +997,7 @@ TEST CASE 4.3.1
     As a customer who has received a "COMPLETED" order,
     I want to submit a rating (1-5 stars) and write a comment,
     So that I can share my dining experience with the restaurant staff.
-  Acceptance Criteria (Given-When-Then):
+  Acceptance Criteria | Submit Feedback for a Completed Order:
     Given my order is marked as "COMPLETED" and has no existing feedback
     When I submit a 5-star rating along with a comment and click submit
     Then the feedback should be successfully linked to my order
@@ -1027,7 +1027,7 @@ TEST CASE 4.3.2
     As a customer who has already reviewed an order,
     I want the system to block me from leaving another review,
     So that I do not artificially inflate or duplicate reviews for a single meal.
-  Acceptance Criteria (Given-When-Then):
+  Acceptance Criteria | Prevent Duplicate Feedback on the Same Order:
     Given I have already submitted feedback for completed order #106
     When I attempt to click "Leave Feedback" or submit another feedback entry for order #106
     Then the action should be blocked
@@ -1054,7 +1054,7 @@ TEST CASE 4.3.3
     As a customer rating an order,
     I want the form to require a comment,
     So that the restaurant receives detailed context alongside my numerical star rating.
-  Acceptance Criteria (Given-When-Then):
+  Acceptance Criteria | Cannot Submit Feedback Without a Comment:
     Given my order is "COMPLETED" and has no prior review
     When I select 4 stars but leave the comment box empty and click submit
     Then the submission should fail
