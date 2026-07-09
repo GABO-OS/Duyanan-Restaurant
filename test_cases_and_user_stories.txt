@@ -3,7 +3,7 @@
 ================================================================================
 System        : Duyanan Restaurant Online Ordering System
 Document Type : Software Testing Documentation
-Version       : 3.0
+Version       : 4.0
 Date          : July 9, 2026
 Prepared by   : QA Team
 ================================================================================
@@ -49,41 +49,21 @@ Description:
 FEATURE 1.1 - USER REGISTRATION
 --------------------------------------------------------------------------------
 
-USER STORY:
-  As a new customer,
-  I want to register an account on the Duyanan Restaurant website,
-  So that I can log in and place online food orders.
-
-ACCEPTANCE CRITERIA (Given-When-Then):
-  SCENARIO 1 - Successful Registration:
-    Given I am on the registration page
-    When I fill in all required fields (first name, last name, unique email,
-         phone, address, and password) and click "Register"
-    Then my account should be created successfully
-    And I should be redirected to the login page
-    And a success message should be displayed
-
-  SCENARIO 2 - Registration with Duplicate Email:
-    Given I am on the registration page
-    When I enter an email address that is already associated with an
-         existing account
-    Then the system should reject the registration
-    And display an error: "Email is already in use"
-
-  SCENARIO 3 - Registration with Missing Required Fields:
-    Given I am on the registration page
-    When I submit the form while leaving required fields blank
-    Then the system should not proceed with registration
-    And validation error messages should appear for each empty required field
-
-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-
 TEST CASE 1.1.1
   Test Case ID   : TC-UAM-001
   Requirement ID : REQ-UAM-001
   Test Scenario  : Verify that a user can register a new customer account with valid details.
-  Preconditions  : User is on the registration page; the email is not yet
-                   registered in the system
+  User Story     :
+    As a new customer,
+    I want to register an account using my unique personal details,
+    So that my credentials are saved in the system and I can access online ordering.
+  Acceptance Criteria (Given-When-Then):
+    Given I am on the registration page
+    When I fill in all required fields (first name, last name, unique email, phone, address, and password) and click "Register"
+    Then my account should be created successfully in the database
+    And I should see a success popup message: "Registration Successful!"
+    And I should be redirected to the login page when the popup is dismissed
+  Preconditions  : User is on the registration page; the email is not yet registered in the system
   Test Data      :
     First Name   : Maria
     Last Name    : Santos
@@ -102,15 +82,23 @@ TEST CASE 1.1.1
     8. Click the "Register" button
   Expected Result:
     - Account is created successfully in the database
-    - User is redirected to the login page
-    - Success message is displayed: "Registration successful"
+    - A success SweetAlert2 popup displays: "Registration Successful! Your account has been created. Please log in."
+    - Dismissing the alert redirects the user to the login page
 
 TEST CASE 1.1.2
   Test Case ID   : TC-UAM-002
   Requirement ID : REQ-UAM-001
   Test Scenario  : Verify that registration is rejected when using an email that already exists in the system.
-  Preconditions  : An account with email "existing@gmail.com" already exists
-                   in the database
+  User Story     :
+    As a new customer,
+    I want the registration system to prevent me from using an existing email address,
+    So that I do not create duplicate accounts under the same email.
+  Acceptance Criteria (Given-When-Then):
+    Given I am on the registration page
+    When I enter an email address that is already registered in the system
+    Then the registration should fail
+    And I should see an error message: "Email is already in use"
+  Preconditions  : An account with email "existing@gmail.com" already exists in the database
   Test Data      :
     First Name   : Juan
     Last Name    : Dela Cruz
@@ -122,7 +110,7 @@ TEST CASE 1.1.2
     2. Fill in all fields using the test data above
     3. Click the "Register" button
   Expected Result:
-    - Registration is rejected
+    - Registration is rejected by the system
     - Error message displayed: "Email is already in use"
     - User remains on the registration page
 
@@ -130,6 +118,15 @@ TEST CASE 1.1.3
   Test Case ID   : TC-UAM-003
   Requirement ID : REQ-UAM-001
   Test Scenario  : Verify that registration fails and validation errors are shown when submitting the form with all required fields blank.
+  User Story     :
+    As a new customer,
+    I want the registration form to validate that all required fields are filled out,
+    So that I do not register an account with incomplete or missing information.
+  Acceptance Criteria (Given-When-Then):
+    Given I am on the registration page
+    When I leave all required fields blank and click the "Register" button
+    Then registration should not proceed
+    And inline validation errors should display under each missing required field
   Preconditions  : User is on the registration page
   Test Data      :
     First Name   : (blank)
@@ -143,44 +140,27 @@ TEST CASE 1.1.3
   Expected Result:
     - Registration does not proceed
     - Inline validation errors appear under each blank required field
-    - Messages include: "First name is required", "Email is required",
-      "Password is required"
+    - Error messages include: "First name is required", "Email is required", "Password is required"
 
 --------------------------------------------------------------------------------
 FEATURE 1.2 - USER LOGIN / AUTHENTICATION
 --------------------------------------------------------------------------------
 
-USER STORY:
-  As a registered customer,
-  I want to log in to my account using my email and password,
-  So that I can access my order history and place new online orders.
-
-ACCEPTANCE CRITERIA (Given-When-Then):
-  SCENARIO 1 - Successful Login:
-    Given I have a registered account
-    When I enter the correct email and password on the login page
-    Then I should be authenticated and redirected to the home/menu page
-    And my username should appear in the navigation bar
-
-  SCENARIO 2 - Login with Wrong Password:
-    Given I have a registered account
-    When I enter the correct email but a wrong password
-    Then login should fail
-    And I should see an error: "Invalid credentials"
-
-  SCENARIO 3 - Login with Non-Existent Email:
-    Given no account exists with the email I entered
-    When I attempt to log in
-    Then login should fail
-    And I should see an error: "No account found with this email"
-
-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-
 TEST CASE 1.2.1
   Test Case ID   : TC-UAM-004
   Requirement ID : REQ-UAM-002
   Test Scenario  : Verify that a user can successfully log in with a correct email and password.
-  Preconditions  : Account "maria.santos@gmail.com" / "Maria@1234" exists
+  User Story     :
+    As a registered customer,
+    I want to log in using my valid credentials,
+    So that I can authenticate my identity and access my personalized online ordering home page.
+  Acceptance Criteria (Given-When-Then):
+    Given I have a registered account
+    When I enter my correct email and password on the login page and click "Login"
+    Then I should be authenticated successfully
+    And I should be redirected to the homepage
+    And my first name should be displayed in the navigation bar
+  Preconditions  : Account "maria.santos@gmail.com" with password "Maria@1234" exists
   Test Data      :
     Email        : maria.santos@gmail.com
     Password     : Maria@1234
@@ -192,12 +172,21 @@ TEST CASE 1.2.1
   Expected Result:
     - User is authenticated successfully
     - User is redirected to the home/menu page
-    - User's name appears in the top navigation bar
+    - User's name "Maria" appears in the top navigation bar
 
 TEST CASE 1.2.2
   Test Case ID   : TC-UAM-005
   Requirement ID : REQ-UAM-002
   Test Scenario  : Verify that login fails and displays an error when entering a wrong password.
+  User Story     :
+    As a registered customer,
+    I want the login page to reject incorrect passwords,
+    So that unauthorized users cannot gain access to my personal account.
+  Acceptance Criteria (Given-When-Then):
+    Given I have a registered account
+    When I enter my correct email but an incorrect password and click "Login"
+    Then login should fail
+    And I should see an error message: "Invalid credentials"
   Preconditions  : Account with email "maria.santos@gmail.com" exists
   Test Data      :
     Email        : maria.santos@gmail.com
@@ -216,6 +205,15 @@ TEST CASE 1.2.3
   Test Case ID   : TC-UAM-006
   Requirement ID : REQ-UAM-002
   Test Scenario  : Verify that login fails and displays an error when entering a non-existent email address.
+  User Story     :
+    As a user,
+    I want the system to notify me if I attempt to log in using an email that is not registered,
+    So that I can verify my email spelling or create a new account.
+  Acceptance Criteria (Given-When-Then):
+    Given I do not have an account registered with a specific email address
+    When I enter that non-existent email and any password, then click "Login"
+    Then login should fail
+    And I should see an error message: "No account found with this email"
   Preconditions  : No account with "ghost@email.com" exists in the database
   Test Data      :
     Email        : ghost@email.com
@@ -234,35 +232,18 @@ TEST CASE 1.2.3
 FEATURE 1.3 - PROFILE MANAGEMENT
 --------------------------------------------------------------------------------
 
-USER STORY:
-  As a logged-in customer,
-  I want to view and update my profile details such as phone and address,
-  So that my delivery information is always current when I place online orders.
-
-ACCEPTANCE CRITERIA (Given-When-Then):
-  SCENARIO 1 - View Profile Information:
-    Given I am logged in
-    When I navigate to my profile page
-    Then I should see my stored details: name, email, phone, and address
-
-  SCENARIO 2 - Update Delivery Address Successfully:
-    Given I am logged in and on the profile page
-    When I update my phone number or delivery address and click "Save Changes"
-    Then my updated information should be saved to the database
-    And a success message should be displayed
-
-  SCENARIO 3 - Update Profile with an Invalid Phone Number:
-    Given I am on my profile page
-    When I enter a phone number in an invalid format (e.g., with letters)
-    Then a validation error should appear
-    And the profile should not be saved
-
-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-
 TEST CASE 1.3.1
   Test Case ID   : TC-UAM-007
   Requirement ID : REQ-UAM-003
   Test Scenario  : Verify that a logged-in user can view their profile details correctly.
+  User Story     :
+    As a logged-in customer,
+    I want to view my profile page,
+    So that I can verify that my name, email, phone number, and address are correct.
+  Acceptance Criteria (Given-When-Then):
+    Given I am logged in as a registered customer
+    When I click on the "Profile" option in the navigation menu
+    Then I should see my stored details (first name, last name, email, phone, and address) accurately displayed
   Preconditions  : User is logged in as "maria.santos@gmail.com"
   Test Data      : Active session for user ID 1
   Test Steps     :
@@ -276,6 +257,15 @@ TEST CASE 1.3.2
   Test Case ID   : TC-UAM-008
   Requirement ID : REQ-UAM-003
   Test Scenario  : Verify that a logged-in user can successfully update their phone number and delivery address.
+  User Story     :
+    As a logged-in customer,
+    I want to modify my delivery address and contact phone number on my profile,
+    So that my next online food orders are delivered to the correct location and phone.
+  Acceptance Criteria (Given-When-Then):
+    Given I am logged in and viewing my profile page
+    When I enter a new phone number and address, then click "Save Changes"
+    Then my new details should be updated in the database
+    And I should see a success message: "Profile updated successfully"
   Preconditions  : User is logged in and on the profile page
   Test Data      :
     Phone        : 09222222222
@@ -294,6 +284,15 @@ TEST CASE 1.3.3
   Test Case ID   : TC-UAM-009
   Requirement ID : REQ-UAM-003
   Test Scenario  : Verify that updating profile details fails and shows a validation error when providing an invalid phone number.
+  User Story     :
+    As a logged-in customer,
+    I want the profile page to validate the format of my phone number when updating,
+    So that I do not save an invalid or corrupt number that prevents delivery riders from contacting me.
+  Acceptance Criteria (Given-When-Then):
+    Given I am logged in and on my profile page
+    When I enter an invalid phone format (e.g., letters) and click "Save Changes"
+    Then the profile update should fail
+    And I should see a validation error: "Please enter a valid phone number"
   Preconditions  : User is logged in and on the Profile page
   Test Data      :
     Phone        : ABCD-EFGH
@@ -321,35 +320,19 @@ Description:
 FEATURE 2.1 - BROWSE MENU BY CATEGORY
 --------------------------------------------------------------------------------
 
-USER STORY:
-  As a customer visiting the website,
-  I want to browse the restaurant's menu organized by category,
-  So that I can quickly find the type of food or drink I want to order.
-
-ACCEPTANCE CRITERIA (Given-When-Then):
-  SCENARIO 1 - View All Categories on Menu Page:
-    Given I navigate to the Menu page
-    When the page finishes loading
-    Then all product categories should be visible as filter tabs or sections
-
-  SCENARIO 2 - Filter Products by Category:
-    Given I am on the Menu page
-    When I click on a specific category (e.g., "Drinks")
-    Then only products belonging to that category should be displayed
-
-  SCENARIO 3 - No Products in a Category:
-    Given a category exists but has no active products assigned
-    When I select that category
-    Then a message should display: "No items available in this category"
-
-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-
 TEST CASE 2.1.1
   Test Case ID   : TC-MPC-001
   Requirement ID : REQ-MPC-001
   Test Scenario  : Verify that the menu page loads and displays all available product categories.
-  Preconditions  : At least one product exists per category; user is on the
-                   Menu page (login not required)
+  User Story     :
+    As a customer browsing the website,
+    I want the Menu page to display all product categories,
+    So that I can see the food varieties offered by the restaurant.
+  Acceptance Criteria (Given-When-Then):
+    Given I navigate to the Menu page
+    When the page finishes loading
+    Then I should see category tabs such as Drinks, Meals, and Combos displayed clearly
+  Preconditions  : At least one product exists per category; user is on the Menu page (login not required)
   Test Data      : N/A (uses seeded product data)
   Test Steps     :
     1. Navigate to the Menu page from the navigation bar
@@ -362,6 +345,15 @@ TEST CASE 2.1.2
   Test Case ID   : TC-MPC-002
   Requirement ID : REQ-MPC-001
   Test Scenario  : Verify that products are filtered correctly when selecting the "Drinks" category.
+  User Story     :
+    As a customer browsing the menu,
+    I want to select the "Drinks" category filter,
+    So that I only see beverage items and filter out other food items.
+  Acceptance Criteria (Given-When-Then):
+    Given I am on the Menu page
+    When I click on the "Drinks" category tab
+    Then the menu should hide all other food items
+    And display only products belonging to the "Drinks" category
   Preconditions  : At least 3 drink products exist in the database
   Test Data      :
     Selected Category : Drinks
@@ -376,6 +368,14 @@ TEST CASE 2.1.3
   Test Case ID   : TC-MPC-003
   Requirement ID : REQ-MPC-001
   Test Scenario  : Verify that a category with no active products displays an appropriate informational message.
+  User Story     :
+    As a customer browsing the menu,
+    I want the menu page to show a placeholder message if a category is currently empty,
+    So that I know the category exists but has no current items.
+  Acceptance Criteria (Given-When-Then):
+    Given I am on the Menu page
+    When I click on an empty category filter
+    Then the product grid should show a message: "No items available in this category"
   Preconditions  : A category labeled "Seasonal" exists but has no products
   Test Data      :
     Selected Category : Seasonal
@@ -390,38 +390,19 @@ TEST CASE 2.1.3
 FEATURE 2.2 - VIEW PRODUCT DETAILS & VARIANTS
 --------------------------------------------------------------------------------
 
-USER STORY:
-  As a customer browsing the online menu,
-  I want to view the full details of a product including pricing variants
-  and available flavors,
-  So that I can choose the right size and option before adding it to my cart.
-
-ACCEPTANCE CRITERIA (Given-When-Then):
-  SCENARIO 1 - View Product Details Modal:
-    Given I am on the Menu page
-    When I click on a product card
-    Then a detail view or modal should open showing: name, image, description,
-         all price variants (solo, a la carte, 1L, 1.5L, 2L), and flavors
-
-  SCENARIO 2 - Select a Price Variant:
-    Given a product detail view is open
-    When I select a specific size/variant (e.g., "1 Liter")
-    Then the displayed price should update to reflect the selected variant
-
-  SCENARIO 3 - View Product with Single Pricing Option:
-    Given a product has only one price variant (solo price only)
-    When I click on that product
-    Then only the applicable pricing option should be shown
-    And no other variant options should appear
-
-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-
 TEST CASE 2.2.1
   Test Case ID   : TC-MPC-004
   Requirement ID : REQ-MPC-002
   Test Scenario  : Verify that the product details page displays all available pricing and size variants for a selected item.
-  Preconditions  : Product "Buko Lemonade" exists with Solo, 1L, 1.5L, and
-                   2L pricing
+  User Story     :
+    As a customer,
+    I want to click on a drink product card,
+    So that I can see the details and all available size variants and pricing (Solo, 1L, 1.5L, 2L).
+  Acceptance Criteria (Given-When-Then):
+    Given I am on the Menu page
+    When I click on a product card that has multiple sizes
+    Then a details modal should open displaying the product name, image, description, and list of size options with their respective prices
+  Preconditions  : Product "Buko Lemonade" exists with Solo, 1L, 1.5L, and 2L pricing
   Test Data      :
     Product Name  : Buko Lemonade
     Price Solo    : PHP 45.00
@@ -434,13 +415,20 @@ TEST CASE 2.2.1
     3. Click on the product card
   Expected Result:
     - Product detail modal opens
-    - Name, image, description, all price variants, and flavor options
-      are displayed correctly
+    - Name, image, description, all price variants, and flavor options are displayed correctly
 
 TEST CASE 2.2.2
   Test Case ID   : TC-MPC-005
   Requirement ID : REQ-MPC-002
   Test Scenario  : Verify that selecting a specific product variant correctly updates the displayed price.
+  User Story     :
+    As a customer viewing product details,
+    I want to select a different size option (e.g. 1 Liter),
+    So that I can see the updated price before adding the item to the cart.
+  Acceptance Criteria (Given-When-Then):
+    Given the product detail modal is open
+    When I click the option for "1 Liter"
+    Then the price display should immediately update to the 1 Liter price
   Preconditions  : "Buko Lemonade" product detail modal is open
   Test Data      :
     Selected Variant : 1 Liter
@@ -456,6 +444,15 @@ TEST CASE 2.2.3
   Test Case ID   : TC-MPC-006
   Requirement ID : REQ-MPC-002
   Test Scenario  : Verify that a product with only a solo price option is displayed correctly without other variant selections.
+  User Story     :
+    As a customer viewing product details of a standard dish,
+    I want to see its single solo price without confusing size options,
+    So that I can add it to the cart directly.
+  Acceptance Criteria (Given-When-Then):
+    Given I click on a product that only has a solo price option
+    When the product details load
+    Then I should see the name and a single price
+    And no size variant selectors should be rendered
   Preconditions  : Product "Chicken BBQ Meal" has only a solo price set
   Test Data      :
     Product Name  : Chicken BBQ Meal
@@ -472,33 +469,18 @@ TEST CASE 2.2.3
 FEATURE 2.3 - OUT-OF-STOCK PRODUCT HANDLING
 --------------------------------------------------------------------------------
 
-USER STORY:
-  As a customer browsing the online menu,
-  I want to clearly see which products are out of stock,
-  So that I don't waste time trying to add unavailable items to my cart.
-
-ACCEPTANCE CRITERIA (Given-When-Then):
-  SCENARIO 1 - Out-of-Stock Badge is Displayed:
-    Given a product is marked as out of stock by the admin
-    When I browse the menu
-    Then the product card should show a visible "Out of Stock" badge or label
-
-  SCENARIO 2 - Cannot Add Out-of-Stock Item to Cart:
-    Given a product is marked out of stock
-    When I click on that product card
-    Then the "Add to Cart" button should be disabled or absent
-
-  SCENARIO 3 - In-Stock Product Can Be Added to Cart:
-    Given a product is available (outOfStock = false)
-    When I open its detail view
-    Then the "Add to Cart" button should be enabled and clickable
-
-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-
 TEST CASE 2.3.1
   Test Case ID   : TC-MPC-007
   Requirement ID : REQ-MPC-003
   Test Scenario  : Verify that an out-of-stock product displays a visible "Out of Stock" badge on the menu.
+  User Story     :
+    As a customer browsing the menu,
+    I want to easily spot which items are out of stock,
+    So that I can avoid selecting them for my order.
+  Acceptance Criteria (Given-When-Then):
+    Given a product is marked as out of stock in the database
+    When I view the Menu page
+    Then the product card should render a visible "Out of Stock" badge
   Preconditions  : Product "Ube Cheese Pie" is marked outOfStock = true
   Test Data      :
     Product Name : Ube Cheese Pie
@@ -514,6 +496,14 @@ TEST CASE 2.3.2
   Test Case ID   : TC-MPC-008
   Requirement ID : REQ-MPC-003
   Test Scenario  : Verify that the "Add to Cart" option is disabled or hidden for products that are out of stock.
+  User Story     :
+    As a customer viewing an out-of-stock product,
+    I want the "Add to Cart" button to be disabled,
+    So that I am prevented from placing orders for unavailable items.
+  Acceptance Criteria (Given-When-Then):
+    Given I click on a product card marked "Out of Stock"
+    When the product detail view opens
+    Then the "Add to Cart" button should be disabled (unclickable) or hidden entirely
   Preconditions  : Product "Ube Cheese Pie" is marked outOfStock = true
   Test Data      :
     Product Name : Ube Cheese Pie
@@ -530,6 +520,14 @@ TEST CASE 2.3.3
   Test Case ID   : TC-MPC-009
   Requirement ID : REQ-MPC-003
   Test Scenario  : Verify that an in-stock product can be successfully added to the shopping cart.
+  User Story     :
+    As a customer viewing an in-stock product,
+    I want the "Add to Cart" button to be fully active,
+    So that I can click it to add the product to my cart.
+  Acceptance Criteria (Given-When-Then):
+    Given I open the details of an in-stock product (outOfStock = false)
+    When I click the "Add to Cart" button
+    Then the item should be added to my shopping cart session successfully
   Preconditions  : Product "Buko Lemonade" has outOfStock = false
   Test Data      :
     Product Name : Buko Lemonade
@@ -557,34 +555,18 @@ Description:
 FEATURE 3.1 - ADD / REMOVE ITEMS FROM CART
 --------------------------------------------------------------------------------
 
-USER STORY:
-  As a logged-in customer,
-  I want to add products to my cart and adjust quantities or remove items,
-  So that I can finalize exactly what I want before placing my online order.
-
-ACCEPTANCE CRITERIA (Given-When-Then):
-  SCENARIO 1 - Add Item to Cart:
-    Given I am logged in and viewing a product on the Menu page
-    When I select a variant and click "Add to Cart"
-    Then the item should appear in my cart with the correct price and quantity
-
-  SCENARIO 2 - Update Item Quantity in Cart:
-    Given I have an item in my cart
-    When I increase or decrease its quantity using the cart controls
-    Then the cart subtotal should update accordingly
-
-  SCENARIO 3 - Remove Item from Cart:
-    Given I have one or more items in my cart
-    When I click the "Remove" button on a specific item
-    Then that item should be deleted from the cart
-    And the cart total should reflect the removal
-
-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-
 TEST CASE 3.1.1
   Test Case ID   : TC-SCP-001
   Requirement ID : REQ-SCP-001
   Test Scenario  : Verify that items are successfully added to the cart with correct prices and quantities from the menu.
+  User Story     :
+    As a logged-in customer,
+    I want to select items and add them to my cart,
+    So that I can gather my selected dishes with correct pricing in my order summary.
+  Acceptance Criteria (Given-When-Then):
+    Given I am logged in and viewing an active product detail view
+    When I select quantity "2" and click "Add to Cart"
+    Then the cart should record the item and its subtotal price accurately
   Preconditions  : User is logged in; "Buko Lemonade" is available in the menu
   Test Data      :
     Product      : Buko Lemonade
@@ -606,6 +588,15 @@ TEST CASE 3.1.2
   Test Case ID   : TC-SCP-002
   Requirement ID : REQ-SCP-001
   Test Scenario  : Verify that the quantity of a cart item can be updated and the cart subtotal recalculated.
+  User Story     :
+    As a customer reviewing my cart,
+    I want to modify the quantity of an item using plus or minus buttons,
+    So that my order total adjusts dynamically without leaving the cart page.
+  Acceptance Criteria (Given-When-Then):
+    Given I have items in my cart
+    When I click the "+" button to increase the quantity of a specific item
+    Then the quantity should increase
+    And the total cart amount should update to include the new item count cost
   Preconditions  : "Buko Lemonade x2" is already in the cart
   Test Data      :
     Product      : Buko Lemonade
@@ -624,6 +615,15 @@ TEST CASE 3.1.3
   Test Case ID   : TC-SCP-003
   Requirement ID : REQ-SCP-001
   Test Scenario  : Verify that an item can be successfully removed from the shopping cart and the total amount updated.
+  User Story     :
+    As a customer reviewing my cart,
+    I want to remove an item I no longer wish to purchase,
+    So that my final order contains only the items I want.
+  Acceptance Criteria (Given-When-Then):
+    Given my cart contains multiple items
+    When I click the "Remove" trash icon next to an item
+    Then the item should disappear from my cart
+    And the cart total amount should be recalculated by subtracting the removed item's cost
   Preconditions  : Cart contains "Buko Lemonade x2" and "Chicken BBQ Meal x1"
   Test Data      :
     Item to Remove : Chicken BBQ Meal
@@ -642,35 +642,19 @@ TEST CASE 3.1.3
 FEATURE 3.2 - PLACE A PICKUP ORDER
 --------------------------------------------------------------------------------
 
-USER STORY:
-  As a logged-in customer,
-  I want to place an online order for pickup at the restaurant,
-  So that my food is ready and waiting when I arrive.
-
-ACCEPTANCE CRITERIA (Given-When-Then):
-  SCENARIO 1 - Place Pickup Order Successfully:
-    Given I have items in my cart
-    When I select "Pickup" as the order type and confirm the order
-    Then an order should be created with status "PENDING" and type "PICKUP"
-    And a confirmation message should be displayed
-
-  SCENARIO 2 - Place Pickup Order with Optional Note:
-    Given I have items in my cart and choose "Pickup"
-    When I add a special note (e.g., "extra sauce") before confirming
-    Then the order should be placed and the note should be saved with the order
-
-  SCENARIO 3 - Cannot Place Order with Empty Cart:
-    Given my cart is empty
-    When I attempt to proceed to checkout or place an order
-    Then the system should prevent the action
-    And display: "Your cart is empty. Please add items before ordering."
-
-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-
 TEST CASE 3.2.1
   Test Case ID   : TC-SCP-004
   Requirement ID : REQ-SCP-002
   Test Scenario  : Verify that a customer can successfully place an order for pickup.
+  User Story     :
+    As a customer,
+    I want to place my order with "Pickup" selected as the fulfillment method,
+    So that the restaurant can prepare the food for me to fetch in person.
+  Acceptance Criteria (Given-When-Then):
+    Given I have items in my shopping cart
+    When I choose "Pickup" as my order type and click "Place Order"
+    Then the order should be created with status "PENDING" and orderType "PICKUP"
+    And my shopping cart should be cleared
   Preconditions  : User is logged in; cart has "Buko Lemonade x2"
   Test Data      :
     Order Type   : PICKUP
@@ -691,6 +675,15 @@ TEST CASE 3.2.2
   Test Case ID   : TC-SCP-005
   Requirement ID : REQ-SCP-002
   Test Scenario  : Verify that a customer can successfully place a pickup order with special instructions/notes.
+  User Story     :
+    As a customer placing a pickup order,
+    I want to add special preparation notes (e.g. "extra ice"),
+    So that the kitchen staff can prepare my order according to my preference.
+  Acceptance Criteria (Given-When-Then):
+    Given I have items in my cart and "Pickup" is selected
+    When I type special instructions in the notes field and confirm my order
+    Then my order should be successfully recorded in the database
+    And the custom note should be saved and visible to the restaurant staff
   Preconditions  : User is logged in; cart has at least one item
   Test Data      :
     Order Type   : PICKUP
@@ -709,6 +702,15 @@ TEST CASE 3.2.3
   Test Case ID   : TC-SCP-006
   Requirement ID : REQ-SCP-002
   Test Scenario  : Verify that placing an order is blocked and displays an error message when the shopping cart is empty.
+  User Story     :
+    As a customer,
+    I want the checkout system to block order placement if my cart is empty,
+    So that I do not accidentally submit an order without any products.
+  Acceptance Criteria (Given-When-Then):
+    Given my cart contains no items
+    When I attempt to click "Place Order"
+    Then the order should not be created
+    And I should see a validation warning: "Your cart is empty. Please add items before ordering."
   Preconditions  : User is logged in; the cart is empty
   Test Data      : N/A (empty cart)
   Test Steps     :
@@ -723,35 +725,19 @@ TEST CASE 3.2.3
 FEATURE 3.3 - PLACE A DELIVERY ORDER
 --------------------------------------------------------------------------------
 
-USER STORY:
-  As a logged-in customer,
-  I want to place an online order for delivery to my address,
-  So that I can enjoy Duyanan Restaurant food without visiting the restaurant.
-
-ACCEPTANCE CRITERIA (Given-When-Then):
-  SCENARIO 1 - Place Delivery Order with Valid Address:
-    Given I have items in my cart
-    When I select "Delivery", enter a delivery address, and confirm
-    Then an order should be created with type "DELIVERY", the delivery address
-         and delivery fee should be correctly stored
-
-  SCENARIO 2 - Delivery Order Total Includes Delivery Fee:
-    Given I place a delivery order
-    When the order is confirmed
-    Then the total amount should be the sum of item subtotal plus delivery fee
-
-  SCENARIO 3 - Cannot Place Delivery Order Without an Address:
-    Given I select "Delivery" as the order type
-    When I leave the delivery address field blank and try to confirm
-    Then the system should block the order
-    And show a validation error: "Delivery address is required"
-
-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-
 TEST CASE 3.3.1
   Test Case ID   : TC-SCP-007
   Requirement ID : REQ-SCP-003
   Test Scenario  : Verify that a customer can successfully place a delivery order with a complete delivery address.
+  User Story     :
+    As a customer living far away,
+    I want to select the "Delivery" order option and supply my home address,
+    So that the restaurant can deliver the fresh food to my doorstep.
+  Acceptance Criteria (Given-When-Then):
+    Given I have items in my shopping cart
+    When I choose "Delivery" as the order type, type a valid delivery address, and confirm
+    Then the order should be saved in the system with type "DELIVERY"
+    And the delivery address and default delivery fee should be saved successfully
   Preconditions  : User is logged in; cart contains "Buko Lemonade (Solo) x2"
   Test Data      :
     Order Type       : DELIVERY
@@ -774,8 +760,16 @@ TEST CASE 3.3.2
   Test Case ID   : TC-SCP-008
   Requirement ID : REQ-SCP-003
   Test Scenario  : Verify that the system correctly includes the delivery fee in the total amount calculation for delivery orders.
-  Preconditions  : User places a delivery order with items totaling PHP 90.00;
-                   system delivery fee is PHP 50.00
+  User Story     :
+    As a delivery customer,
+    I want the checkout screen to show a breakdown of the item total and the delivery fee,
+    So that I can see the correct grand total before checking out.
+  Acceptance Criteria (Given-When-Then):
+    Given I have items in my cart totaling PHP 90.00
+    When I select "Delivery" with a shipping fee of PHP 50.00
+    Then the checkout overview should show a Grand Total of PHP 140.00
+    And the finalized order record should save the grand total correctly
+  Preconditions  : User places a delivery order with items totaling PHP 90.00; system delivery fee is PHP 50.00
   Test Data      :
     Item Subtotal  : PHP 90.00
     Delivery Fee   : PHP 50.00
@@ -795,6 +789,15 @@ TEST CASE 3.3.3
   Test Case ID   : TC-SCP-009
   Requirement ID : REQ-SCP-003
   Test Scenario  : Verify that placing a delivery order fails and displays a validation error when the delivery address is blank.
+  User Story     :
+    As a customer placing a delivery order,
+    I want the system to force me to enter an address if I forget it,
+    So that riders have a destination for my food delivery.
+  Acceptance Criteria (Given-When-Then):
+    Given I have selected the "Delivery" order type
+    When I leave the delivery address input field blank and click "Place Order"
+    Then the checkout should block submission
+    And I should see a validation message: "Delivery address is required"
   Preconditions  : User is logged in; cart has items; "Delivery" is selected
   Test Data      :
     Order Type       : DELIVERY
@@ -824,35 +827,18 @@ Description:
 FEATURE 4.1 - VIEW ORDER HISTORY & TRACK ORDER STATUS
 --------------------------------------------------------------------------------
 
-USER STORY:
-  As a logged-in customer,
-  I want to view all my past and current orders and their statuses,
-  So that I can track my online order progress in real-time.
-
-ACCEPTANCE CRITERIA (Given-When-Then):
-  SCENARIO 1 - View Full Order History:
-    Given I am logged in
-    When I navigate to my Order History page
-    Then I should see a list of all orders I have placed, with their
-         status, date, total, and order type
-
-  SCENARIO 2 - Track an Updated Order Status:
-    Given my order status was changed by the admin (e.g., to "PREPARING")
-    When I refresh or revisit my Order History page
-    Then the updated order status should be accurately displayed
-
-  SCENARIO 3 - View Order Details:
-    Given I have a past order in my history
-    When I click on a specific order to view its details
-    Then I should see the individual items ordered, quantities, prices,
-         order type, delivery address (if applicable), and notes
-
-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-
 TEST CASE 4.1.1
   Test Case ID   : TC-OMH-001
   Requirement ID : REQ-OMH-001
   Test Scenario  : Verify that a customer can view a list of all their past and current orders on the order history page.
+  User Story     :
+    As a customer,
+    I want to access my order history dashboard,
+    So that I can see a listing of all the pickup and delivery orders I have made.
+  Acceptance Criteria (Given-When-Then):
+    Given I am logged in as a customer with previous orders
+    When I click on the "Order History" or "My Orders" tab
+    Then I should see a list showing order IDs, order dates, totals, and active statuses
   Preconditions  : User is logged in and has at least 2 placed orders
   Test Data      : User account with order IDs 101 and 102
   Test Steps     :
@@ -860,15 +846,21 @@ TEST CASE 4.1.1
     2. Navigate to "Profile" > "My Orders" or the Order History section
   Expected Result:
     - A list of all placed orders is displayed
-    - Each order shows: order ID, date placed, status, total amount,
-      and order type (PICKUP or DELIVERY)
+    - Each order shows: order ID, date placed, status, total amount, and order type (PICKUP or DELIVERY)
 
 TEST CASE 4.1.2
   Test Case ID   : TC-OMH-002
   Requirement ID : REQ-OMH-001
   Test Scenario  : Verify that order status updates made by the administrator are reflected correctly for the customer.
-  Preconditions  : Order #101 exists with status "PENDING"; admin changes
-                   its status to "PREPARING"
+  User Story     :
+    As a customer tracking my current order,
+    I want the order status to change (e.g. from PENDING to PREPARING) on my page after an admin updates it,
+    So that I can track the preparation progress of my meal.
+  Acceptance Criteria (Given-When-Then):
+    Given I have open order #101 with status "PENDING"
+    When an admin updates order #101 to "PREPARING" and I refresh my history page
+    Then the status badge on order #101 should update to show "PREPARING"
+  Preconditions  : Order #101 exists with status "PENDING"; admin changes its status to "PREPARING"
   Test Data      :
     Order ID     : 101
     Old Status   : PENDING
@@ -886,6 +878,14 @@ TEST CASE 4.1.3
   Test Case ID   : TC-OMH-003
   Requirement ID : REQ-OMH-001
   Test Scenario  : Verify that a customer can view the full details of a specific order including items, quantities, and totals.
+  User Story     :
+    As a customer reviewing a past order,
+    I want to click on the order record,
+    So that I can see the exact breakdown of dishes, prices, quantities, and the delivery destination address.
+  Acceptance Criteria (Given-When-Then):
+    Given I am on the Order History page
+    When I click on a specific order card (e.g. #102)
+    Then a detailed panel should reveal itemized list, subtotal, delivery fee, notes, and recipient address
   Preconditions  : User has a completed delivery order #102 in their history
   Test Data      :
     Order ID         : 102
@@ -905,36 +905,19 @@ TEST CASE 4.1.3
 FEATURE 4.2 - CANCEL AN ORDER
 --------------------------------------------------------------------------------
 
-USER STORY:
-  As a logged-in customer who has placed an online order,
-  I want to cancel my order while it is still pending,
-  So that I can change my mind before the restaurant starts preparing it.
-
-ACCEPTANCE CRITERIA (Given-When-Then):
-  SCENARIO 1 - Cancel a Pending Order with a Reason:
-    Given I have an order with status "PENDING"
-    When I click "Cancel Order", provide a reason, and confirm
-    Then the order status should change to "CANCELLED"
-    And the cancellation reason should be saved
-
-  SCENARIO 2 - Cannot Cancel an Order Already Being Prepared:
-    Given my order status is "PREPARING" or beyond
-    When I attempt to cancel it
-    Then the system should block the cancellation
-    And display: "This order can no longer be cancelled"
-
-  SCENARIO 3 - Cancel Without Providing a Reason:
-    Given I have a PENDING order
-    When I attempt to cancel without entering a cancellation reason
-    Then the system should require a reason before allowing cancellation
-    And show: "Please provide a reason for cancellation"
-
-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-
 TEST CASE 4.2.1
   Test Case ID   : TC-OMH-004
   Requirement ID : REQ-OMH-002
   Test Scenario  : Verify that a customer can cancel a pending order by providing a valid cancellation reason.
+  User Story     :
+    As a customer who just submitted a mistake order,
+    I want to click "Cancel" and explain why I am cancelling while the order is still "PENDING",
+    So that the kitchen team is notified to cancel preparation before starting.
+  Acceptance Criteria (Given-When-Then):
+    Given I have a "PENDING" order in my list
+    When I click "Cancel Order", supply a cancellation text reason, and submit
+    Then the order status should change to "CANCELLED" in the database
+    And the cancellation reason should be saved correctly
   Preconditions  : Order #103 exists with status "PENDING"
   Test Data      :
     Order ID             : 103
@@ -953,6 +936,15 @@ TEST CASE 4.2.2
   Test Case ID   : TC-OMH-005
   Requirement ID : REQ-OMH-002
   Test Scenario  : Verify that a customer cannot cancel an order that is already being prepared.
+  User Story     :
+    As a customer with an order already in preparation,
+    I want the cancellation option to be blocked,
+    So that I do not trigger kitchen waste and disruption once my food is already cooking.
+  Acceptance Criteria (Given-When-Then):
+    Given my order has a status of "PREPARING"
+    When I attempt to click the "Cancel Order" button
+    Then the system should block the cancellation
+    And display an error: "This order can no longer be cancelled"
   Preconditions  : Order #104 has status "PREPARING"
   Test Data      :
     Order ID     : 104
@@ -970,6 +962,15 @@ TEST CASE 4.2.3
   Test Case ID   : TC-OMH-006
   Requirement ID : REQ-OMH-002
   Test Scenario  : Verify that cancelling a pending order fails and displays a validation error when no reason is provided.
+  User Story     :
+    As a customer cancelling an order,
+    I want the system to require me to enter a reason,
+    So that the restaurant managers can understand the cancellation reason for analytics.
+  Acceptance Criteria (Given-When-Then):
+    Given my order is "PENDING"
+    When I click "Cancel Order" but leave the reason input completely empty
+    Then the cancellation should not go through
+    And I should see a validation error: "Please provide a reason for cancellation"
   Preconditions  : Order #105 exists with status "PENDING"
   Test Data      :
     Order ID             : 105
@@ -988,38 +989,20 @@ TEST CASE 4.2.3
 FEATURE 4.3 - SUBMIT ORDER FEEDBACK & RATING
 --------------------------------------------------------------------------------
 
-USER STORY:
-  As a customer who has received a completed online order,
-  I want to submit a star rating and a written comment about my experience,
-  So that the restaurant can use my feedback to improve their food and service.
-
-ACCEPTANCE CRITERIA (Given-When-Then):
-  SCENARIO 1 - Submit Feedback for a Completed Order:
-    Given my order status is "COMPLETED"
-    When I submit a rating (1 to 5 stars) and a comment
-    Then the feedback should be saved and linked to that specific order
-    And a success message should be shown
-
-  SCENARIO 2 - Prevent Duplicate Feedback on the Same Order:
-    Given I have already submitted feedback for a completed order
-    When I attempt to submit feedback again for the same order
-    Then the system should reject the second submission
-    And display: "Feedback already submitted for this order"
-
-  SCENARIO 3 - Cannot Submit Feedback Without a Comment:
-    Given my order is COMPLETED and no feedback has been submitted yet
-    When I select a star rating but leave the comment field blank and submit
-    Then the system should block the submission
-    And show: "Comment is required"
-
-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-
 TEST CASE 4.3.1
   Test Case ID   : TC-OMH-007
   Requirement ID : REQ-OMH-003
   Test Scenario  : Verify that a customer can successfully submit a rating and comment for a completed order.
-  Preconditions  : Order #106 exists with status "COMPLETED"; no prior
-                   feedback has been submitted for this order
+  User Story     :
+    As a customer who has received a "COMPLETED" order,
+    I want to submit a rating (1-5 stars) and write a comment,
+    So that I can share my dining experience with the restaurant staff.
+  Acceptance Criteria (Given-When-Then):
+    Given my order is marked as "COMPLETED" and has no existing feedback
+    When I submit a 5-star rating along with a comment and click submit
+    Then the feedback should be successfully linked to my order
+    And saved in the feedbacks table
+  Preconditions  : Order #106 exists with status "COMPLETED"; no prior feedback has been submitted for this order
   Test Data      :
     Order ID : 106
     Rating   : 5 stars
@@ -1029,8 +1012,7 @@ TEST CASE 4.3.1
     2. Locate Order #106 (COMPLETED)
     3. Click the "Leave Feedback" button
     4. Select 5 stars
-    5. Type "The food was amazing and delivery was super fast!" in the
-       comment field
+    5. Type "The food was amazing and delivery was super fast!" in the comment field
     6. Click "Submit Feedback"
   Expected Result:
     - Feedback is saved and linked to Order #106 in the database
@@ -1041,8 +1023,16 @@ TEST CASE 4.3.2
   Test Case ID   : TC-OMH-008
   Requirement ID : REQ-OMH-003
   Test Scenario  : Verify that the system prevents submitting duplicate feedback for the same completed order.
-  Preconditions  : Feedback for Order #106 has already been submitted
-                   (from TC-OMH-007)
+  User Story     :
+    As a customer who has already reviewed an order,
+    I want the system to block me from leaving another review,
+    So that I do not artificially inflate or duplicate reviews for a single meal.
+  Acceptance Criteria (Given-When-Then):
+    Given I have already submitted feedback for completed order #106
+    When I attempt to click "Leave Feedback" or submit another feedback entry for order #106
+    Then the action should be blocked
+    And a notification should display: "Feedback already submitted for this order"
+  Preconditions  : Feedback for Order #106 has already been submitted (from TC-OMH-007)
   Test Data      :
     Order ID : 106
     Rating   : 3 stars
@@ -1060,6 +1050,15 @@ TEST CASE 4.3.3
   Test Case ID   : TC-OMH-009
   Requirement ID : REQ-OMH-003
   Test Scenario  : Verify that submitting feedback fails and shows a validation error when the comment field is left blank.
+  User Story     :
+    As a customer rating an order,
+    I want the form to require a comment,
+    So that the restaurant receives detailed context alongside my numerical star rating.
+  Acceptance Criteria (Given-When-Then):
+    Given my order is "COMPLETED" and has no prior review
+    When I select 4 stars but leave the comment box empty and click submit
+    Then the submission should fail
+    And I should see a validation error: "Comment is required"
   Preconditions  : Order #107 is COMPLETED; no feedback has been submitted yet
   Test Data      :
     Order ID : 107
