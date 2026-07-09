@@ -3,7 +3,7 @@
 ================================================================================
 System        : Duyanan Restaurant Online Ordering System
 Document Type : Software Testing Documentation
-Version       : 2.0
+Version       : 3.0
 Date          : July 9, 2026
 Prepared by   : QA Team
 ================================================================================
@@ -81,7 +81,7 @@ ACCEPTANCE CRITERIA (Given-When-Then):
 TEST CASE 1.1.1
   Test Case ID   : TC-UAM-001
   Requirement ID : REQ-UAM-001
-  Test Scenario  : Register a new customer account with valid details
+  Test Scenario  : Verify that a user can register a new customer account with valid details.
   Preconditions  : User is on the registration page; the email is not yet
                    registered in the system
   Test Data      :
@@ -108,7 +108,7 @@ TEST CASE 1.1.1
 TEST CASE 1.1.2
   Test Case ID   : TC-UAM-002
   Requirement ID : REQ-UAM-001
-  Test Scenario  : Register using an email that already exists in the system
+  Test Scenario  : Verify that registration is rejected when using an email that already exists in the system.
   Preconditions  : An account with email "existing@gmail.com" already exists
                    in the database
   Test Data      :
@@ -129,7 +129,7 @@ TEST CASE 1.1.2
 TEST CASE 1.1.3
   Test Case ID   : TC-UAM-003
   Requirement ID : REQ-UAM-001
-  Test Scenario  : Submit the registration form with all required fields blank
+  Test Scenario  : Verify that registration fails and validation errors are shown when submitting the form with all required fields blank.
   Preconditions  : User is on the registration page
   Test Data      :
     First Name   : (blank)
@@ -179,7 +179,7 @@ ACCEPTANCE CRITERIA (Given-When-Then):
 TEST CASE 1.2.1
   Test Case ID   : TC-UAM-004
   Requirement ID : REQ-UAM-002
-  Test Scenario  : Login with correct email and password
+  Test Scenario  : Verify that a user can successfully log in with a correct email and password.
   Preconditions  : Account "maria.santos@gmail.com" / "Maria@1234" exists
   Test Data      :
     Email        : maria.santos@gmail.com
@@ -197,7 +197,7 @@ TEST CASE 1.2.1
 TEST CASE 1.2.2
   Test Case ID   : TC-UAM-005
   Requirement ID : REQ-UAM-002
-  Test Scenario  : Login with a wrong password
+  Test Scenario  : Verify that login fails and displays an error when entering a wrong password.
   Preconditions  : Account with email "maria.santos@gmail.com" exists
   Test Data      :
     Email        : maria.santos@gmail.com
@@ -215,7 +215,7 @@ TEST CASE 1.2.2
 TEST CASE 1.2.3
   Test Case ID   : TC-UAM-006
   Requirement ID : REQ-UAM-002
-  Test Scenario  : Login with a non-existent email address
+  Test Scenario  : Verify that login fails and displays an error when entering a non-existent email address.
   Preconditions  : No account with "ghost@email.com" exists in the database
   Test Data      :
     Email        : ghost@email.com
@@ -262,7 +262,7 @@ ACCEPTANCE CRITERIA (Given-When-Then):
 TEST CASE 1.3.1
   Test Case ID   : TC-UAM-007
   Requirement ID : REQ-UAM-003
-  Test Scenario  : View profile page with correct user information
+  Test Scenario  : Verify that a logged-in user can view their profile details correctly.
   Preconditions  : User is logged in as "maria.santos@gmail.com"
   Test Data      : Active session for user ID 1
   Test Steps     :
@@ -275,7 +275,7 @@ TEST CASE 1.3.1
 TEST CASE 1.3.2
   Test Case ID   : TC-UAM-008
   Requirement ID : REQ-UAM-003
-  Test Scenario  : Update phone number and delivery address
+  Test Scenario  : Verify that a logged-in user can successfully update their phone number and delivery address.
   Preconditions  : User is logged in and on the profile page
   Test Data      :
     Phone        : 09222222222
@@ -293,7 +293,7 @@ TEST CASE 1.3.2
 TEST CASE 1.3.3
   Test Case ID   : TC-UAM-009
   Requirement ID : REQ-UAM-003
-  Test Scenario  : Attempt to update profile with an invalid phone number
+  Test Scenario  : Verify that updating profile details fails and shows a validation error when providing an invalid phone number.
   Preconditions  : User is logged in and on the Profile page
   Test Data      :
     Phone        : ABCD-EFGH
@@ -347,7 +347,7 @@ ACCEPTANCE CRITERIA (Given-When-Then):
 TEST CASE 2.1.1
   Test Case ID   : TC-MPC-001
   Requirement ID : REQ-MPC-001
-  Test Scenario  : Menu page loads and displays all product categories
+  Test Scenario  : Verify that the menu page loads and displays all available product categories.
   Preconditions  : At least one product exists per category; user is on the
                    Menu page (login not required)
   Test Data      : N/A (uses seeded product data)
@@ -361,7 +361,7 @@ TEST CASE 2.1.1
 TEST CASE 2.1.2
   Test Case ID   : TC-MPC-002
   Requirement ID : REQ-MPC-001
-  Test Scenario  : Filter menu products by selecting "Drinks" category
+  Test Scenario  : Verify that products are filtered correctly when selecting the "Drinks" category.
   Preconditions  : At least 3 drink products exist in the database
   Test Data      :
     Selected Category : Drinks
@@ -375,7 +375,7 @@ TEST CASE 2.1.2
 TEST CASE 2.1.3
   Test Case ID   : TC-MPC-003
   Requirement ID : REQ-MPC-001
-  Test Scenario  : Select a category that currently has no products
+  Test Scenario  : Verify that a category with no active products displays an appropriate informational message.
   Preconditions  : A category labeled "Seasonal" exists but has no products
   Test Data      :
     Selected Category : Seasonal
@@ -419,7 +419,7 @@ ACCEPTANCE CRITERIA (Given-When-Then):
 TEST CASE 2.2.1
   Test Case ID   : TC-MPC-004
   Requirement ID : REQ-MPC-002
-  Test Scenario  : Open product details for a drink with multiple size variants
+  Test Scenario  : Verify that the product details page displays all available pricing and size variants for a selected item.
   Preconditions  : Product "Buko Lemonade" exists with Solo, 1L, 1.5L, and
                    2L pricing
   Test Data      :
@@ -440,7 +440,7 @@ TEST CASE 2.2.1
 TEST CASE 2.2.2
   Test Case ID   : TC-MPC-005
   Requirement ID : REQ-MPC-002
-  Test Scenario  : Select "1 Liter" variant and verify price updates
+  Test Scenario  : Verify that selecting a specific product variant correctly updates the displayed price.
   Preconditions  : "Buko Lemonade" product detail modal is open
   Test Data      :
     Selected Variant : 1 Liter
@@ -455,7 +455,7 @@ TEST CASE 2.2.2
 TEST CASE 2.2.3
   Test Case ID   : TC-MPC-006
   Requirement ID : REQ-MPC-002
-  Test Scenario  : View a product that only has a solo price option
+  Test Scenario  : Verify that a product with only a solo price option is displayed correctly without other variant selections.
   Preconditions  : Product "Chicken BBQ Meal" has only a solo price set
   Test Data      :
     Product Name  : Chicken BBQ Meal
@@ -498,7 +498,7 @@ ACCEPTANCE CRITERIA (Given-When-Then):
 TEST CASE 2.3.1
   Test Case ID   : TC-MPC-007
   Requirement ID : REQ-MPC-003
-  Test Scenario  : Out-of-stock product displays an "Out of Stock" badge
+  Test Scenario  : Verify that an out-of-stock product displays a visible "Out of Stock" badge on the menu.
   Preconditions  : Product "Ube Cheese Pie" is marked outOfStock = true
   Test Data      :
     Product Name : Ube Cheese Pie
@@ -513,7 +513,7 @@ TEST CASE 2.3.1
 TEST CASE 2.3.2
   Test Case ID   : TC-MPC-008
   Requirement ID : REQ-MPC-003
-  Test Scenario  : "Add to Cart" button is disabled for an out-of-stock product
+  Test Scenario  : Verify that the "Add to Cart" option is disabled or hidden for products that are out of stock.
   Preconditions  : Product "Ube Cheese Pie" is marked outOfStock = true
   Test Data      :
     Product Name : Ube Cheese Pie
@@ -529,7 +529,7 @@ TEST CASE 2.3.2
 TEST CASE 2.3.3
   Test Case ID   : TC-MPC-009
   Requirement ID : REQ-MPC-003
-  Test Scenario  : In-stock product can be added to the cart
+  Test Scenario  : Verify that an in-stock product can be successfully added to the shopping cart.
   Preconditions  : Product "Buko Lemonade" has outOfStock = false
   Test Data      :
     Product Name : Buko Lemonade
@@ -584,7 +584,7 @@ ACCEPTANCE CRITERIA (Given-When-Then):
 TEST CASE 3.1.1
   Test Case ID   : TC-SCP-001
   Requirement ID : REQ-SCP-001
-  Test Scenario  : Add a product to the cart from the menu
+  Test Scenario  : Verify that items are successfully added to the cart with correct prices and quantities from the menu.
   Preconditions  : User is logged in; "Buko Lemonade" is available in the menu
   Test Data      :
     Product      : Buko Lemonade
@@ -605,7 +605,7 @@ TEST CASE 3.1.1
 TEST CASE 3.1.2
   Test Case ID   : TC-SCP-002
   Requirement ID : REQ-SCP-001
-  Test Scenario  : Update the quantity of an item already in the cart
+  Test Scenario  : Verify that the quantity of a cart item can be updated and the cart subtotal recalculated.
   Preconditions  : "Buko Lemonade x2" is already in the cart
   Test Data      :
     Product      : Buko Lemonade
@@ -623,7 +623,7 @@ TEST CASE 3.1.2
 TEST CASE 3.1.3
   Test Case ID   : TC-SCP-003
   Requirement ID : REQ-SCP-001
-  Test Scenario  : Remove an item from the cart
+  Test Scenario  : Verify that an item can be successfully removed from the shopping cart and the total amount updated.
   Preconditions  : Cart contains "Buko Lemonade x2" and "Chicken BBQ Meal x1"
   Test Data      :
     Item to Remove : Chicken BBQ Meal
@@ -670,7 +670,7 @@ ACCEPTANCE CRITERIA (Given-When-Then):
 TEST CASE 3.2.1
   Test Case ID   : TC-SCP-004
   Requirement ID : REQ-SCP-002
-  Test Scenario  : Place a pickup order with items in the cart
+  Test Scenario  : Verify that a customer can successfully place an order for pickup.
   Preconditions  : User is logged in; cart has "Buko Lemonade x2"
   Test Data      :
     Order Type   : PICKUP
@@ -690,7 +690,7 @@ TEST CASE 3.2.1
 TEST CASE 3.2.2
   Test Case ID   : TC-SCP-005
   Requirement ID : REQ-SCP-002
-  Test Scenario  : Place a pickup order with a special note
+  Test Scenario  : Verify that a customer can successfully place a pickup order with special instructions/notes.
   Preconditions  : User is logged in; cart has at least one item
   Test Data      :
     Order Type   : PICKUP
@@ -708,7 +708,7 @@ TEST CASE 3.2.2
 TEST CASE 3.2.3
   Test Case ID   : TC-SCP-006
   Requirement ID : REQ-SCP-002
-  Test Scenario  : Attempt to place an order with an empty cart
+  Test Scenario  : Verify that placing an order is blocked and displays an error message when the shopping cart is empty.
   Preconditions  : User is logged in; the cart is empty
   Test Data      : N/A (empty cart)
   Test Steps     :
@@ -751,7 +751,7 @@ ACCEPTANCE CRITERIA (Given-When-Then):
 TEST CASE 3.3.1
   Test Case ID   : TC-SCP-007
   Requirement ID : REQ-SCP-003
-  Test Scenario  : Place a delivery order with a complete delivery address
+  Test Scenario  : Verify that a customer can successfully place a delivery order with a complete delivery address.
   Preconditions  : User is logged in; cart contains "Buko Lemonade (Solo) x2"
   Test Data      :
     Order Type       : DELIVERY
@@ -773,7 +773,7 @@ TEST CASE 3.3.1
 TEST CASE 3.3.2
   Test Case ID   : TC-SCP-008
   Requirement ID : REQ-SCP-003
-  Test Scenario  : Verify that the delivery fee is included in the order total
+  Test Scenario  : Verify that the system correctly includes the delivery fee in the total amount calculation for delivery orders.
   Preconditions  : User places a delivery order with items totaling PHP 90.00;
                    system delivery fee is PHP 50.00
   Test Data      :
@@ -794,7 +794,7 @@ TEST CASE 3.3.2
 TEST CASE 3.3.3
   Test Case ID   : TC-SCP-009
   Requirement ID : REQ-SCP-003
-  Test Scenario  : Attempt to place a delivery order without entering an address
+  Test Scenario  : Verify that placing a delivery order fails and displays a validation error when the delivery address is blank.
   Preconditions  : User is logged in; cart has items; "Delivery" is selected
   Test Data      :
     Order Type       : DELIVERY
@@ -852,7 +852,7 @@ ACCEPTANCE CRITERIA (Given-When-Then):
 TEST CASE 4.1.1
   Test Case ID   : TC-OMH-001
   Requirement ID : REQ-OMH-001
-  Test Scenario  : View all orders in the order history page
+  Test Scenario  : Verify that a customer can view a list of all their past and current orders on the order history page.
   Preconditions  : User is logged in and has at least 2 placed orders
   Test Data      : User account with order IDs 101 and 102
   Test Steps     :
@@ -866,7 +866,7 @@ TEST CASE 4.1.1
 TEST CASE 4.1.2
   Test Case ID   : TC-OMH-002
   Requirement ID : REQ-OMH-001
-  Test Scenario  : Order status reflects admin update after page refresh
+  Test Scenario  : Verify that order status updates made by the administrator are reflected correctly for the customer.
   Preconditions  : Order #101 exists with status "PENDING"; admin changes
                    its status to "PREPARING"
   Test Data      :
@@ -885,7 +885,7 @@ TEST CASE 4.1.2
 TEST CASE 4.1.3
   Test Case ID   : TC-OMH-003
   Requirement ID : REQ-OMH-001
-  Test Scenario  : View full details of a specific delivery order
+  Test Scenario  : Verify that a customer can view the full details of a specific order including items, quantities, and totals.
   Preconditions  : User has a completed delivery order #102 in their history
   Test Data      :
     Order ID         : 102
@@ -934,7 +934,7 @@ ACCEPTANCE CRITERIA (Given-When-Then):
 TEST CASE 4.2.1
   Test Case ID   : TC-OMH-004
   Requirement ID : REQ-OMH-002
-  Test Scenario  : Cancel a pending order with a valid reason
+  Test Scenario  : Verify that a customer can cancel a pending order by providing a valid cancellation reason.
   Preconditions  : Order #103 exists with status "PENDING"
   Test Data      :
     Order ID             : 103
@@ -952,7 +952,7 @@ TEST CASE 4.2.1
 TEST CASE 4.2.2
   Test Case ID   : TC-OMH-005
   Requirement ID : REQ-OMH-002
-  Test Scenario  : Attempt to cancel an order with status "PREPARING"
+  Test Scenario  : Verify that a customer cannot cancel an order that is already being prepared.
   Preconditions  : Order #104 has status "PREPARING"
   Test Data      :
     Order ID     : 104
@@ -969,7 +969,7 @@ TEST CASE 4.2.2
 TEST CASE 4.2.3
   Test Case ID   : TC-OMH-006
   Requirement ID : REQ-OMH-002
-  Test Scenario  : Attempt to cancel a pending order without providing a reason
+  Test Scenario  : Verify that cancelling a pending order fails and displays a validation error when no reason is provided.
   Preconditions  : Order #105 exists with status "PENDING"
   Test Data      :
     Order ID             : 105
@@ -1017,7 +1017,7 @@ ACCEPTANCE CRITERIA (Given-When-Then):
 TEST CASE 4.3.1
   Test Case ID   : TC-OMH-007
   Requirement ID : REQ-OMH-003
-  Test Scenario  : Submit feedback with a 5-star rating and a comment
+  Test Scenario  : Verify that a customer can successfully submit a rating and comment for a completed order.
   Preconditions  : Order #106 exists with status "COMPLETED"; no prior
                    feedback has been submitted for this order
   Test Data      :
@@ -1040,7 +1040,7 @@ TEST CASE 4.3.1
 TEST CASE 4.3.2
   Test Case ID   : TC-OMH-008
   Requirement ID : REQ-OMH-003
-  Test Scenario  : Attempt to submit feedback twice for the same completed order
+  Test Scenario  : Verify that the system prevents submitting duplicate feedback for the same completed order.
   Preconditions  : Feedback for Order #106 has already been submitted
                    (from TC-OMH-007)
   Test Data      :
@@ -1059,7 +1059,7 @@ TEST CASE 4.3.2
 TEST CASE 4.3.3
   Test Case ID   : TC-OMH-009
   Requirement ID : REQ-OMH-003
-  Test Scenario  : Submit feedback with a rating but without a comment
+  Test Scenario  : Verify that submitting feedback fails and shows a validation error when the comment field is left blank.
   Preconditions  : Order #107 is COMPLETED; no feedback has been submitted yet
   Test Data      :
     Order ID : 107
@@ -1082,49 +1082,49 @@ TEST CASE 4.3.3
 SUMMARY TABLE - TEST CASE QUICK REFERENCE
 ================================================================================
 
-+-------------+------------+----------------------------------------------+
-| Test Case ID| Module     | Test Scenario                                |
-+-------------+------------+----------------------------------------------+
-| TC-UAM-001  | Module 1   | Register with valid details                  |
-| TC-UAM-002  | Module 1   | Register with duplicate email                |
-| TC-UAM-003  | Module 1   | Register with blank required fields          |
-| TC-UAM-004  | Module 1   | Login with valid credentials                 |
-| TC-UAM-005  | Module 1   | Login with wrong password                    |
-| TC-UAM-006  | Module 1   | Login with non-existent email                |
-| TC-UAM-007  | Module 1   | View user profile                            |
-| TC-UAM-008  | Module 1   | Update phone number and delivery address     |
-| TC-UAM-009  | Module 1   | Update profile with invalid phone number     |
-+-------------+------------+----------------------------------------------+
-| TC-MPC-001  | Module 2   | Browse all menu categories                   |
-| TC-MPC-002  | Module 2   | Filter products by "Drinks" category         |
-| TC-MPC-003  | Module 2   | Category with no products shows message      |
-| TC-MPC-004  | Module 2   | View product detail with multiple variants   |
-| TC-MPC-005  | Module 2   | Select variant and verify price update       |
-| TC-MPC-006  | Module 2   | Product with only solo price option          |
-| TC-MPC-007  | Module 2   | Out-of-stock badge displayed on product      |
-| TC-MPC-008  | Module 2   | Add to Cart disabled for out-of-stock item   |
-| TC-MPC-009  | Module 2   | In-stock product can be added to cart        |
-+-------------+------------+----------------------------------------------+
-| TC-SCP-001  | Module 3   | Add product to cart from menu                |
-| TC-SCP-002  | Module 3   | Update item quantity in cart                 |
-| TC-SCP-003  | Module 3   | Remove item from cart                        |
-| TC-SCP-004  | Module 3   | Place a pickup order                         |
-| TC-SCP-005  | Module 3   | Place pickup order with a special note       |
-| TC-SCP-006  | Module 3   | Cannot place order with empty cart           |
-| TC-SCP-007  | Module 3   | Place delivery order with valid address      |
-| TC-SCP-008  | Module 3   | Delivery fee included in order total         |
-| TC-SCP-009  | Module 3   | Cannot place delivery order without address  |
-+-------------+------------+----------------------------------------------+
-| TC-OMH-001  | Module 4   | View all orders in order history             |
-| TC-OMH-002  | Module 4   | Order status reflects admin update           |
-| TC-OMH-003  | Module 4   | View detailed info of a delivery order       |
-| TC-OMH-004  | Module 4   | Cancel a pending order with reason           |
-| TC-OMH-005  | Module 4   | Cannot cancel order already "PREPARING"      |
-| TC-OMH-006  | Module 4   | Cancel fails without providing a reason      |
-| TC-OMH-007  | Module 4   | Submit feedback with rating and comment      |
-| TC-OMH-008  | Module 4   | Prevent duplicate feedback submission        |
-| TC-OMH-009  | Module 4   | Cannot submit feedback without comment       |
-+-------------+------------+----------------------------------------------+
++-------------+------------+--------------------------------------------------------------+
+| Test Case ID| Module     | Test Scenario (Verify...)                                    |
++-------------+------------+--------------------------------------------------------------+
+| TC-UAM-001  | Module 1   | Verify registration with valid details                       |
+| TC-UAM-002  | Module 1   | Verify duplicate email registration is rejected              |
+| TC-UAM-003  | Module 1   | Verify blank registration fields trigger errors              |
+| TC-UAM-004  | Module 1   | Verify login with correct email and password                 |
+| TC-UAM-005  | Module 1   | Verify login fails with incorrect password                   |
+| TC-UAM-006  | Module 1   | Verify login fails with non-existent email                   |
+| TC-UAM-007  | Module 1   | Verify logged-in user can view profile details               |
+| TC-UAM-008  | Module 1   | Verify profile phone and address update                      |
+| TC-UAM-009  | Module 1   | Verify invalid phone profile update is blocked               |
++-------------+------------+--------------------------------------------------------------+
+| TC-MPC-001  | Module 2   | Verify menu page displays categories                         |
+| TC-MPC-002  | Module 2   | Verify filtering products by selected category               |
+| TC-MPC-003  | Module 2   | Verify empty category displays information message           |
+| TC-MPC-004  | Module 2   | Verify details page shows size variants and prices           |
+| TC-MPC-005  | Module 2   | Verify selecting variant updates active price                |
+| TC-MPC-006  | Module 2   | Verify single-priced product displays correct UI             |
+| TC-MPC-007  | Module 2   | Verify out-of-stock badge on catalog products                |
+| TC-MPC-008  | Module 2   | Verify Add to Cart is disabled for out-of-stock              |
+| TC-MPC-009  | Module 2   | Verify adding in-stock product to cart                       |
++-------------+------------+--------------------------------------------------------------+
+| TC-SCP-001  | Module 3   | Verify adding product to cart with chosen quantity           |
+| TC-SCP-002  | Module 3   | Verify updating cart item quantity updates total             |
+| TC-SCP-003  | Module 3   | Verify removing item from cart recalculates total           |
+| TC-SCP-004  | Module 3   | Verify placing a pickup order successfully                   |
+| TC-SCP-005  | Module 3   | Verify placing pickup order with notes                       |
+| TC-SCP-006  | Module 3   | Verify empty cart blocks order placement                     |
+| TC-SCP-007  | Module 3   | Verify placing delivery order with address                   |
+| TC-SCP-008  | Module 3   | Verify delivery fee inclusion in order total                 |
+| TC-SCP-009  | Module 3   | Verify empty delivery address blocks placement               |
++-------------+------------+--------------------------------------------------------------+
+| TC-OMH-001  | Module 4   | Verify viewing all customer order history                    |
+| TC-OMH-002  | Module 4   | Verify order status updates reflect admin status changes     |
+| TC-OMH-003  | Module 4   | Verify viewing full single order details                     |
+| TC-OMH-004  | Module 4   | Verify cancelling pending order with reason                  |
+| TC-OMH-005  | Module 4   | Verify preparing order cannot be cancelled                   |
+| TC-OMH-006  | Module 4   | Verify empty cancellation reason blocks action               |
+| TC-OMH-007  | Module 4   | Verify submitting star rating and review comment             |
+| TC-OMH-008  | Module 4   | Verify duplicate feedback submission is blocked              |
+| TC-OMH-009  | Module 4   | Verify empty comment blocks feedback submission              |
++-------------+------------+--------------------------------------------------------------+
   Total Test Cases: 36 (9 per module)
 ================================================================================
                           END OF DOCUMENT

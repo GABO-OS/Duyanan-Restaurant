@@ -94,7 +94,16 @@ const Register = () => {
             if (!response.ok) {
                 setFormError(data.error || 'Registration failed. Please try again.');
             } else {
-                navigate('/login');
+                Swal.fire({
+                    icon: 'success',
+                    title: 'Registration Successful!',
+                    text: 'Your account has been created. Please log in.',
+                    confirmButtonColor: 'var(--primary-brown)',
+                    timer: 2500,
+                    timerProgressBar: true
+                }).then(() => {
+                    navigate('/login');
+                });
             }
         } catch (err) {
             console.error("Registration fetch error:", err);
