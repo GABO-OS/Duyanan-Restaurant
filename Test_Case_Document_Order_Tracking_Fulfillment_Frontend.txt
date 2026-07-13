@@ -1,0 +1,628 @@
+================================================================================
+              TEST CASE DOCUMENT - ORDER TRACKING & FULFILLMENT DASHBOARD
+================================================================================
+Project Name : Duyanan Restaurant Online Ordering System
+Module       : Order Tracking & Fulfillment Dashboard (Admin Panel - Orders Tab)
+Version      : 1.0
+Prepared By  : QA Team
+Date         : July 13, 2026
+
+--------------------------------------------------------------------------------
+DOCUMENT INFORMATION
+--------------------------------------------------------------------------------
+Project       : Duyanan Restaurant Online Ordering System
+Module        : Order Tracking & Fulfillment Dashboard (Admin Panel)
+Requirement   : REQ-FBD-030 to REQ-FBD-032, REQ-FBD-040 to REQ-FBD-042,
+  IDs           REQ-FBD-050 to REQ-FBD-052
+Prepared By   : QA Team
+Reviewed By   : QA Lead
+Version       : 1.0
+Date          : July 13, 2026
+
+--------------------------------------------------------------------------------
+TEST ENVIRONMENT
+--------------------------------------------------------------------------------
+Browser          : Google Chrome v138
+Operating System : Windows 11
+Frontend URL     : http://localhost:5173
+Admin Panel URL  : http://localhost:5173  (navigate to Admin Panel after login)
+Backend API URL  : http://localhost:8080
+Database         : MySQL - duyanan_db
+Tester           : QA Team
+
+--------------------------------------------------------------------------------
+HOW TO ACCESS THE MODULE UNDER TEST
+--------------------------------------------------------------------------------
+1. Open Google Chrome and navigate to: http://localhost:5173
+2. On the navigation bar, click "Login".
+3. Enter the Admin credentials (email + password).
+4. After successful login, navigate to the Admin Panel from the navigation bar.
+5. On the left sidebar, click "Orders" (bag icon) to open the Orders tab.
+   - You will land on the "Active Orders" page showing:
+       * Three summary stat boxes at the top: Pending | Preparing | Completed
+       * A data table with columns:
+           Order ID | Customer Info | Items | Timestamp | Price | Status | Action
+
+================================================================================
+MODULE: ORDER TRACKING & FULFILLMENT DASHBOARD
+================================================================================
+
+Module Description:
+  This module covers the "Orders" tab inside the Admin Panel. It allows the
+  Admin/Kitchen Staff to:
+    - View all incoming customer orders in a table (newest first).
+    - Update an order's fulfillment status using a dropdown in the Action column.
+    - Cancel an order by selecting "Cancelled" from the dropdown, which triggers
+      a mandatory cancellation reason popup (SweetAlert2 modal).
+
+================================================================================
+USER STORIES
+================================================================================
+
+US-01 | View Incoming Orders
+  As an Admin / Kitchen Staff,
+  I want to view all incoming customer orders in a table sorted from newest to
+  oldest with full order details visible at a glance,
+  So that I can efficiently monitor and manage all active orders without missing
+  any new customer requests.
+
+US-02 | Update Order Fulfillment Status
+  As an Admin / Kitchen Staff,
+  I want to update the fulfillment status of any order (e.g., from Pending to
+  Preparing or Completed) using a simple dropdown in the Orders table,
+  So that the order progress is accurately tracked and reflected in real time
+  across the admin dashboard.
+
+US-03 | Cancel an Order with a Mandatory Reason
+  As an Admin,
+  I want to cancel an order only after providing a mandatory cancellation reason
+  through a confirmation popup,
+  So that every cancellation is documented with a justification, ensuring
+  transparency and data integrity for the restaurant records.
+
+================================================================================
+FEATURE 1 - VIEW INCOMING ORDERS DASHBOARD
+================================================================================
+
+Requirement ID  : REQ-FBD-030 to REQ-FBD-032
+Description     : The Orders tab must display all customer orders sorted from
+                  newest to oldest. Staff must be able to see all order details
+                  at a glance. The system must gracefully handle an empty state
+                  when there are no orders.
+
+Acceptance Criteria:
+  GWT-01:
+    Given  the Admin is logged in and navigates to the Orders tab,
+    When   the Orders tab loads,
+    Then   a table must be displayed with the columns:
+           Order ID | Customer Info | Items | Timestamp | Price | Status | Action,
+           and three stat boxes (Pending, Preparing, Completed) must appear at
+           the top showing the correct count for each status.
+
+  GWT-02:
+    Given  at least two orders exist with different timestamps,
+    When   the Admin views the Orders table,
+    Then   the orders must be sorted in descending order by timestamp
+           (newest order appears at the top of the list).
+
+  GWT-03:
+    Given  no orders exist in the database,
+    When   the Admin navigates to the Orders tab,
+    Then   the table body must display the message "No active orders.",
+           all three stat boxes must show 0, and no errors or crashes occur.
+
+  GWT-04:
+    Given  the Admin navigates to the Orders tab,
+    When   the page sends a request to GET /api/admin/orders,
+    Then   the API must return HTTP 200 OK with the order data successfully
+           rendered in the table.
+
+Preconditions:
+  - Admin is logged in with a valid admin account.
+  - The Admin Panel is accessible at http://localhost:5173.
+  - At least two orders exist in the database with different timestamps (for
+    TC-ORD-001 and TC-ORD-002).
+  - For TC-ORD-003: The orders table in the test database has been cleared.
+
+--------------------------------------------------------------------------------
+TC-ORD-001 | REQ-FBD-030 | View All Orders - Successful Load
+--------------------------------------------------------------------------------
+Objective   : Validate that the Orders tab successfully loads and displays all
+              customer orders in a table format.
+Test Scenario: Validate that the Orders tab loads and displays all customer
+               orders with correct columns and stat boxes.
+
+Test Steps  :
+  1. Open Google Chrome. Go to http://localhost:5173.
+  2. Log in using the Admin account credentials.
+  3. After login, click "Admin Panel" in the navigation bar.
+  4. On the left sidebar, click the "Orders" tab (bag icon, label: "Orders").
+  5. Observe the main content area.
+
+Expected Result:
+  - The page heading "Active Orders" is visible.
+  - Three stat boxes are shown at the top:
+      * Pending  (shows count of PENDING orders)
+      * Preparing (shows count of PREPARING orders)
+      * Completed (shows count of COMPLETED orders)
+  - A table is displayed below the stat boxes with the following columns:
+      Order ID | Customer Info | Items | Timestamp | Price | Status | Action
+  - Each row represents one order with all columns populated correctly.
+  - The HTTP response (from DevTools > Network > /api/admin/orders) shows
+    Status 200 OK and a JSON array of order objects.
+
+Priority    : High
+Test Data   : See TEST DATA - FEATURE 1 section below.
+
+--------------------------------------------------------------------------------
+TC-ORD-002 | REQ-FBD-031 | Orders Sorted Newest to Oldest
+--------------------------------------------------------------------------------
+Objective   : Validate that the orders in the table are sorted by order date
+              from newest to oldest (descending order).
+Test Scenario: Validate that orders are sorted by timestamp from newest
+               to oldest.
+
+Precondition:
+  - At least two orders exist:
+      * Order A placed at 10:00 AM (older)
+      * Order B placed at 10:15 AM (newer)
+
+Test Steps  :
+  1. Log in as Admin and navigate to the Orders tab in the Admin Panel.
+  2. Observe the "Timestamp" column in the orders table.
+  3. Look at the first row (index 0) - note its timestamp.
+  4. Look at the second row (index 1) - note its timestamp.
+  5. Compare: the timestamp of row 1 should be later (more recent) than row 2.
+
+Expected Result:
+  - The first row in the table shows the most recently placed order.
+  - The second row shows an older order.
+  - The Timestamp column values decrease (get older) as you scroll down the
+    table - confirming descending sort by order date.
+
+Priority    : High
+Test Data   : See TEST DATA - FEATURE 1 section below.
+
+--------------------------------------------------------------------------------
+TC-ORD-003 | REQ-FBD-032 | Empty Orders State Handled Gracefully
+--------------------------------------------------------------------------------
+Objective   : Validate that the Orders tab displays a proper empty state message
+              when there are no orders in the database.
+Test Scenario: Validate the empty state behavior when no orders exist in
+               the database.
+
+Precondition:
+  - The Orders table in the test database has been cleared (0 records).
+
+Test Steps  :
+  1. Ensure the test database orders table is empty (coordinate with the dev
+     team to truncate the orders table in the test environment).
+  2. Log in as Admin and navigate to the Orders tab.
+  3. Observe the table body in the "Active Orders" section.
+
+Expected Result:
+  - The table renders without errors.
+  - The table body shows the empty-state message:
+      "No active orders."
+    (This appears as a single row spanning all columns.)
+  - The three stat boxes at the top each show "0".
+  - No error messages or UI crashes occur.
+  - The HTTP response from /api/admin/orders returns Status 200 OK with an
+    empty array body: [].
+
+Priority    : Medium
+Test Data   : See TEST DATA - FEATURE 1 section below.
+
+--------------------------------------------------------------------------------
+TRACEABILITY MATRIX - FEATURE 1
+--------------------------------------------------------------------------------
+| Requirement ID | Description                              | Test Case  |
+|----------------|------------------------------------------|------------|
+| REQ-FBD-030    | Admin can fetch and view all orders.     | TC-ORD-001 |
+| REQ-FBD-031    | Orders sorted descending by order date.  | TC-ORD-002 |
+| REQ-FBD-032    | Graceful empty state when no orders.     | TC-ORD-003 |
+
+--------------------------------------------------------------------------------
+TEST DATA - FEATURE 1
+--------------------------------------------------------------------------------
+| Description              | Value                                         |
+|--------------------------|-----------------------------------------------|
+| Admin Login URL          | http://localhost:5173                         |
+| Admin Credentials        | Valid admin email + password                  |
+| Order with newer time    | e.g., placed at 2026-07-09T10:15:00           |
+| Order with older time    | e.g., placed at 2026-07-09T10:00:00           |
+| Empty state condition    | Orders table cleared in test database         |
+
+================================================================================
+FEATURE 2 - UPDATE ORDER FULFILLMENT STATUS
+================================================================================
+
+Requirement ID  : REQ-FBD-040 to REQ-FBD-042
+Description     : Admin/Kitchen staff must be able to update an order's status
+                  to a valid state (PREPARING, COMPLETED) using the dropdown in
+                  the Action column. The system must reject updates to
+                  non-existent orders and must not wipe existing order data.
+
+Acceptance Criteria:
+  GWT-01:
+    Given  the Admin is on the Orders tab and an existing order is visible,
+    When   the Admin selects a new valid status (e.g., "Completed" or
+           "Preparing") from the Action column dropdown,
+    Then   the Status badge in that order's row must update to the new status
+           immediately, and a SweetAlert2 toast with title "Status Updated"
+           must appear and auto-dismiss.
+
+  GWT-02:
+    Given  the Admin is on the Orders tab,
+    When   a PUT request is made to /api/admin/orders/999999/status for an
+           order ID that does not exist in the database,
+    Then   the API must return HTTP 404 Not Found, and the UI must display a
+           SweetAlert2 error notification.
+
+  GWT-03:
+    Given  an existing order (e.g., Order #15) with 2 items and a total of
+           P500 is visible in the Orders table,
+    When   the Admin updates the order's status using the Action dropdown,
+    Then   the Items column and the Price column for that order must remain
+           unchanged — only the Status badge must reflect the new status.
+
+Preconditions:
+  - Admin is logged in.
+  - For TC-STS-001 and TC-STS-003: A PENDING order exists (e.g., Order #15)
+    with 2 items and a total of P500.
+  - For TC-STS-002: Order ID 999999 does NOT exist in the database.
+
+--------------------------------------------------------------------------------
+TC-STS-001 | REQ-FBD-040 | Successfully Update Order Status via Dropdown
+--------------------------------------------------------------------------------
+Objective   : Validate that selecting a new status from the Action dropdown
+              successfully updates the order's status in the database and
+              reflects on the UI.
+Test Scenario: Validate that the Action dropdown successfully updates an
+               order's status in the database and on the UI.
+
+Test Steps  :
+  1. Log in as Admin and navigate to the Orders tab.
+  2. Locate the order row for Order #15 (status shows: "PENDING" badge).
+  3. In the "Action" column, find the dropdown (currently shows "Pending").
+  4. Click the dropdown and select "Completed".
+  5. Observe the response.
+
+Expected Result:
+  - A SweetAlert2 toast notification appears at the top-right corner:
+      Icon  : (success checkmark)
+      Title : "Status Updated"
+      (Auto-dismisses after 2 seconds)
+  - The "Status" column badge for Order #15 updates to:
+      Green badge labeled "COMPLETED"
+  - The "Completed" stat box count at the top increases by 1.
+  - Verifying via DevTools (Network tab), the PUT request to
+    /api/admin/orders/15/status returns Status 200 OK with body:
+    { "message": "Order status updated." }
+
+Priority    : High
+Test Data   : See TEST DATA - FEATURE 2 section below.
+
+--------------------------------------------------------------------------------
+TC-STS-002 | REQ-FBD-041 | Attempt to Update a Non-Existent Order
+--------------------------------------------------------------------------------
+Objective   : Validate that the system returns a 404 Not Found response when
+              attempting to update the status of an order that does not exist.
+Test Scenario: Validate that updating a non-existent order returns HTTP
+               404 Not Found.
+
+Note        : This test is performed at the API level since the frontend
+              dropdown only shows existing orders. Use Chrome DevTools
+              (Network tab) or a tool like Postman/Insomnia.
+
+Test Steps  :
+  1. Open Chrome DevTools (F12) > Network tab.
+  2. While on the Admin Panel Orders tab, manually trigger a PUT request to:
+       PUT http://localhost:8080/api/admin/orders/999999/status
+     with body: { "status": "COMPLETED" }
+     and Authorization: Bearer <valid_admin_jwt_token>
+  3. Alternatively, use Postman with the same credentials.
+  4. Observe the HTTP response status code and body.
+
+Expected Result:
+  - HTTP Status: 404 Not Found
+  - The frontend (if triggered from UI) shows a SweetAlert2 error modal:
+      Icon    : (error X)
+      Title   : "Error"
+      Message : "Failed to update status." (or equivalent error from server)
+
+Priority    : High
+Test Data   : See TEST DATA - FEATURE 2 section below.
+
+--------------------------------------------------------------------------------
+TC-STS-003 | REQ-FBD-042 | Status Update Does Not Wipe Order Total or Items
+--------------------------------------------------------------------------------
+Objective   : Validate that updating an order's status does not accidentally
+              erase the order's total amount or its item list.
+Test Scenario: Validate that a status update does not alter the order's
+               existing items or total amount.
+
+Test Steps  :
+  1. Log in as Admin and navigate to the Orders tab.
+  2. Locate Order #15 (currently showing 2 items, total P500).
+     - Verify the "Items" column shows 2 items listed.
+     - Verify the "Price" column shows P500.00.
+  3. In the "Action" column dropdown, change the status from "Pending"
+     to "Preparing".
+  4. Wait for the success toast notification ("Status Updated").
+  5. Observe the same Order #15 row again.
+
+Expected Result:
+  - The "Items" column still shows the same 2 items (unchanged).
+  - The "Price" column still shows P500.00 (unchanged).
+  - Only the "Status" column badge changed to: Blue/Cyan badge "PREPARING".
+  - No data loss occurred on the order record.
+
+Priority    : High
+Test Data   : See TEST DATA - FEATURE 2 section below.
+
+--------------------------------------------------------------------------------
+TRACEABILITY MATRIX - FEATURE 2
+--------------------------------------------------------------------------------
+| Requirement ID | Description                                   | Test Case  |
+|----------------|-----------------------------------------------|------------|
+| REQ-FBD-040    | Update order status to a valid state.         | TC-STS-001 |
+| REQ-FBD-041    | Reject status updates for non-existent orders.| TC-STS-002 |
+| REQ-FBD-042    | Retain order data (price, items) on update.   | TC-STS-003 |
+
+--------------------------------------------------------------------------------
+TEST DATA - FEATURE 2
+--------------------------------------------------------------------------------
+| Description               | Value                                        |
+|---------------------------|----------------------------------------------|
+| Existing Order ID         | 15                                           |
+| Non-Existent Order ID     | 999999                                       |
+| Valid Status (Dropdown)   | "Completed"  => maps to status: COMPLETED    |
+| Valid Status (Dropdown)   | "Preparing"  => maps to status: PREPARING    |
+| Order Audit Data          | 2 items, totalAmount = P500.00               |
+
+================================================================================
+FEATURE 3 - ORDER CANCELLATION & REASON VALIDATION
+================================================================================
+
+Requirement ID  : REQ-FBD-050 to REQ-FBD-052
+Description     : When Admin selects "Cancelled" from the Action dropdown, a
+                  mandatory SweetAlert2 popup must appear requiring a
+                  cancellation reason. The system must block cancellation if the
+                  reason field is blank or contains only whitespace.
+
+Acceptance Criteria:
+  GWT-01:
+    Given  the Admin is on the Orders tab with an existing PENDING order,
+    When   the Admin selects "Cancelled" from the Action column dropdown,
+    Then   a SweetAlert2 modal with the title "Cancellation Reason Required"
+           must appear, containing a mandatory textarea and the buttons
+           "Confirm Cancellation" (red) and "Go Back" (gray).
+
+  GWT-02:
+    Given  the Cancellation Reason modal is open,
+    When   the Admin types a valid, non-empty reason and clicks
+           "Confirm Cancellation",
+    Then   the modal must close, an "Order Cancelled" success toast must appear,
+           the Status badge must update to a red CANCELLED badge, and the
+           cancellation reason must be displayed below the badge and saved
+           in the database.
+
+  GWT-03:
+    Given  the Cancellation Reason modal is open,
+    When   the Admin clicks "Confirm Cancellation" while the textarea is empty,
+    Then   the modal must remain open and display the validation error:
+           "You must provide a cancellation reason!"
+           and no cancellation API request must be sent.
+
+  GWT-04:
+    Given  the Cancellation Reason modal is open,
+    When   the Admin enters only whitespace (spaces) in the textarea and clicks
+           "Confirm Cancellation",
+    Then   the modal must remain open and display the same validation error:
+           "You must provide a cancellation reason!"
+           and no cancellation API request must be sent.
+
+  GWT-05:
+    Given  the Cancellation Reason modal is open,
+    When   the Admin clicks "Go Back" without entering a reason,
+    Then   the modal must close, the order's status must remain unchanged,
+           and the Action dropdown must revert to the order's original value.
+
+Preconditions:
+  - Admin is logged in and on the Orders tab.
+  - An existing PENDING order is available (e.g., Order #21).
+
+--------------------------------------------------------------------------------
+TC-CAN-001 | REQ-FBD-050 | Successful Cancellation with Valid Reason
+--------------------------------------------------------------------------------
+Objective   : Validate that selecting "Cancelled" in the Action dropdown and
+              providing a valid reason successfully cancels the order.
+Test Scenario: Validate that a valid cancellation reason successfully cancels
+               the order and stores the reason.
+
+Test Steps  :
+  1. Log in as Admin and navigate to the Orders tab.
+  2. Locate Order #21 (status: PENDING).
+  3. In the "Action" column dropdown, select "Cancelled".
+  4. A SweetAlert2 modal popup appears with:
+       Title   : "Cancellation Reason Required"
+       Message : "Please provide a reason for cancelling this order.
+                  This is mandatory."
+       Input   : A textarea (placeholder: "Enter the reason for cancellation...")
+       Buttons : "Confirm Cancellation" (red) | "Go Back" (gray)
+  5. In the textarea, type: "Out of ingredients"
+  6. Click "Confirm Cancellation".
+  7. Observe the result.
+
+Expected Result:
+  - The SweetAlert2 popup closes.
+  - A toast notification appears at the top-right:
+      Icon  : (success checkmark)
+      Title : "Order Cancelled"
+      (Auto-dismisses after 2 seconds)
+  - The "Status" column badge for Order #21 updates to:
+      Red badge labeled "CANCELLED"
+  - Below the CANCELLED badge, a small italic red note appears:
+      "(i) Out of ingredients"
+    (This is the stored cancellationReason displayed on the UI row.)
+  - The cancellationReason "Out of ingredients" is saved in the database
+    and verifiable via GET /api/admin/orders.
+
+Priority    : High
+Test Data   : See TEST DATA - FEATURE 3 section below.
+
+--------------------------------------------------------------------------------
+TC-CAN-002 | REQ-FBD-051 | Cancellation Blocked - Missing Reason Field
+--------------------------------------------------------------------------------
+Objective   : Validate that clicking "Confirm Cancellation" without entering
+              any reason in the textarea displays a validation error and does
+              NOT cancel the order.
+Test Scenario: Validate that a missing cancellation reason blocks the
+               cancellation with a validation error.
+
+Test Steps  :
+  1. Log in as Admin and navigate to the Orders tab.
+  2. Locate any PENDING order and select "Cancelled" from the Action dropdown.
+  3. The SweetAlert2 "Cancellation Reason Required" modal appears.
+  4. Leave the textarea completely empty (do not type anything).
+  5. Click "Confirm Cancellation".
+  6. Observe the result.
+
+Expected Result:
+  - The popup does NOT close.
+  - A validation error message appears inside the SweetAlert2 modal:
+      "You must provide a cancellation reason!"
+  - The order status remains unchanged (still shows original status badge).
+  - No API request is sent (verifiable in DevTools > Network tab - no PUT
+    request to /api/admin/orders/{id}/status is fired).
+
+Priority    : High
+Test Data   : See TEST DATA - FEATURE 3 section below.
+
+--------------------------------------------------------------------------------
+TC-CAN-003 | REQ-FBD-052 | Cancellation Blocked - Whitespace-Only Reason
+--------------------------------------------------------------------------------
+Objective   : Validate that entering only spaces (whitespace) in the
+              cancellation reason textarea is correctly rejected by the frontend.
+Test Scenario: Validate that a whitespace-only cancellation reason is
+               rejected identically to an empty input.
+
+Test Steps  :
+  1. Log in as Admin and navigate to the Orders tab.
+  2. Locate any PENDING order and select "Cancelled" from the Action dropdown.
+  3. The SweetAlert2 "Cancellation Reason Required" modal appears.
+  4. In the textarea, type ONLY spaces (e.g., press the spacebar 5+ times).
+     The input appears to have content visually, but is all whitespace.
+  5. Click "Confirm Cancellation".
+  6. Observe the result.
+
+Expected Result:
+  - The popup does NOT close.
+  - The same validation error message appears:
+      "You must provide a cancellation reason!"
+    (The SweetAlert2 inputValidator checks: !value.trim() — meaning a
+     whitespace-only string is treated the same as an empty string.)
+  - The order status remains unchanged.
+  - No cancellation API request is sent.
+
+Frontend Note: This behavior is enforced by the following code in AdminPanel.jsx:
+  inputValidator: (value) => {
+    if (!value || !value.trim()) {
+      return 'You must provide a cancellation reason!';
+    }
+  }
+
+Priority    : High
+Test Data   : See TEST DATA - FEATURE 3 section below.
+
+--------------------------------------------------------------------------------
+TC-CAN-004 | REQ-FBD-050 | Cancellation Modal Dismissed - Order Unchanged
+--------------------------------------------------------------------------------
+Objective   : Validate that clicking "Go Back" on the Cancellation Reason modal
+              dismisses the popup without changing the order's status.
+Test Scenario: Validate that dismissing the cancellation modal leaves the
+               order's status and dropdown unchanged.
+
+Test Steps  :
+  1. Log in as Admin and navigate to the Orders tab.
+  2. Locate any PENDING order and select "Cancelled" from the Action dropdown.
+  3. The SweetAlert2 "Cancellation Reason Required" modal appears.
+  4. Click "Go Back" (the gray dismiss button) WITHOUT entering a reason.
+  5. Observe the result.
+
+Expected Result:
+  - The SweetAlert2 modal closes immediately.
+  - The order status in the table reverts to its original status value.
+    (The frontend calls fetchData() automatically to re-sync the table.)
+  - No API cancellation request is sent.
+  - The Action dropdown in the row resets back to the original status value.
+
+Priority    : Medium
+Test Data   : See TEST DATA - FEATURE 3 section below.
+
+--------------------------------------------------------------------------------
+TRACEABILITY MATRIX - FEATURE 3
+--------------------------------------------------------------------------------
+| Requirement ID | Description                                    | Test Case  |
+|----------------|------------------------------------------------|------------|
+| REQ-FBD-050    | Successful cancellation with valid reason.     | TC-CAN-001 |
+|                | Modal dismissed - order status unchanged.      | TC-CAN-004 |
+| REQ-FBD-051    | Block cancellation with missing reason.        | TC-CAN-002 |
+| REQ-FBD-052    | Reject blank/whitespace-only reason.           | TC-CAN-003 |
+
+--------------------------------------------------------------------------------
+TEST DATA - FEATURE 3
+--------------------------------------------------------------------------------
+| Description                  | Value                                      |
+|------------------------------|------------------------------------------  |
+| Existing PENDING Order ID    | 21                                         |
+| Valid Cancellation Reason    | "Out of ingredients"                       |
+| Missing Reason               | (leave textarea blank - no input)          |
+| Whitespace-Only Reason       | "     " (spaces only)                      |
+| SweetAlert2 Confirm Button   | "Confirm Cancellation" (red button)        |
+| SweetAlert2 Dismiss Button   | "Go Back" (gray button)                    |
+
+================================================================================
+OVERALL TEST CASE SUMMARY
+================================================================================
+| Test Case ID | Requirement ID | Short Description                          |
+|--------------|----------------|--------------------------------------------|
+| TC-ORD-001   | REQ-FBD-030    | Orders tab loads and shows all orders.     |
+| TC-ORD-002   | REQ-FBD-031    | Orders sorted by newest timestamp first.   |
+| TC-ORD-003   | REQ-FBD-032    | Empty state shows "No active orders."      |
+| TC-STS-001   | REQ-FBD-040    | Dropdown status update succeeds.           |
+| TC-STS-002   | REQ-FBD-041    | 404 on updating non-existent order.        |
+| TC-STS-003   | REQ-FBD-042    | Status update keeps total and items intact.|
+| TC-CAN-001   | REQ-FBD-050    | Cancellation with valid reason succeeds.   |
+| TC-CAN-002   | REQ-FBD-051    | Empty reason blocks cancellation.          |
+| TC-CAN-003   | REQ-FBD-052    | Whitespace-only reason blocks cancellation.|
+| TC-CAN-004   | REQ-FBD-050    | Dismissing modal reverts status change.    |
+
+Total Test Cases: 10
+
+================================================================================
+MODULE EXIT CRITERIA
+================================================================================
+Testing for the Order Tracking & Fulfillment Dashboard is considered complete
+when:
+  - All High Priority test cases have been executed and passed.
+  - The SweetAlert2 cancellation popup correctly validates blank and whitespace
+    reasons.
+  - Order data integrity (totalAmount, items) is confirmed after status updates.
+  - Empty state UI ("No active orders.") renders correctly with 0 records.
+  - A Test Execution Report has been compiled.
+
+================================================================================
+APPROVAL
+================================================================================
+| Role            | Name | Signature     | Date    |
+|-----------------|------|---------------|---------|
+| QA Engineer     |      | _____________ | _______ |
+| QA Lead         |      | _____________ | _______ |
+| Project Manager |      | _____________ | _______ |
+
+================================================================================
+End of Test Case Document - Order Tracking & Fulfillment Dashboard v1.0
+(Frontend / UI-Based Version)
+================================================================================
