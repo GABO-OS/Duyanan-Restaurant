@@ -97,9 +97,8 @@ TEST CASE 1.1
   Test Case ID   : TC-ORD-001
   Requirement ID : REQ-FBD-030
   User Story     : US-01 | As an Admin / Kitchen Staff, I want to view all incoming customer
-                   orders in a table sorted from newest to oldest with full order details
-                   visible at a glance, so that I can efficiently monitor and manage all
-                   active orders without missing any new customer requests.
+                   orders on a dashboard, so that I can monitor active restaurant orders
+                   in real time.
   Test Scenario  : Validate that the Orders tab loads and displays all customer
                    orders with correct columns and stat boxes.
   Acceptance Criteria:
@@ -134,10 +133,9 @@ TEST CASE 1.1
 TEST CASE 1.2
   Test Case ID   : TC-ORD-002
   Requirement ID : REQ-FBD-031
-  User Story     : US-01 | As an Admin / Kitchen Staff, I want to view all incoming customer
-                   orders in a table sorted from newest to oldest with full order details
-                   visible at a glance, so that I can efficiently monitor and manage all
-                   active orders without missing any new customer requests.
+  User Story     : US-02 | As an Admin / Kitchen Staff, I want incoming orders to be sorted
+                   chronologically from newest to oldest, so that I can see the latest
+                   requests first.
   Test Scenario  : Validate that orders are sorted by timestamp from newest
                    to oldest.
   Acceptance Criteria:
@@ -164,10 +162,9 @@ TEST CASE 1.2
 TEST CASE 1.3
   Test Case ID   : TC-ORD-003
   Requirement ID : REQ-FBD-032
-  User Story     : US-01 | As an Admin / Kitchen Staff, I want to view all incoming customer
-                   orders in a table sorted from newest to oldest with full order details
-                   visible at a glance, so that I can efficiently monitor and manage all
-                   active orders without missing any new customer requests.
+  User Story     : US-03 | As an Admin / Kitchen Staff, I want the orders dashboard to display
+                   a clear empty state message when no orders exist, so that I know there
+                   are no pending tasks.
   Test Scenario  : Validate the empty state behavior when no orders exist in
                    the database.
   Acceptance Criteria:
@@ -242,10 +239,9 @@ Test Cases
 TEST CASE 2.1
   Test Case ID   : TC-STS-001
   Requirement ID : REQ-FBD-040
-  User Story     : US-02 | As an Admin / Kitchen Staff, I want to update the fulfillment
-                   status of any order using a simple dropdown in the Orders table, so
-                   that the order progress is accurately tracked and reflected in real
-                   time across the admin dashboard.
+  User Story     : US-04 | As an Admin / Kitchen Staff, I want to update an order's status
+                   via a dropdown, so that the status changes are updated in the database
+                   and reflected on the UI.
   Test Scenario  : Validate that the Action dropdown successfully updates an
                    order's status in the database and on the UI.
   Acceptance Criteria:
@@ -279,10 +275,9 @@ TEST CASE 2.1
 TEST CASE 2.2
   Test Case ID   : TC-STS-002
   Requirement ID : REQ-FBD-041
-  User Story     : US-02 | As an Admin / Kitchen Staff, I want to update the fulfillment
-                   status of any order using a simple dropdown in the Orders table, so
-                   that the order progress is accurately tracked and reflected in real
-                   time across the admin dashboard.
+  User Story     : US-05 | As a System Administrator, I want status update requests for
+                   non-existent orders to fail with a 404 error, so that invalid updates
+                   are blocked and reported.
   Test Scenario  : Validate that updating a non-existent order returns HTTP
                    404 Not Found.
   Acceptance Criteria:
@@ -315,10 +310,9 @@ TEST CASE 2.2
 TEST CASE 2.3
   Test Case ID   : TC-STS-003
   Requirement ID : REQ-FBD-042
-  User Story     : US-02 | As an Admin / Kitchen Staff, I want to update the fulfillment
-                   status of any order using a simple dropdown in the Orders table, so
-                   that the order progress is accurately tracked and reflected in real
-                   time across the admin dashboard.
+  User Story     : US-06 | As an Admin, I want order items and total amounts to be preserved
+                   during a status update, so that customer order records remain accurate
+                   and intact.
   Test Scenario  : Validate that a status update does not alter the order's
                    existing items or total amount.
   Acceptance Criteria:
@@ -393,10 +387,8 @@ Test Cases
 TEST CASE 3.1
   Test Case ID   : TC-CAN-001
   Requirement ID : REQ-FBD-050
-  User Story     : US-03 | As an Admin, I want to cancel an order only after providing a
-                   mandatory cancellation reason through a confirmation popup, so that
-                   every cancellation is documented with a justification, ensuring
-                   transparency and data integrity.
+  User Story     : US-07 | As an Admin, I want to cancel an order and record a reason, so
+                   that the cancellation details are saved and visible on the dashboard.
   Test Scenario  : Validate that a valid cancellation reason successfully cancels
                    the order and stores the reason.
   Acceptance Criteria:
@@ -440,10 +432,9 @@ TEST CASE 3.1
 TEST CASE 3.2
   Test Case ID   : TC-CAN-002
   Requirement ID : REQ-FBD-051
-  User Story     : US-03 | As an Admin, I want to cancel an order only after providing a
-                   mandatory cancellation reason through a confirmation popup, so that
-                   every cancellation is documented with a justification, ensuring
-                   transparency and data integrity.
+  User Story     : US-08 | As an Admin, I want the system to block order cancellations
+                   when no reason is entered, so that all cancellations are properly
+                   documented.
   Test Scenario  : Validate that a missing cancellation reason blocks the
                    cancellation with a validation error.
   Acceptance Criteria:
@@ -473,10 +464,9 @@ TEST CASE 3.2
 TEST CASE 3.3
   Test Case ID   : TC-CAN-003
   Requirement ID : REQ-FBD-052
-  User Story     : US-03 | As an Admin, I want to cancel an order only after providing a
-                   mandatory cancellation reason through a confirmation popup, so that
-                   every cancellation is documented with a justification, ensuring
-                   transparency and data integrity.
+  User Story     : US-09 | As an Admin, I want the cancellation validation to reject
+                   whitespace-only inputs, so that users cannot bypass the mandatory
+                   reason requirement.
   Test Scenario  : Validate that a whitespace-only cancellation reason is
                    rejected identically to an empty input.
   Acceptance Criteria:
@@ -514,10 +504,9 @@ TEST CASE 3.3
 TEST CASE 3.4
   Test Case ID   : TC-CAN-004
   Requirement ID : REQ-FBD-050
-  User Story     : US-03 | As an Admin, I want to cancel an order only after providing a
-                   mandatory cancellation reason through a confirmation popup, so that
-                   every cancellation is documented with a justification, ensuring
-                   transparency and data integrity.
+  User Story     : US-10 | As an Admin, I want to close the cancellation modal without
+                   changing the order status, so that I can revert the action if selected
+                   by mistake.
   Test Scenario  : Validate that dismissing the cancellation modal leaves the
                    order's status and dropdown unchanged.
   Acceptance Criteria:
