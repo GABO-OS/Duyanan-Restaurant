@@ -38,9 +38,13 @@ function App() {
                             <Route path="/event-packages" element={<EventPackages />} />
                             <Route path="/group-meals" element={<GroupMeals />} />
                             <Route path="/about" element={<About />} />
-                            <Route path="/book-reservation" element={<Reservations />} />
 
                             {/* Protected routes — require login */}
+                            <Route path="/book-reservation" element={
+                                <ProtectedRoute>
+                                    <Reservations />
+                                </ProtectedRoute>
+                            } />
                             <Route path="/cart" element={
                                 <ProtectedRoute>
                                     <CartPage />

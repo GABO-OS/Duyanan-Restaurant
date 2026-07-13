@@ -90,9 +90,9 @@ const styles = `
     .gm-badge-savings { background: #eafaf1; color: #1e8449; border: 1px solid #d5f5e3; }
 
     /* Empty cart */
-    .empty-cart { min-height: 55vh; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 16px;
+    .empty-cart { min-height: calc(100vh - var(--nav-height, 70px) - 30px); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 16px;
         animation: fadeUp 0.5s ease-out; }
-    .empty-cart-icon { font-size: 4.5rem; opacity: 0.12; animation: floatBag 3s ease-in-out infinite; }
+    .empty-cart-icon { font-size: 5rem; opacity: 1; animation: floatBag 3s ease-in-out infinite; }
     @keyframes floatBag { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-10px); } }
     @keyframes fadeUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
 
@@ -117,10 +117,15 @@ const styles = `
     
     /* Payment methods */
     .payment-options { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 8px; }
+    .payment-options.order-type-options { grid-template-columns: 1fr 1fr 1fr; gap: 8px; }
     .payment-option-card { border: 1.5px solid #e8e0d8; border-radius: 12px; padding: 14px; text-align: center; cursor: pointer; background: #fdfbf9; transition: all 0.2s; }
+    .payment-options.order-type-options .payment-option-card { padding: 8px 6px; border-radius: 10px; }
     .payment-option-card.selected { border-color: var(--accent-orange); background: rgba(211, 84, 0, 0.03); box-shadow: 0 2px 8px rgba(211,84,0,0.08); }
     .payment-option-card i { font-size: 1.4rem; color: var(--accent-orange); display: block; margin-bottom: 4px; }
+    .payment-options.order-type-options .payment-option-card i { font-size: 1.1rem; margin-bottom: 2px; }
     .payment-option-card span { font-size: 0.88rem; font-weight: 600; color: var(--primary-brown); }
+    .payment-options.order-type-options .payment-option-card span { font-size: 0.8rem; }
+    .payment-option-card.disabled-option { opacity: 0.45; cursor: not-allowed; }
 
     /* Success Card */
     .success-card { background: #fff; border-radius: 24px; padding: 40px; border: 1px solid #f0ece8; box-shadow: 0 4px 24px rgba(0,0,0,0.06); text-align: center; max-width: 600px; margin: 0 auto; animation: successFadeUp 0.6s cubic-bezier(0.34, 1.56, 0.64, 1); }
@@ -167,6 +172,15 @@ const formatDescription = (desc) => {
     return <div style={{ fontSize: '0.75rem', color: '#999', marginTop: 4 }}>{desc}</div>;
 };
 
+/* ─── Padre Burgos delivery zone → fee mapping ─── */
+const PADRE_BURGOS_ZONES = {
+    'Basiao (Pob.)': 30, 'Burgos (Pob.)': 30, 'Campo (Pob.)': 30, 'Punta (Pob.)': 30,
+    'Cabuyao Norte': 50, 'Cabuyao Sur': 50, 'Danlagan': 50, 'Duhat': 50,
+    'Hinguiwin': 50, 'Marquez': 50, 'Rizal': 50, 'San Vicente': 50, 'Tulay Buhangin': 50,
+    'Kinagunan Ibaba': 80, 'Kinagunan Ilaya': 80, 'Lipata': 80, 'Marao': 80,
+    'San Isidro': 80, 'Sipa': 80, 'Villapaz': 80, 'Walay': 80, 'Yawe': 80,
+};
+
 const CartPage = () => {
     const { cart, addToCart, removeFromCart, updateQuantity, clearCart } = useCart();
     const { user, isAuthenticated } = useAuth();
@@ -180,10 +194,15 @@ const CartPage = () => {
         contactNumber: '',
         deliveryAddress: '',
         paymentMethod: 'COD', // COD or GCASH
-        notes: ''
+        notes: '',
+        locationDescription: ''
     });
     const [orderResult, setOrderResult] = useState(null);
     const [loadingProfile, setLoadingProfile] = useState(false);
+    const [userProfile, setUserProfile] = useState({ municipality: '', barangay: '' });
+
+    // Delivery is only available for Padre Burgos residents
+    const isPadreBurgos = userProfile.municipality === 'Padre Burgos';
 
     const itemCount = cart.reduce((sum, item) => sum + item.quantity, 0);
     const total = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
@@ -214,11 +233,21 @@ const CartPage = () => {
         if (!isAuthenticated) {
             Swal.fire({
                 icon: 'warning',
-                title: 'Sign In Required',
-                text: 'Please log in to proceed to checkout.',
-                confirmButtonColor: '#A04000'
+                title: 'Login Required',
+                html: 'You must be <b>logged in</b> or <b>registered</b> to place an order.<br/><br/>Please log in or create a free account to continue.',
+                showCancelButton: true,
+                confirmButtonText: '🔑 Log In',
+                cancelButtonText: '📝 Register',
+                confirmButtonColor: '#A04000',
+                cancelButtonColor: '#D35400',
+                reverseButtons: false
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    navigate('/login');
+                } else if (result.dismiss === Swal.DismissReason.cancel) {
+                    navigate('/register');
+                }
             });
-            navigate('/login');
             return;
         }
         
@@ -233,11 +262,16 @@ const CartPage = () => {
                 return res.json();
             })
             .then(data => {
+                // Parse registered address: "Barangay, Municipality, Quezon"
+                const addressStr = data.address || '';
+                const parts = addressStr.split(',').map(s => s.trim());
+                const parsedBarangay    = parts[0] || '';
+                const parsedMunicipality = parts[1] || '';
+                setUserProfile({ municipality: parsedMunicipality, barangay: parsedBarangay });
                 setCheckoutForm(prev => ({
                     ...prev,
                     recipientName: `${data.firstName || ''} ${data.lastName || ''}`.trim(),
                     contactNumber: data.phone || '',
-                    deliveryAddress: data.address || ''
                 }));
             })
             .catch(err => {
@@ -273,11 +307,20 @@ const CartPage = () => {
         }
 
         if (checkoutForm.orderType === 'DELIVERY') {
-            if (!checkoutForm.deliveryAddress || checkoutForm.deliveryZoneFee == 0) {
+            if (!checkoutForm.deliveryBarangay || checkoutForm.deliveryZoneFee == 0) {
                 Swal.fire({
                     icon: 'warning',
                     title: 'Delivery Details Required',
-                    text: 'Please provide a delivery address and select a delivery zone in Padre Burgos.',
+                    text: 'Please select your delivery barangay.',
+                    confirmButtonColor: '#A04000'
+                });
+                return;
+            }
+            if (!checkoutForm.locationDescription || !checkoutForm.locationDescription.trim()) {
+                Swal.fire({
+                    icon: 'warning',
+                    title: 'Location Required',
+                    text: 'Please describe your exact location (house number, landmark, etc.).',
                     confirmButtonColor: '#A04000'
                 });
                 return;
@@ -298,7 +341,12 @@ const CartPage = () => {
             setIsCheckingOut(true);
             try {
                 // Construct notes including recipient name, contact, and payment method info
-                const addressNote = checkoutForm.orderType === 'DELIVERY' ? ` | Address: ${checkoutForm.deliveryAddress}` : ' | Store Pick Up';
+                const fullDeliveryAddress = checkoutForm.orderType === 'DELIVERY'
+                    ? `${checkoutForm.deliveryBarangay}, Padre Burgos, Quezon — ${checkoutForm.locationDescription}`
+                    : '';
+                const addressNote = checkoutForm.orderType === 'DELIVERY'
+                    ? ` | Address: ${fullDeliveryAddress}`
+                    : checkoutForm.orderType === 'PICKUP' ? ' | Store Pick Up' : ' | Dine In';
                 const combinedNotes = `Type: ${checkoutForm.orderType} | Recipient: ${checkoutForm.recipientName} | Contact: ${checkoutForm.contactNumber}${addressNote} | Payment: ${checkoutForm.paymentMethod} | Notes: ${checkoutForm.notes || 'None'}`;
                 
                 const response = await fetch(`${API_URL}/api/orders`, {
@@ -310,7 +358,7 @@ const CartPage = () => {
                     body: JSON.stringify({
                         orderType: checkoutForm.orderType,
                         deliveryFee: checkoutForm.orderType === 'DELIVERY' ? Number(checkoutForm.deliveryZoneFee) : 0,
-                        deliveryAddress: checkoutForm.orderType === 'DELIVERY' ? checkoutForm.deliveryAddress : '',
+                        deliveryAddress: checkoutForm.orderType === 'DELIVERY' ? fullDeliveryAddress : '',
                         notes: combinedNotes,
                         items: cart.map(item => ({
                             productId: item.id,
@@ -328,7 +376,7 @@ const CartPage = () => {
                         total: finalTotal,
                         orderType: checkoutForm.orderType,
                         recipientName: checkoutForm.recipientName,
-                        deliveryAddress: checkoutForm.orderType === 'DELIVERY' ? checkoutForm.deliveryAddress : 'Pick Up at Store',
+                        deliveryAddress: checkoutForm.orderType === 'DELIVERY' ? fullDeliveryAddress : (checkoutForm.orderType === 'PICKUP' ? 'Pick Up at Store' : 'Dine In'),
                         paymentMethod: checkoutForm.paymentMethod
                     });
                     
@@ -558,11 +606,10 @@ const CartPage = () => {
                                     
                                     <div className="form-group-custom">
                                         <label>Order Type <span className="text-danger">*</span></label>
-                                        <div className="payment-options">
+                                        <div className="payment-options order-type-options">
                                             <div 
                                                 className={`payment-option-card ${checkoutForm.orderType === 'DINE_IN' ? 'selected' : ''}`}
                                                 onClick={() => setCheckoutForm(prev => ({ ...prev, orderType: 'DINE_IN', deliveryZoneFee: 0 }))}
-                                                style={{ flex: 1, padding: '10px' }}
                                             >
                                                 <i className="bi bi-cup-hot"></i>
                                                 <span>Dine In</span>
@@ -570,18 +617,34 @@ const CartPage = () => {
                                             <div 
                                                 className={`payment-option-card ${checkoutForm.orderType === 'PICKUP' ? 'selected' : ''}`}
                                                 onClick={() => setCheckoutForm(prev => ({ ...prev, orderType: 'PICKUP', deliveryZoneFee: 0 }))}
-                                                style={{ flex: 1, padding: '10px' }}
                                             >
                                                 <i className="bi bi-shop"></i>
                                                 <span>Pick Up</span>
                                             </div>
                                             <div 
-                                                className={`payment-option-card ${checkoutForm.orderType === 'DELIVERY' ? 'selected' : ''}`}
-                                                onClick={() => setCheckoutForm(prev => ({ ...prev, orderType: 'DELIVERY' }))}
-                                                style={{ flex: 1, padding: '10px' }}
+                                                className={`payment-option-card ${checkoutForm.orderType === 'DELIVERY' ? 'selected' : ''} ${!isPadreBurgos ? 'disabled-option' : ''}`}
+                                                onClick={() => {
+                                                    if (!isPadreBurgos) {
+                                                        Swal.fire({
+                                                            icon: 'info',
+                                                            title: 'Padre Burgos Only',
+                                                            text: 'Delivery is only available for customers within Padre Burgos municipality.',
+                                                            confirmButtonColor: '#A04000'
+                                                        });
+                                                        return;
+                                                    }
+                                                    const autoFee = PADRE_BURGOS_ZONES[userProfile.barangay] || 0;
+                                                    setCheckoutForm(prev => ({
+                                                        ...prev,
+                                                        orderType: 'DELIVERY',
+                                                        deliveryBarangay: userProfile.barangay,
+                                                        deliveryZoneFee: autoFee
+                                                    }));
+                                                }}
                                             >
                                                 <i className="bi bi-truck"></i>
                                                 <span>Delivery</span>
+                                                {!isPadreBurgos && <small style={{ display: 'block', fontSize: '0.62rem', color: '#c0392b', marginTop: 2, lineHeight: 1.2 }}>Padre Burgos only</small>}
                                             </div>
                                         </div>
                                     </div>
@@ -614,6 +677,12 @@ const CartPage = () => {
                                         <>
                                             <div className="form-group-custom">
                                                 <label>Delivery Barangay (Padre Burgos ONLY) <span className="text-danger">*</span></label>
+                                                {isPadreBurgos && userProfile.barangay && (
+                                                    <div style={{ fontSize: '0.8rem', color: '#27ae60', marginBottom: 6, fontWeight: 600, display: 'flex', alignItems: 'center', gap: 5 }}>
+                                                        <i className="bi bi-check-circle-fill"></i>
+                                                        Your registered barangay has been pre-selected. You may change it if needed.
+                                                    </div>
+                                                )}
                                                 <select 
                                                     name="deliveryZoneSelection"
                                                     value={`${checkoutForm.deliveryBarangay || ''}|${checkoutForm.deliveryZoneFee || 0}`}
@@ -624,16 +693,16 @@ const CartPage = () => {
                                                             ...prev,
                                                             deliveryBarangay: brgy,
                                                             deliveryZoneFee: fee,
-                                                            deliveryAddress: brgy ? `${brgy}, Padre Burgos, Quezon` : prev.deliveryAddress
                                                         }));
                                                     }}
                                                     required
                                                 >
                                                     <option value="|0" disabled>Select your barangay...</option>
                                                     <optgroup label="Poblacion / Nearby (₱30.00)">
-                                                        <option value="Basiao (Poblacion)|30">Basiao (Poblacion)</option>
-                                                        <option value="Burgos (Poblacion)|30">Burgos (Poblacion)</option>
-                                                        <option value="Campo (Poblacion)|30">Campo (Poblacion)</option>
+                                                        <option value="Basiao (Pob.)|30">Basiao (Pob.)</option>
+                                                        <option value="Burgos (Pob.)|30">Burgos (Pob.)</option>
+                                                        <option value="Campo (Pob.)|30">Campo (Pob.)</option>
+                                                        <option value="Punta (Pob.)|30">Punta (Pob.)</option>
                                                     </optgroup>
                                                     <optgroup label="Mid Barangays (₱50.00)">
                                                         <option value="Cabuyao Norte|50">Cabuyao Norte</option>
@@ -643,16 +712,18 @@ const CartPage = () => {
                                                         <option value="Hinguiwin|50">Hinguiwin</option>
                                                         <option value="Marquez|50">Marquez</option>
                                                         <option value="Rizal|50">Rizal</option>
+                                                        <option value="San Vicente|50">San Vicente</option>
+                                                        <option value="Tulay Buhangin|50">Tulay Buhangin</option>
                                                     </optgroup>
                                                     <optgroup label="Far Barangays (₱80.00)">
                                                         <option value="Kinagunan Ibaba|80">Kinagunan Ibaba</option>
                                                         <option value="Kinagunan Ilaya|80">Kinagunan Ilaya</option>
                                                         <option value="Lipata|80">Lipata</option>
                                                         <option value="Marao|80">Marao</option>
-                                                        <option value="Punta|80">Punta</option>
                                                         <option value="San Isidro|80">San Isidro</option>
                                                         <option value="Sipa|80">Sipa</option>
                                                         <option value="Villapaz|80">Villapaz</option>
+                                                        <option value="Walay|80">Walay</option>
                                                         <option value="Yawe|80">Yawe</option>
                                                     </optgroup>
                                                 </select>
@@ -662,15 +733,18 @@ const CartPage = () => {
                                             </div>
 
                                             <div className="form-group-custom">
-                                                <label>Exact Delivery Address <span className="text-danger">*</span></label>
-                                                <textarea 
-                                                    name="deliveryAddress"
-                                                    value={checkoutForm.deliveryAddress}
+                                                <label>Location Description <span className="text-danger">*</span></label>
+                                                <input 
+                                                    type="text"
+                                                    name="locationDescription"
+                                                    value={checkoutForm.locationDescription}
                                                     onChange={handleFormChange}
-                                                    rows="3"
-                                                    placeholder="Enter house number, street, landmarks..."
+                                                    placeholder="e.g. House no., landmark, or any additional directions"
                                                     required
                                                 />
+                                                <div style={{ fontSize: '0.75rem', color: '#888', marginTop: 4 }}>
+                                                    <i className="bi bi-lightbulb me-1"></i> Your barangay is already set above — just add your house number or a nearby landmark.
+                                                </div>
                                             </div>
                                         </>
                                     )}
@@ -738,6 +812,27 @@ const CartPage = () => {
                                         <div className="summary-row" style={{ marginBottom: '15px' }}>
                                             <span style={{ color: '#888', fontSize: '0.9rem' }}>Recipient</span>
                                             <span style={{ fontWeight: 600, fontSize: '0.9rem', textAlign: 'right', maxWidth: '65%', wordBreak: 'break-word' }}>{checkoutForm.recipientName}</span>
+                                        </div>
+                                    )}
+
+                                    {/* Delivery address / order type info */}
+                                    {checkoutForm.orderType === 'DELIVERY' && checkoutForm.deliveryBarangay && (
+                                        <div className="summary-row" style={{ marginBottom: '10px', alignItems: 'flex-start' }}>
+                                            <span style={{ color: '#888', fontSize: '0.9rem', flexShrink: 0, paddingRight: 8 }}>Deliver to</span>
+                                            <span style={{ fontWeight: 600, fontSize: '0.85rem', textAlign: 'right', wordBreak: 'break-word', color: 'var(--primary-brown)' }}>
+                                                {checkoutForm.deliveryBarangay}, Padre Burgos, Quezon
+                                                {checkoutForm.locationDescription && (
+                                                    <><br /><span style={{ fontWeight: 400, color: '#555', fontSize: '0.82rem' }}>{checkoutForm.locationDescription}</span></>
+                                                )}
+                                            </span>
+                                        </div>
+                                    )}
+                                    {checkoutForm.orderType !== 'DELIVERY' && (
+                                        <div className="summary-row" style={{ marginBottom: '10px' }}>
+                                            <span style={{ color: '#888', fontSize: '0.9rem' }}>Order Type</span>
+                                            <span style={{ fontWeight: 600, fontSize: '0.9rem', color: 'var(--primary-brown)' }}>
+                                                {checkoutForm.orderType === 'DINE_IN' ? '🍽️ Dine In' : '🏪 Pick Up'}
+                                            </span>
                                         </div>
                                     )}
 

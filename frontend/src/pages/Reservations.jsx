@@ -108,8 +108,8 @@ const Reservations = () => {
         } catch (error) {
             Swal.fire({
                 icon: 'error',
-                title: 'Connection Error',
-                text: 'Could not connect to the server. Please check your internet.',
+                title: 'Something Went Wrong',
+                text: 'Unable to submit your reservation. Please try again later.',
                 confirmButtonColor: 'var(--primary-brown)'
             });
         }
@@ -176,31 +176,60 @@ const Reservations = () => {
                             </p>
                         </div>
 
-                        {/* Guest banner */}
-                        {!isAuthenticated && (
+                        {/* ── Guest Login Wall: replaces the form entirely ── */}
+                        {!isAuthenticated ? (
                             <div style={{
-                                background: 'linear-gradient(90deg, #7B3F00, #D35400)',
-                                color: '#fff',
-                                borderRadius: '10px',
-                                padding: '14px 20px',
-                                marginBottom: '24px',
-                                display: 'flex',
-                                alignItems: 'center',
-                                gap: '12px',
-                                boxShadow: '0 4px 14px rgba(211,84,0,0.25)'
+                                background: '#fff',
+                                borderRadius: '16px',
+                                padding: '36px 28px',
+                                boxShadow: '0 4px 24px rgba(0,0,0,0.08)',
+                                border: '1.5px solid #f0ece8',
+                                textAlign: 'center'
                             }}>
-                                <i className="bi bi-shield-lock-fill" style={{ fontSize: '1.5rem', flexShrink: 0 }}></i>
-                                <div>
-                                    <div style={{ fontWeight: 700, fontSize: '0.95rem' }}>You&apos;re viewing as a guest</div>
-                                    <div style={{ fontSize: '0.83rem', opacity: 0.9 }}>
-                                        <a href="/login" style={{ color: '#ffd580', fontWeight: 700, textDecoration: 'underline' }}>Log in</a>
-                                        {' '}or{' '}
-                                        <a href="/register" style={{ color: '#ffd580', fontWeight: 700, textDecoration: 'underline' }}>Register</a>
-                                        {' '}to make a reservation.
-                                    </div>
+                                <div style={{ fontSize: '3.5rem', marginBottom: '12px' }}>🔒</div>
+                                <h4 style={{ color: 'var(--primary-brown)', fontWeight: 800, marginBottom: '8px' }}>
+                                    Login Required
+                                </h4>
+                                <p style={{ color: '#666', fontSize: '0.95rem', lineHeight: 1.6, marginBottom: '24px' }}>
+                                    You must be <strong>logged in</strong> or <strong>registered</strong> to make a reservation.
+                                    Create a free account to get started!
+                                </p>
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                                    <a
+                                        href="/login"
+                                        style={{
+                                            display: 'block',
+                                            padding: '13px',
+                                            borderRadius: '10px',
+                                            background: 'linear-gradient(135deg, var(--accent-orange), var(--primary-brown))',
+                                            color: '#fff',
+                                            fontWeight: 700,
+                                            fontSize: '1rem',
+                                            textDecoration: 'none',
+                                            boxShadow: '0 4px 14px rgba(160,64,0,0.25)'
+                                        }}
+                                    >
+                                        <i className="bi bi-box-arrow-in-right me-2"></i>Log In
+                                    </a>
+                                    <a
+                                        href="/register"
+                                        style={{
+                                            display: 'block',
+                                            padding: '13px',
+                                            borderRadius: '10px',
+                                            background: 'transparent',
+                                            color: 'var(--primary-brown)',
+                                            fontWeight: 700,
+                                            fontSize: '1rem',
+                                            textDecoration: 'none',
+                                            border: '1.5px solid var(--primary-brown)'
+                                        }}
+                                    >
+                                        <i className="bi bi-person-plus me-2"></i>Create an Account
+                                    </a>
                                 </div>
                             </div>
-                        )}
+                        ) : (
                         
                         <form onSubmit={handleSubmit}>
                             {/* Event Type */}
@@ -319,6 +348,7 @@ const Reservations = () => {
                                 {isAuthenticated ? 'Confirm Reservation' : 'Login to Reserve'}
                             </button>
                         </form>
+                        )}
                     </div>
                 </div>
             </div>

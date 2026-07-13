@@ -1,0 +1,326 @@
+================================================================================
+                        TEST CASE DOCUMENT
+================================================================================
+Project Name  : Duyanan Restaurant Online Ordering System
+Module        : Order Tracking & Fulfillment Dashboard (v1.0)
+Version       : 1.0
+Prepared By   : QA Team
+Date          : July 9, 2026
+================================================================================
+
+
+================================================================================
+DOCUMENT INFORMATION
+================================================================================
+
+  Item                  Details
+  -------               --------------------------------------------------------
+  Project               Duyanan Restaurant Online Ordering System
+  Module                Order Tracking & Fulfillment Dashboard (Admin / Kitchen)
+  Requirement IDs       REQ-FBD-030 to REQ-FBD-032
+                        REQ-FBD-040 to REQ-FBD-042
+                        REQ-FBD-050 to REQ-FBD-052
+  Prepared By           QA Team
+  Reviewed By           QA Lead
+  Version               1.0
+  Date                  July 9, 2026
+
+================================================================================
+
+
+================================================================================
+TEST ENVIRONMENT
+================================================================================
+
+  Item                  Value
+  -------               --------------------------------------------------------
+  Browser               Google Chrome v138
+  Operating System      Windows 11
+  API Base URL          http://localhost:8080
+  Database              MySQL - Duyanan Restaurant DB (Test Instance)
+  Tester                QA Team
+
+================================================================================
+
+
+
+
+================================================================================
+MODULE: ORDER TRACKING & FULFILLMENT DASHBOARD
+================================================================================
+Description:
+  This module covers backend admin operations for tracking incoming customer
+  orders, updating fulfillment progress (e.g. from PENDING to PREPARING/
+  COMPLETED), and handling order cancellation with strict textual reason
+  validation.
+
+--------------------------------------------------------------------------------
+FEATURE 1 - VIEW INCOMING ORDERS DASHBOARD
+--------------------------------------------------------------------------------
+
+Requirement
+  Requirement ID : REQ-FBD-030 to REQ-FBD-032
+  Description    : The dashboard must successfully retrieve all customer orders
+                   sorted temporally from newest to oldest so staff can fulfill
+                   requests. The system must also handle cases when there are
+                   no active orders gracefully.
+
+Preconditions
+  - Admin user is authenticated with a valid Admin JWT token.
+  - API endpoints are active and accessible.
+
+--------------------------------------------------------------------------------
+Test Cases
+--------------------------------------------------------------------------------
+
+TEST CASE 1.1
+  Test Case ID   : TC-ORD-001
+  Requirement ID : REQ-FBD-030
+  Test Scenario  : Validate that the system successfully returns the list of
+                   all orders.
+  Test Steps     :
+    1. Send GET request to `/api/admin/orders` with admin auth header.
+    2. Parse the JSON response.
+  Test Data      : Admin JWT Token
+  Expected Result:
+    - HTTP Status 200 OK.
+    - Response body is a valid JSON array containing order objects.
+  Priority       : High
+
+TEST CASE 1.2
+  Test Case ID   : TC-ORD-002
+  Requirement ID : REQ-FBD-031
+  Test Scenario  : Validate that the orders returned by the API are strictly
+                   ordered by `orderDate` from newest to oldest.
+  Test Steps     :
+    1. Fetch orders from `/api/admin/orders`.
+    2. Extract the `orderDate` of index 0 and index 1.
+    3. Compare timestamps.
+  Test Data      : Multiple orders in system placed at different times (staggered)
+  Expected Result:
+    - The timestamp of Index 0 is strictly greater than or equal to Index 1
+      (newest first).
+  Priority       : High
+
+TEST CASE 1.3
+  Test Case ID   : TC-ORD-003
+  Requirement ID : REQ-FBD-032
+  Test Scenario  : Validate API behavior when the database has 0 records.
+  Test Steps     :
+    1. Truncate/Clear the Orders table.
+    2. Send GET request to `/api/admin/orders`.
+  Test Data      : A clean test database environment
+  Expected Result:
+    - HTTP Status 200 OK.
+    - Response body is literally an empty array `[]`.
+  Priority       : Medium
+
+--------------------------------------------------------------------------------
+Traceability Matrix
+--------------------------------------------------------------------------------
+
+  Requirement ID    Description                                     Test Cases
+  ---------------   ---------------------------------------------   -----------
+  REQ-FBD-030       Admin dashboard can fetch all customer orders.  TC-ORD-001
+  REQ-FBD-031       Orders are sorted descending by order date.     TC-ORD-002
+  REQ-FBD-032       Graceful handling of empty orders lists.        TC-ORD-003
+
+--------------------------------------------------------------------------------
+Test Data
+--------------------------------------------------------------------------------
+
+  Description                 Value
+  -------------------------   --------------------------------------------------
+  Admin Auth Header           `Bearer <valid_admin_jwt_token>`
+  Staggered Timestamps        T1 = 2026-07-09T10:00:00Z, T2 = 2026-07-09T10:15:00Z
+  Empty State                 Database order table cleared
+
+================================================================================
+
+
+--------------------------------------------------------------------------------
+FEATURE 2 - UPDATE ORDER FULFILLMENT STATUS
+--------------------------------------------------------------------------------
+
+Requirement
+  Requirement ID : REQ-FBD-040 to REQ-FBD-042
+  Description    : The system must allow staff/admin to update an order's
+                   progress to a valid state (PREPARING, COMPLETED) while
+                   maintaining audit integrity (not wiping totals/items) and
+                   rejecting status changes to non-existent orders.
+
+Preconditions
+  - Admin is authenticated.
+  - Target order exists (or is intentionally missing for TC-STS-002).
+
+--------------------------------------------------------------------------------
+Test Cases
+--------------------------------------------------------------------------------
+
+TEST CASE 2.1
+  Test Case ID   : TC-STS-001
+  Requirement ID : REQ-FBD-040
+  Test Scenario  : Validate that submitting a new status successfully updates
+                   the database record.
+  Test Steps     :
+    1. Send PUT request to `/api/admin/orders/15/status` with payload.
+    2. Check response JSON.
+    3. Send GET request to verify changes.
+  Test Data      : orderId: 15 (PENDING order); Payload: { "status": "COMPLETED" }
+  Expected Result:
+    - Response contains message "Order status updated."
+    - Subsequent GET confirms status is "COMPLETED".
+  Priority       : High
+
+TEST CASE 2.2
+  Test Case ID   : TC-STS-002
+  Requirement ID : REQ-FBD-041
+  Test Scenario  : Validate trying to update an order ID that is not in database.
+  Test Steps     :
+    1. Send PUT request to `/api/admin/orders/999999/status` with payload.
+  Test Data      : orderId: 999999 (non-existent); Payload: { "status": "COMPLETED" }
+  Expected Result:
+    - HTTP Status Code 404 (Not Found).
+  Priority       : High
+
+TEST CASE 2.3
+  Test Case ID   : TC-STS-003
+  Requirement ID : REQ-FBD-042
+  Test Scenario  : Validate that updating the status does not accidentally wipe
+                   out the order's `totalAmount` or `items`.
+  Test Steps     :
+    1. Update order status.
+    2. Fetch specific order using `/api/orders/{id}`.
+    3. Validate fields.
+  Test Data      : PENDING order with 2 items and a total of ₱500
+  Expected Result:
+    - Total amount remains ₱500; item count remains 2.
+  Priority       : High
+
+--------------------------------------------------------------------------------
+Traceability Matrix
+--------------------------------------------------------------------------------
+
+  Requirement ID    Description                                     Test Cases
+  ---------------   ---------------------------------------------   -----------
+  REQ-FBD-040       Update order status to a valid state.           TC-STS-001
+  REQ-FBD-041       Reject status updates for non-existent orders.  TC-STS-002
+  REQ-FBD-042       Retain order details (price, items) on status.  TC-STS-003
+
+--------------------------------------------------------------------------------
+Test Data
+--------------------------------------------------------------------------------
+
+  Description                 Value
+  -------------------------   -----------------------------------------
+  Existing Order ID           15
+  Non-Existent Order ID       999999
+  Valid Status Payload        { "status": "COMPLETED" }
+  Order Audit Data            2 items, totalAmount = 500.00
+
+================================================================================
+
+
+--------------------------------------------------------------------------------
+FEATURE 3 - ORDER CANCELLATION & REASON VALIDATION
+--------------------------------------------------------------------------------
+
+Requirement
+  Requirement ID : REQ-FBD-050 to REQ-FBD-052
+  Description    : Cancelling an order requires strict validation. The system
+                   must prevent admins from cancelling an order without providing
+                   a valid, non-blank textual cancellation reason.
+
+Preconditions
+  - Admin is authenticated.
+  - Target order exists.
+
+--------------------------------------------------------------------------------
+Test Cases
+--------------------------------------------------------------------------------
+
+TEST CASE 3.1
+  Test Case ID   : TC-CAN-001
+  Requirement ID : REQ-FBD-050
+  Test Scenario  : Validate that submitting status "CANCELLED" along with a
+                   valid cancellation reason succeeds.
+  Test Steps     :
+    1. Send PUT to update status endpoint.
+    2. Fetch order to verify database commit.
+  Test Data      : orderId: 21;
+                   Payload: { "status": "CANCELLED", "cancellationReason": "Out of ingredients" }
+  Expected Result:
+    - Status is updated to "CANCELLED".
+    - `cancellationReason` strictly matches "Out of ingredients".
+  Priority       : High
+
+TEST CASE 3.2
+  Test Case ID   : TC-CAN-002
+  Requirement ID : REQ-FBD-051
+  Test Scenario  : Validate that cancelling an order without the
+                   `cancellationReason` field throws a Bad Request error.
+  Test Steps     :
+    1. Send PUT request with status CANCELLED and no reason.
+    2. Read error structure.
+  Test Data      : Payload: { "status": "CANCELLED" }
+  Expected Result:
+    - HTTP 400 Bad Request.
+    - Response error: "Cancellation reason is required when cancelling order."
+  Priority       : High
+
+TEST CASE 3.3
+  Test Case ID   : TC-CAN-003
+  Requirement ID : REQ-FBD-052
+  Test Scenario  : Validate that a reason string comprised entirely of empty
+                   spaces is correctly rejected.
+  Test Steps     :
+    1. Send PUT request with whitespace string as reason.
+  Test Data      : Payload: { "status": "CANCELLED", "cancellationReason": " " }
+  Expected Result:
+    - HTTP 400 Bad Request exactly identically to Test Case 3.2.
+  Priority       : High
+
+--------------------------------------------------------------------------------
+Traceability Matrix
+--------------------------------------------------------------------------------
+
+  Requirement ID    Description                                     Test Cases
+  ---------------   ---------------------------------------------   -----------
+  REQ-FBD-050       Successful cancellation with reason.            TC-CAN-001
+  REQ-FBD-051       Block cancellation with missing reason.         TC-CAN-002
+  REQ-FBD-052       Reject blank/whitespace cancellation reasons.   TC-CAN-003
+
+--------------------------------------------------------------------------------
+Test Data
+--------------------------------------------------------------------------------
+
+  Description                 Value
+  -------------------------   -----------------------------------------
+  Existing Order ID           21
+  Valid Cancellation Reason   "Out of ingredients"
+  Blank/Whitespace Reason     " "
+
+--------------------------------------------------------------------------------
+Module Exit Criteria
+--------------------------------------------------------------------------------
+
+Testing for the Order Tracking & Fulfillment Dashboard module is considered complete when:
+  - All High Priority test cases have been executed and passed.
+  - All status-related business rules are verified.
+  - Error payloads are verified against the Swagger API design.
+  - Test Execution Report has been compiled.
+
+================================================================================
+APPROVAL
+================================================================================
+
+  Role              Name                  Signature             Date
+  ---------------   -------------------   -------------------   ----------
+  QA Engineer       ___________________   ___________________   __________
+  QA Lead           ___________________   ___________________   __________
+  Project Manager   ___________________   ___________________   __________
+
+================================================================================
+              END OF TEST CASE DOCUMENT
+              Order Tracking & Fulfillment Dashboard v1.0
+================================================================================
