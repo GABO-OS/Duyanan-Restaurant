@@ -1,0 +1,261 @@
+================================================================================
+                             TEST SUMMARY REPORT
+================================================================================
+  Project Name          : Duyanan Restaurant Online Ordering System
+  Module                : Order Tracking & Fulfillment Dashboard (Admin Panel)
+  Test Cycle            : Cycle 1
+  Build Version         : v1.0.0
+  Test Environment      : QA Environment
+  Test Period           : July 13, 2026
+  Prepared By           : Gabriel S. Abordo (QA Engineer)
+  Date                  : July 13, 2026
+================================================================================
+
+
+================================================================================
+1. PURPOSE
+================================================================================
+
+  The purpose of this Test Summary Report is to summarize the results of manual 
+  testing conducted on the Order Tracking & Fulfillment Dashboard (Admin Panel 
+  - Orders Tab) of the Duyanan Restaurant Online Ordering System.
+
+  The report provides stakeholders with an overview of the testing activities, 
+  defects identified, test coverage, and recommendations regarding the release 
+  readiness of the application.
+
+
+================================================================================
+2. SCOPE OF TESTING
+================================================================================
+
+  The following functionalities were included in this testing cycle:
+
+  * View Incoming Orders Dashboard
+    - Admin / Kitchen staff access to the active orders grid and stats.
+    - Real-time loading of order records with complete column details.
+    - Chronological sorting of incoming orders from newest to oldest.
+    - Graceful empty state UI rendering and zeroed stats when database is empty.
+
+  * Update Order Fulfillment Status
+    - Order status updates via action dropdown (Pending, Preparing, Completed).
+    - API validation to reject updates for non-existent order IDs.
+    - Pricing, items, and location-based delivery fee integrity preservation.
+
+  * Order Cancellation & Reason Validation
+    - Order status cancellation flow triggered from the Action dropdown.
+    - SweetAlert2 modal enforcement requiring a mandatory cancellation reason.
+    - Input validation blocking empty and whitespace-only reasons.
+    - Modal dismissal and cancellation revert logic.
+
+  Out of Scope:
+  The following modules were not included in this testing cycle:
+  - User Authentication & Authorization Module (Login, Role Permissions)
+  - Customer Ordering Frontend (Menu selection, Checkout flow, Custom tracking)
+  - Sales Analytics & Forecasting Dashboard (Sales reports, popular items)
+  - Catalog & Menu Item Management (Add/Edit/Delete menu items)
+
+
+================================================================================
+3. TEST ENVIRONMENT
+================================================================================
+
+  Component             Details
+  -------------------   --------------------------------------------------------
+  Application Version   v1.0.0
+  Environment           QA Environment
+  Browser               Google Chrome v138
+  Operating System      Windows 11
+  Database              MySQL - duyanan_db (Local Test Instance)
+  Internet Connection   Stable
+
+
+================================================================================
+4. TEST EXECUTION SUMMARY
+================================================================================
+
+  Metric                Count
+  -------------------   -------------------
+  Total Test Cases      10
+  Executed              10
+  Passed                9
+  Failed                1
+  Blocked               0
+  Not Executed          0
+
+  Pass Rate Calculation:
+  (9 / 10) * 100 = 90 %
+
+  Pass Rate: 90%
+
+
+================================================================================
+5. TEST COVERAGE
+================================================================================
+
+  Requirement ID        Description                                     Coverage
+  -------------------   ---------------------------------------------   --------
+  REQ-FBD-030           Admin can fetch and view all orders.            Covered
+  REQ-FBD-031           Orders sorted descending by order date.         Covered
+  REQ-FBD-032           Graceful empty state when no orders.            Covered
+  REQ-FBD-040           Update order status to a valid state.           Covered
+  REQ-FBD-041           Reject status updates for non-existent orders.  Covered
+  REQ-FBD-042           Retain order data (price, items) on update.     Covered
+  REQ-FBD-050           Cancellation validation / modal dismissal.      Covered
+  REQ-FBD-051           Block cancellation with missing reason.         Covered
+  REQ-FBD-052           Reject blank/whitespace-only reason.            Covered
+
+  Overall Requirement Coverage: 100%
+
+
+================================================================================
+6. DEFECT SUMMARY
+================================================================================
+
+  Severity              Count
+  -------------------   -------------------
+  Critical              0
+  High                  0
+  Medium                1
+  Low                   0
+
+  Defect Details:
+
+  Bug ID        Summary                         Severity        Status
+  -----------   -----------------------------   ------------    ------------
+  BUG-101       Uncaught JSON parsing error on  Medium          Open
+                404 API responses.
+
+
+================================================================================
+7. DEFECT ANALYSIS
+================================================================================
+
+  Critical Defects:
+  None
+
+  Medium Defects:
+
+  * BUG-101
+    The frontend dashboard crashes when the status update API returns a 404 error
+    response.
+
+    - Description:
+      When a PUT status update is sent for a non-existent order (e.g. ID 999999),
+      the Spring Boot API returns a text "404 Not Found" payload. The frontend
+      is coded to read all status responses using res.json(). This mismatch
+      causes an uncaught SyntaxError in the browser, crashing the execution path.
+    - Impact:
+      Dashboard locks up on updates to invalid orders; the SweetAlert2 error modal
+      fails to appear; the action dropdown displays the invalid state to users.
+    - Recommendation:
+      Implement checks on Content-Type and HTTP response status before parsing
+      JSON. Modify backend API controller responses to return standardized JSON
+      error objects instead of plain-text payloads.
+
+
+================================================================================
+8. RISKS IDENTIFIED
+================================================================================
+
+  Risk                  Impact          Mitigation
+  -------------------   ------------    ----------------------------------------
+  Uncaught JSON parsing High            Implement try-catch blocks and verify
+  on 404/500 API                        response headers before running
+  responses                             res.json() on HTTP responses.
+
+  Missing UI dropdown   Medium          Track update response success and rollback
+  rollback on failure                   dropdown to database state on failure,
+                                        while displaying a warning toast.
+
+
+================================================================================
+9. TESTING ACTIVITIES PERFORMED
+================================================================================
+
+  The QA team completed the following activities:
+  - Reviewed dashboard functional requirements.
+  - Prepared manual test cases covering dashboard, status dropdowns, and cancel.
+  - Set up local MySQL test database state.
+  - Executed 10 test cases in Chrome.
+  - Inspected HTTP network logs and console output using Developer Tools.
+  - Logged identified defects (BUG-101).
+  - Validated data retention across order statuses.
+  - Compiled Test Summary and Execution records.
+
+
+================================================================================
+10. EXIT CRITERIA EVALUATION
+================================================================================
+
+  Exit Criteria                                 Status
+  -------------------------------------------   -------------------
+  All planned test cases executed               Yes
+  Critical defects resolved                     Yes (0 identified)
+  High severity defects resolved                Yes (0 identified)
+  Regression testing completed                  Pending
+  Test documentation completed                  Yes
+
+
+================================================================================
+11. LESSONS LEARNED
+================================================================================
+
+  - Primary fulfillment dashboard flows and cancellation validations function
+    correctly.
+  - Frontend fetch mechanisms should be built defensively against non-JSON API
+    errors.
+  - Establish API payload contracts between backend and frontend developers
+    early in the development cycle.
+  - Implement automated E2E tests to speed up routine verification checks.
+
+
+================================================================================
+12. RECOMMENDATIONS
+================================================================================
+
+  1. Fix BUG-101 (defensively catch parsing issues on frontend).
+  2. Configure backend to return JSON error responses rather than text payloads.
+  3. Implement dropdown status rollback logic on AdminPanel status errors.
+  4. Perform a regression test run after integrating the status fixes.
+  5. Conduct final User Acceptance Testing (UAT) cycle prior to production release.
+
+
+================================================================================
+13. OVERALL ASSESSMENT
+================================================================================
+
+  Category              Status
+  -------------------   -------------------
+  Functional Testing    Partially Successful
+  Security Testing      Complete
+  Regression Testing    Pending
+  Documentation         Complete
+
+
+================================================================================
+14. RELEASE RECOMMENDATION
+================================================================================
+
+  Current Release Status: NOT READY FOR RELEASE
+
+  Reason:
+  Although 90% of test cases passed (9 out of 10), the unresolved BUG-101 error
+  causes the browser thread to crash on API updates returning 404, locking up
+  the frontend UI. This defect must be resolved and regression testing must be
+  completed before launching the dashboard.
+
+
+================================================================================
+15. APPROVAL
+================================================================================
+
+  Role                  Name                  Signature             Date
+  -------------------   -------------------   -------------------   ------------
+  QA Engineer           Gabriel S. Abordo     ___________________   July 13, 2026
+  QA Lead               Maria Santos          ___________________   ____________
+  Project Manager       Pedro Reyes           ___________________   ____________
+
+================================================================================
+                          END OF TEST SUMMARY REPORT
+================================================================================

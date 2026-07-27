@@ -1,0 +1,388 @@
+================================================================================
+                        TEST CASE DOCUMENT
+================================================================================
+Project Name  : Duyanan Restaurant Online Ordering System
+Module        : Shopping Cart (v1.0)
+Version       : 1.0
+Prepared By   : Mea Alyssa Ravano
+Date          : July 6, 2026
+================================================================================
+
+
+================================================================================
+DOCUMENT INFORMATION
+================================================================================
+
+  Item                  Details
+  -------               --------------------------------------------------------
+  Project               Duyanan Restaurant Online Ordering System
+  Module                Shopping Cart
+  Requirement IDs       REQ-CART-001 to REQ-CART-003
+  Prepared By           Mea Alyssa Ravano
+  Reviewed By           QA Lead
+  Version               1.0
+  Date                  July 6, 2026
+
+================================================================================
+
+
+================================================================================
+TEST ENVIRONMENT
+================================================================================
+
+  Item                  Value
+  -------               --------------------------------------------------------
+  Browser               Google Chrome v138
+  Operating System      Windows 11
+  URL                   http://localhost:5173
+  Database              MySQL - Duyanan Restaurant DB (Test Instance)
+  Tester                Mea Alyssa Ravano
+
+================================================================================
+
+
+
+
+================================================================================
+MODULE: SHOPPING CART
+================================================================================
+Description:
+  This module covers the customer shopping cart experience on the Duyanan
+  Restaurant online ordering system. It covers adding items to the cart (with
+  size variants and optional modifiers), updating quantities via the quantity
+  stepper, removing items, clearing the cart, and handling empty cart validation.
+
+--------------------------------------------------------------------------------
+FEATURE 1.1 - ADD ITEMS TO CART
+--------------------------------------------------------------------------------
+
+Requirement
+  Requirement ID : REQ-CART-001
+  Description    : The system shall allow users to add items to the shopping cart,
+                   supporting products with specific size variants and options/
+                   modifiers.
+
+Preconditions
+  - User is on the Menu page.
+  - Products "Chicken BBQ Meal" (solo) and "Buko Lemonade" (with Glass, 1 Liter,
+    1.5 Liters, and 2 Liters size variants) are available in the database.
+
+--------------------------------------------------------------------------------
+Test Cases
+--------------------------------------------------------------------------------
+
+TEST CASE 1.1.1
+  Test Case ID   : TC-CART-010
+  Requirement ID : REQ-CART-001
+  Test Scenario  : Verify that a valid product can be successfully added to the
+                   shopping cart.
+  Test Steps     :
+    1. Open the application.
+    2. Select a product (e.g., Chicken BBQ Meal).
+    3. Click "Add to Cart".
+    4. Navigate to the Cart page.
+  Test Data      :
+    Product      : Chicken BBQ Meal
+    Price        : ₱150.00
+    Quantity     : 1
+  Expected Result:
+    - The selected product (Chicken BBQ Meal) is successfully added to the shopping cart.
+    - The shopping cart displays the item.
+    - The quantity is 1.
+    - The subtotal displays ₱150.00.
+    - No error message is displayed.
+  Priority       : High
+
+TEST CASE 1.1.2
+  Test Case ID   : TC-CART-011
+  Requirement ID : REQ-CART-001
+  Test Scenario  : Verify that a product with specific size variants can be
+                   successfully added to the cart.
+  Test Steps     :
+    1. Open the application.
+    2. Select a product that has variants (e.g., Buko Lemonade).
+    3. Click or select the "1 Liter" size option.
+    4. Click "Add to Cart".
+    5. Navigate to the Cart page.
+  Test Data      :
+    Product      : Buko Lemonade
+    Selected Size: 1 Liter
+    Unit Price   : ₱120.00
+    Quantity     : 1
+    Stock Status : In Stock
+  Expected Result:
+    - The selected product (Buko Lemonade) is successfully added to the shopping cart.
+    - The selected variant (1 Liter) is displayed correctly in the cart.
+    - The subtotal correctly shows the selected variant price (₱120.00).
+    - The cart quantity is 1.
+    - No error message is displayed.
+  Priority       : High
+
+TEST CASE 1.1.3
+  Test Case ID   : TC-CART-012
+  Requirement ID : REQ-CART-001
+  Test Scenario  : Verify that adding the same product to the cart again increases
+                   the item quantity instead of creating a duplicate row.
+  Test Steps     :
+    1. Open the application.
+    2. Select a product (e.g., Chicken BBQ Meal).
+    3. Click "Add to Cart".
+    4. Select the same product (Chicken BBQ Meal) again.
+    5. Click "Add to Cart" again.
+    6. Navigate to the Cart page.
+  Test Data      :
+    Product      : Chicken BBQ Meal
+    Initial Qty  : 1
+    Action       : Add same item again (quantity 1)
+  Expected Result:
+    - The quantity of Chicken BBQ Meal in the shopping cart increases from 1 to 2.
+    - No duplicate row is created in the cart.
+    - The cart subtotal and total are updated correctly (₱300.00).
+    - No error message is displayed.
+  Priority       : High
+
+--------------------------------------------------------------------------------
+Traceability Matrix
+--------------------------------------------------------------------------------
+
+  Requirement ID    Description                                     Test Cases
+  ---------------   ---------------------------------------------   -----------
+  REQ-CART-001      System shall allow adding items with variants   TC-CART-010,
+                    and handle duplicate additions.                 TC-CART-011,
+                                                                    TC-CART-012
+
+--------------------------------------------------------------------------------
+Test Data
+--------------------------------------------------------------------------------
+
+  Description                 Value
+  -------------------------   --------------------------------------------------
+  Valid Product               Chicken BBQ Meal (Price: ₱150.00)
+  Product with Variants       Buko Lemonade (Selected Size: 1 Liter, Price: ₱120.00)
+  Duplicate Addition          Chicken BBQ Meal (Initial Qty: 1, Action: Add again)
+
+================================================================================
+
+
+--------------------------------------------------------------------------------
+FEATURE 1.2 - CART QUANTITY MANAGEMENT
+--------------------------------------------------------------------------------
+
+Requirement
+  Requirement ID : REQ-CART-002
+  Description    : The system shall allow users to update item quantities in the
+                   shopping cart with real-time recalculation of subtotals and
+                   totals.
+
+Preconditions
+  - User has added Chicken BBQ Meal to the shopping cart.
+  - User is on the Cart page.
+
+--------------------------------------------------------------------------------
+Test Cases
+--------------------------------------------------------------------------------
+
+TEST CASE 1.2.1
+  Test Case ID   : TC-CART-013
+  Requirement ID : REQ-CART-002
+  Test Scenario  : Verify that the quantity of a cart item can be increased via the
+                   cart page stepper.
+  Test Steps     :
+    1. Navigate to the Cart page.
+    2. Locate Chicken BBQ Meal in the cart.
+    3. Click the "+" (plus) button.
+  Test Data      :
+    Item         : Chicken BBQ Meal
+    Current Qty  : 1
+    Updated Qty  : 2
+    Price/Item   : ₱150.00
+  Expected Result:
+    - The quantity increases from 1 to 2.
+    - The cart subtotal and total price are updated correctly (₱300.00).
+    - The updated quantity is displayed in the shopping cart.
+    - No error message is displayed.
+  Priority       : High
+
+TEST CASE 1.2.2
+  Test Case ID   : TC-CART-014
+  Requirement ID : REQ-CART-002
+  Test Scenario  : Verify that the quantity of a cart item can be decreased via the
+                   cart page stepper.
+  Test Steps     :
+    1. Navigate to the Cart page.
+    2. Locate Chicken BBQ Meal in the cart (ensure quantity is 2).
+    3. Click the "−" (minus) button.
+  Test Data      :
+    Item         : Chicken BBQ Meal
+    Current Qty  : 2
+    Updated Qty  : 1
+    Price/Item   : ₱150.00
+  Expected Result:
+    - The quantity decreases from 2 to 1.
+    - The cart subtotal and total price are updated correctly (₱150.00).
+    - The updated quantity is displayed in the shopping cart.
+    - No error message is displayed.
+  Priority       : High
+
+TEST CASE 1.2.3
+  Test Case ID   : TC-CART-015
+  Requirement ID : REQ-CART-002
+  Test Scenario  : Verify that decreasing the quantity of a cart item from 1 to 0
+                   removes the item from the cart.
+  Test Steps     :
+    1. Navigate to the Cart page.
+    2. Locate Chicken BBQ Meal in the cart (ensure quantity is 1).
+    3. Click the "−" (minus/trash icon) button.
+  Test Data      :
+    Item         : Chicken BBQ Meal
+    Current Qty  : 1
+  Expected Result:
+    - The item is successfully removed from the shopping cart.
+    - The item no longer appears in the cart list.
+    - The cart total and subtotal are recalculated correctly.
+    - If the cart becomes empty, the empty cart page is displayed.
+  Priority       : High
+
+--------------------------------------------------------------------------------
+Traceability Matrix
+--------------------------------------------------------------------------------
+
+  Requirement ID    Description                                     Test Cases
+  ---------------   ---------------------------------------------   -----------
+  REQ-CART-002      System shall allow increasing, decreasing, and  TC-CART-013,
+                    removing items via quantity stepper.            TC-CART-014,
+                                                                    TC-CART-015
+
+--------------------------------------------------------------------------------
+Test Data
+--------------------------------------------------------------------------------
+
+  Description                 Value
+  -------------------------   --------------------------------------------------
+  Item in Cart                Chicken BBQ Meal (Price: ₱150.00)
+  Quantity Stepper (Increase) Initial: 1, Updated: 2
+  Quantity Stepper (Decrease) Initial: 2, Updated: 1
+  Quantity Stepper (Remove)   Initial: 1, Decrement to 0
+
+================================================================================
+
+
+--------------------------------------------------------------------------------
+FEATURE 1.3 - ITEM REMOVAL & EMPTY STATE
+--------------------------------------------------------------------------------
+
+Requirement
+  Requirement ID : REQ-CART-003
+  Description    : The system shall allow users to remove single or all items from
+                   the cart, updating totals, and block checkout when empty.
+
+Preconditions
+  - User has items in the shopping cart (for removal test cases).
+  - User has no items in the shopping cart (for empty cart validation).
+  - User is on the Cart page.
+
+--------------------------------------------------------------------------------
+Test Cases
+--------------------------------------------------------------------------------
+
+TEST CASE 1.3.1
+  Test Case ID   : TC-CART-016
+  Requirement ID : REQ-CART-003
+  Test Scenario  : Verify that a single item can be successfully removed from the
+                   shopping cart.
+  Test Steps     :
+    1. Navigate to the Cart page.
+    2. Locate Chicken BBQ Meal in the cart.
+    3. Click the "Remove" (trash icon) button.
+  Test Data      :
+    Item         : Chicken BBQ Meal
+    Quantity     : 1
+    Cart Status  : Contains 1 item
+  Expected Result:
+    - The selected item (Chicken BBQ Meal) is successfully removed from the shopping cart.
+    - The item no longer appears in the cart list.
+    - The cart total and subtotal are updated to ₱0.00.
+    - The cart page displays the empty cart state.
+  Priority       : High
+
+TEST CASE 1.3.2
+  Test Case ID   : TC-CART-017
+  Requirement ID : REQ-CART-003
+  Test Scenario  : Verify that clicking "Clear All" successfully clears all items
+                   from the shopping cart after confirmation.
+  Test Steps     :
+    1. Navigate to the Cart page.
+    2. Click the "Clear All" button.
+    3. On the SweetAlert2 popup, click "Yes, clear it".
+  Test Data      :
+    Cart Contents: Chicken BBQ Meal (₱150.00), Buko Lemonade (1 Liter: ₱120.00)
+  Expected Result:
+    - A SweetAlert2 confirmation modal displays: "Clear Cart? This will remove
+      all items from your cart."
+    - After confirmation, all items are cleared from the shopping cart.
+    - The cart list is empty, and the cart total resets to ₱0.00.
+    - The Cart page displays the empty cart state.
+  Priority       : High
+
+TEST CASE 1.3.3
+  Test Case ID   : TC-CART-018
+  Requirement ID : REQ-CART-003
+  Test Scenario  : Verify that checkout is blocked and the empty cart state is
+                   displayed when the shopping cart is empty.
+  Test Steps     :
+    1. Navigate to the Cart page (ensuring the cart is empty).
+    2. Observe the page elements and attempt to proceed.
+  Test Data      :
+    Cart Status  : Empty (0 items)
+  Expected Result:
+    - The Cart page displays: "Your cart is empty. Looks like you haven't added
+      any delicious meals yet."
+    - A "Browse Menu" button is visible to guide the user back to the menu.
+    - The "Proceed to Checkout" button is not visible or accessible, blocking
+      order submission.
+  Priority       : High
+
+--------------------------------------------------------------------------------
+Traceability Matrix
+--------------------------------------------------------------------------------
+
+  Requirement ID    Description                                     Test Cases
+  ---------------   ---------------------------------------------   -----------
+  REQ-CART-003      System shall allow single and bulk item removal TC-CART-016,
+                    and validate empty cart checkout.               TC-CART-017,
+                                                                    TC-CART-018
+
+--------------------------------------------------------------------------------
+Test Data
+--------------------------------------------------------------------------------
+
+  Description                 Value
+  -------------------------   --------------------------------------------------
+  Single Item Removal         Chicken BBQ Meal (Quantity: 1)
+  Bulk Item Clearance         Chicken BBQ Meal (₱150.00), Buko Lemonade (₱120.00)
+  Empty Cart Status           0 items, Total: ₱0.00
+
+================================================================================
+Module Exit Criteria
+================================================================================
+
+Testing for the Shopping Cart module is considered complete when:
+  - All High Priority test cases have been executed and passed.
+  - All cart operation workflows (add, quantity change, removal) are verified.
+  - Empty cart redirection and checkout blocking states are verified.
+  - Test Execution Report has been completed.
+
+================================================================================
+APPROVAL
+================================================================================
+
+  Role              Name                  Signature             Date
+  ---------------   -------------------   -------------------   ----------
+  QA Engineer       ___________________   ___________________   __________
+  QA Lead           ___________________   ___________________   __________
+  Project Manager   ___________________   ___________________   __________
+
+================================================================================
+                              END OF TEST CASE DOCUMENT
+                                 Shopping Cart v1.0
+================================================================================

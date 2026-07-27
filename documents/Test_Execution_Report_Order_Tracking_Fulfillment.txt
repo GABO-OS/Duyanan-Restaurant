@@ -1,0 +1,287 @@
+================================================================================
+                         TEST EXECUTION REPORT
+================================================================================
+  Project Name          : Duyanan Online Ordering System
+  Module                : Order Tracking & Fulfillment Dashboard
+  Test Cycle            : Cycle 1
+  Test Environment      : QA Environment
+  Browser               : Google Chrome v138
+  Operating System      : Windows 11
+  Tester                : Gabriel S. Abordo
+  Test Execution Date   : July 13, 2026
+  Build Version         : v1.0.0
+================================================================================
+
+
+================================================================================
+1. EXECUTION SUMMARY
+================================================================================
+
+  Metric                Value / Count
+  -------------------   -------------------
+  Total Test Cases      9
+  Executed              9
+  Passed                8
+  Failed                1
+  Blocked               0
+  Not Executed          0
+  Pass Rate             88.89 %
+  Fail Rate             11.11 %
+
+================================================================================
+
+
+================================================================================
+2. TEST CASE EXECUTION DETAILS
+================================================================================
+
+--------------------------------------------------------------------------------
+TEST CASE ID: TC-ORD-028
+--------------------------------------------------------------------------------
+  Test Scenario   : Validate that the orders tab loads and displays all customer
+                    orders with correct columns and stat boxes.
+  Expected Result : Active Orders dashboard loads with stat boxes, correct table
+                    columns, and order data populated (API returns 200 OK).
+  Actual Result   : The Orders tab loaded successfully. The stat boxes showed
+                    correct active counts. The table displayed all 7 correct columns
+                    (Order ID, Customer Info, Items, Timestamp, Price, Status, Action)
+                    and successfully populated the order records.
+  Status          : PASSED
+  Defect ID       : None
+  Remarks         : Verified using UI screenshot showing 4 populated order rows.
+
+--------------------------------------------------------------------------------
+TEST CASE ID: TC-ORD-029
+--------------------------------------------------------------------------------
+  Test Scenario   : Validate that orders are sorted by timestamp from newest to oldest.
+  Expected Result : Orders in the table are sorted chronologically from newest to oldest.
+  Actual Result   : Orders in the table are sorted correctly in descending order
+                    by time (from newest at 9:29:35 PM to oldest at 9:26:41 PM).
+  Status          : PASSED
+  Defect ID       : None
+  Remarks         : Checked the Order timestamps on the main orders table.
+
+--------------------------------------------------------------------------------
+TEST CASE ID: TC-ORD-030
+--------------------------------------------------------------------------------
+  Test Scenario   : Validate the empty state behavior when no orders exist in the database.
+  Expected Result : Table shows "No active orders." message, stat boxes show 0,
+                    and API returns 200 OK with empty array [].
+  Actual Result   : When the database order records were truncated, the dashboard
+                    rendered all counts as 0, displayed "No active orders." in
+                    the empty table body, and the GET API call returned 200 OK [].
+  Status          : PASSED
+  Defect ID       : None
+  Remarks         : Verified via empty state UI screenshot and DevTools network logs.
+
+--------------------------------------------------------------------------------
+TEST CASE ID: TC-STS-031
+--------------------------------------------------------------------------------
+  Test Scenario   : Validate that the Action dropdown successfully updates an order's
+                    status in the database and on the UI.
+  Expected Result : Order status updates to "COMPLETED" on UI and database, and
+                    "Status Updated" success toast appears.
+  Actual Result   : Changing the dropdown status to "Completed" updated the UI state,
+                    persisted the status change to the MySQL database (as 'COMPLETED'),
+                    and triggered a success toast notification on the Admin UI.
+  Status          : PASSED
+  Defect ID       : None
+  Remarks         : Confirmed via phpMyAdmin, customer page, and admin toast screenshot.
+
+--------------------------------------------------------------------------------
+TEST CASE ID: TC-STS-032
+--------------------------------------------------------------------------------
+  Test Scenario   : Validate that updating a non-existent order returns HTTP 404 Not Found.
+  Expected Result : API returns HTTP 404 Not Found, and UI displays SweetAlert2
+                    error modal.
+  Actual Result   : The API correctly returned HTTP 404. However, the backend returned
+                    plain text, causing the frontend to throw a JSON parsing crash
+                    (SyntaxError: Unexpected token 'N'). This blocked the error modal
+                    from displaying. In addition, non-cancel updates lack UI error
+                    handling when requests fail.
+  Status          : FAILED
+  Defect ID       : DEF-STS-001
+  Remarks         : Frontend script crashed on empty/text 404 error payload.
+
+--------------------------------------------------------------------------------
+TEST CASE ID: TC-STS-033
+--------------------------------------------------------------------------------
+  Test Scenario   : Validate that a status update does not alter the order's existing
+                    items, total amount, or its order type/destination delivery fee.
+  Expected Result : All order statuses update to "PREPARING" successfully. All items,
+                    total amounts, and delivery/destination fee mappings remain unchanged.
+  Actual Result   : Pricing calculations and fee mappings remain intact. Screenshot
+                    evidence displays all orders successfully updated to PREPARING status.
+  Status          : PASSED
+  Defect ID       : None
+  Remarks         : Verified that order items, pricing totals, and delivery fee mapping
+                    integrity are preserved under the PREPARING status.
+
+--------------------------------------------------------------------------------
+TEST CASE ID: TC-CAN-034
+--------------------------------------------------------------------------------
+  Test Scenario   : Validate that a valid cancellation reason successfully cancels the
+                    order and stores the reason.
+  Expected Result : Order status updates to "CANCELLED" showing reason on UI row,
+                    success toast shows, and reason is saved in database.
+  Actual Result   : Submitting "Out of ingredients" updated the order to "CANCELLED",
+                    saved the reason in the database, displayed the reason in the row,
+                    and popped up an "Order Cancelled" toast.
+  Status          : PASSED
+  Defect ID       : None
+  Remarks         : Verified via cancellation modal input flow and updated order row.
+
+--------------------------------------------------------------------------------
+TEST CASE ID: TC-CAN-035
+--------------------------------------------------------------------------------
+  Test Scenario   : Validate that a missing cancellation reason blocks the cancellation
+                    with a validation error.
+  Expected Result : Cancellation is blocked, displaying "You must provide a cancellation
+                    reason!" validation error, with no API request sent.
+  Actual Result   : Pressing "Confirm Cancellation" with an empty textarea blocked
+                    submission, kept the modal open, and displayed the error message.
+  Status          : PASSED
+  Defect ID       : None
+  Remarks         : Checked empty input validation on cancellation popup modal.
+
+--------------------------------------------------------------------------------
+TEST CASE ID: TC-CAN-036
+--------------------------------------------------------------------------------
+  Test Scenario   : Validate that a whitespace-only cancellation reason is rejected
+                    identically to an empty input.
+  Expected Result : Cancellation is blocked, displaying "You must provide a cancellation
+                    reason!" validation error, with no API request sent.
+  Actual Result   : Submitting an input of multiple spaces blocked submission, kept
+                    the modal open, and displayed the validation error message.
+  Status          : PASSED
+  Defect ID       : None
+  Remarks         : Trim-validation verified successfully on the textarea input.
+
+================================================================================
+
+
+================================================================================
+3. DEFECTS FOUND
+================================================================================
+
+  DEFECT ID             : DEF-STS-001
+  Related Test Case     : TC-STS-032
+  Summary               : Uncaught JSON parsing error on 404 API responses.
+  Severity              : Medium
+  Priority              : Medium
+  Status                : Open
+  Description           : The backend status update API returns 404 as plain text
+                          instead of JSON. Calling res.json() on the frontend causes
+                          a crash, blocking the SweetAlert2 error modal from rendering.
+                          Additionally, the frontend does not catch failures for
+                          non-cancel status updates.
+
+================================================================================
+
+
+================================================================================
+4. SCREENSHOTS / EVIDENCE SUMMARY
+================================================================================
+
+  Test Case    Evidence Provided          Easy-to-Understand Description
+  ----------   -----------------------    --------------------------------------
+  TC-ORD-028   Active Orders Table        Proves that the Admin orders tab loads
+                                          and successfully shows the active
+                                          orders in a grid layout.
+
+  TC-ORD-029   Crop of Order List         Proves chronological sorting: orders
+                                          appear from newest (9:29 PM) to
+                                          oldest (9:26 PM).
+
+  TC-ORD-030   Empty State Screen +       Proves that "No active orders." message
+               Network Panel              appears when orders are cleared, and
+                                          the API returns 200 OK [].
+
+  TC-STS-031   Customer Tracker + DB      Proves status update works: customer
+               View + Success Toast       sees "Completed", phpMyAdmin database
+                                          shows status 'COMPLETED', and admin
+                                          panel shows "Status Updated" toast.
+
+  TC-STS-032   Developer Console Output   Shows status 404 is returned when
+                                          updating order 999999, but crashes
+                                          due to parsing empty/text response.
+
+  TC-STS-033   Active Orders Grid         Shows order statuses updated to PREPARING
+               in Preparing Status        while keeping correct items, subtotals,
+                                          and delivery fees.
+
+  TC-CAN-034   Cancellation Reason Input  Shows cancellation input box with
+               + Cancelled Order Row      "Out of ingredients" typed, and the
+                                          order status changed to "Cancelled".
+
+  TC-CAN-035   Empty Reason Warning       Shows the popup blocked and displaying
+                                          "You must provide a cancellation reason!"
+                                          when confirm is clicked on empty input.
+
+  TC-CAN-036   Whitespace Reason Warning  Shows the popup blocked and displaying
+                                          the validation error when confirm is
+                                          clicked on spaces-only input.
+
+================================================================================
+
+
+================================================================================
+5. TEST COVERAGE
+================================================================================
+
+  Requirement ID           Description                           Status
+  ----------------------   -----------------------------------   ---------------
+  REQ-FDF-030 - FDF-032    Active orders fetching, newest-first  PASSED
+                           sorting, and empty state rendering.
+
+  REQ-FDF-040 - FDF-042    Status update capabilities, 404 error  FAILED
+                           rejection, and fee audit protection.
+
+  REQ-FDF-050 - FDF-052    Mandatory cancellation reasons and    PASSED
+                           whitespace rejection validation.
+
+================================================================================
+
+
+================================================================================
+6. TEST ENVIRONMENT
+================================================================================
+
+  - Application URL : http://localhost:5173/admin
+  - Database        : MySQL - duyanan_db (Local Test Instance)
+  - Browser         : Google Chrome v138
+  - Operating System: Windows 11
+  - Connection      : Stable
+
+================================================================================
+
+
+================================================================================
+7. RISKS IDENTIFIED
+================================================================================
+
+  1. Uncaught Front-End Exceptions on Non-JSON Errors
+     - Impact: High. Non-JSON payloads crash the frontend, breaking UI feedback.
+     - Recommendation: Validate response content-type headers before parsing.
+
+  2. Missing Dropdown Error States
+     - Impact: Medium. Failed status updates leave dropdowns in incorrect
+               states because the UI doesn't catch the failed response.
+     - Recommendation: Revert dropdowns on failures and display error modals.
+
+
+================================================================================
+
+
+================================================================================
+8. RECOMMENDATIONS
+================================================================================
+
+  1. Ensure Spring Boot backend controllers return standard JSON objects for all
+     error states rather than empty/plain-text responses.
+  2. Implement safe JSON parsing blocks in the frontend fetch requests.
+  3. Add status dropdown rollback logic on API failures.
+  4. Write automated integration tests (Cypress/Playwright) to verify validation
+     rules on status updates and cancellations.
+
+================================================================================

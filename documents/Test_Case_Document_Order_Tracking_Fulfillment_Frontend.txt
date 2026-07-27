@@ -85,9 +85,6 @@ Requirement
 Preconditions
   - Admin is logged in with a valid admin account.
   - The Admin Panel is accessible at http://localhost:5173.
-  - At least two orders exist in the database with different timestamps (for
-    TC-ORD-001 and TC-ORD-002).
-  - For TC-ORD-003: The orders table in the test database has been cleared.
 
 --------------------------------------------------------------------------------
 Test Cases
@@ -99,6 +96,7 @@ TEST CASE 1.1
   User Story     : US-01 | As an Admin / Kitchen Staff, I want to view all incoming customer
                    orders on a dashboard, so that I can monitor active restaurant orders
                    in real time.
+  Preconditions  : At least one order exists in the database.
   Test Scenario  : Validate that the Orders tab loads and displays all customer
                    orders with correct columns and stat boxes.
   Acceptance Criteria:
@@ -118,16 +116,7 @@ TEST CASE 1.1
     Admin Login URL   : http://localhost:5173
     Admin Credentials : Valid admin email + password
   Expected Result:
-    - The page heading "Active Orders" is visible.
-    - Three stat boxes are shown at the top:
-        * Pending  (shows count of PENDING orders)
-        * Preparing (shows count of PREPARING orders)
-        * Completed (shows count of COMPLETED orders)
-    - A table is displayed below the stat boxes with the following columns:
-        Order ID | Customer Info | Items | Timestamp | Price | Status | Action
-    - Each row represents one order with all columns populated correctly.
-    - The HTTP response (from DevTools > Network > /api/admin/orders) shows
-      Status 200 OK and a JSON array of order objects.
+    - Active Orders dashboard loads with stat boxes, correct table columns, and order data populated (API returns 200 OK).
   Priority       : High
 
 TEST CASE 1.2
@@ -136,6 +125,7 @@ TEST CASE 1.2
   User Story     : US-02 | As an Admin / Kitchen Staff, I want incoming orders to be sorted
                    chronologically from newest to oldest, so that I can see the latest
                    requests first.
+  Preconditions  : At least two orders exist in the database with different timestamps.
   Test Scenario  : Validate that orders are sorted by timestamp from newest
                    to oldest.
   Acceptance Criteria:
@@ -153,10 +143,7 @@ TEST CASE 1.2
     Order with newer time : e.g., placed at 2026-07-09T10:15:00
     Order with older time : e.g., placed at 2026-07-09T10:00:00
   Expected Result:
-    - The first row in the table shows the most recently placed order.
-    - The second row shows an older order.
-    - The Timestamp column values decrease (get older) as you scroll down
-      the table - confirming descending sort by order date.
+    - Orders in the table are sorted chronologically from newest to oldest.
   Priority       : High
 
 TEST CASE 1.3
@@ -165,6 +152,7 @@ TEST CASE 1.3
   User Story     : US-03 | As an Admin / Kitchen Staff, I want the orders dashboard to display
                    a clear empty state message when no orders exist, so that I know there
                    are no pending tasks.
+  Preconditions  : The orders table in the database has been cleared.
   Test Scenario  : Validate the empty state behavior when no orders exist in
                    the database.
   Acceptance Criteria:
@@ -180,14 +168,7 @@ TEST CASE 1.3
   Test Data      :
     Empty state condition : Orders table cleared in test database
   Expected Result:
-    - The table renders without errors.
-    - The table body shows the empty-state message:
-        "No active orders."
-      (This appears as a single row spanning all columns.)
-    - The three stat boxes at the top each show "0".
-    - No error messages or UI crashes occur.
-    - The HTTP response from /api/admin/orders returns Status 200 OK with
-      an empty array body: [].
+    - Table shows "No active orders." message, stat boxes show 0, and API returns 200 OK with empty array [].
   Priority       : Medium
 
 --------------------------------------------------------------------------------
@@ -228,9 +209,6 @@ Requirement
 
 Preconditions
   - Admin is logged in.
-  - For TC-STS-001 and TC-STS-003: A PENDING order exists (e.g., Order #15)
-    with 2 items and a total of P500.
-  - For TC-STS-002: Order ID 999999 does NOT exist in the database.
 
 --------------------------------------------------------------------------------
 Test Cases
@@ -242,6 +220,7 @@ TEST CASE 2.1
   User Story     : US-04 | As an Admin / Kitchen Staff, I want to update an order's status
                    via a dropdown, so that the status changes are updated in the database
                    and reflected on the UI.
+  Preconditions  : Order with ID 15 exists with status PENDING.
   Test Scenario  : Validate that the Action dropdown successfully updates an
                    order's status in the database and on the UI.
   Acceptance Criteria:
@@ -260,16 +239,7 @@ TEST CASE 2.1
     Existing Order ID       : 15
     Valid Status (Dropdown) : "Completed" => maps to status: COMPLETED
   Expected Result:
-    - A SweetAlert2 toast notification appears at the top-right corner:
-        Icon  : (success checkmark)
-        Title : "Status Updated"
-        (Auto-dismisses after 2 seconds)
-    - The "Status" column badge for Order #15 updates to:
-        Green badge labeled "COMPLETED"
-    - The "Completed" stat box count at the top increases by 1.
-    - Verifying via DevTools (Network tab), the PUT request to
-      /api/admin/orders/15/status returns Status 200 OK with body:
-      { "message": "Order status updated." }
+    - Order status updates to "COMPLETED" on UI and database, and "Status Updated" success toast appears.
   Priority       : High
 
 TEST CASE 2.2
@@ -278,6 +248,7 @@ TEST CASE 2.2
   User Story     : US-05 | As a System Administrator, I want status update requests for
                    non-existent orders to fail with a 404 error, so that invalid updates
                    are blocked and reported.
+  Preconditions  : Order with ID 999999 does NOT exist in the database.
   Test Scenario  : Validate that updating a non-existent order returns HTTP
                    404 Not Found.
   Acceptance Criteria:
@@ -300,44 +271,43 @@ TEST CASE 2.2
     Non-Existent Order ID : 999999
     Valid Status Payload  : { "status": "COMPLETED" }
   Expected Result:
-    - HTTP Status: 404 Not Found
-    - The frontend (if triggered from UI) shows a SweetAlert2 error modal:
-        Icon    : (error X)
-        Title   : "Error"
-        Message : "Failed to update status." (or equivalent error from server)
+    - API returns HTTP 404 Not Found, and UI displays SweetAlert2 error modal.
   Priority       : High
 
 TEST CASE 2.3
   Test Case ID   : TC-STS-003
   Requirement ID : REQ-FBD-042
-  User Story     : US-06 | As an Admin, I want order items and total amounts to be preserved
-                   during a status update, so that customer order records remain accurate
-                   and intact.
-  Test Scenario  : Validate that a status update does not alter the order's
-                   existing items or total amount.
+  User Story     : US-06 | As an Admin, I want order items, total amounts, and delivery fees to 
+                   be preserved during a status update, so that customer order records 
+                   remain accurate and intact.
+  Preconditions  : 
+    1. Delivery orders exist with the system's defined location fees:
+       - Poblacion/Nearby: ₱30.00 (e.g. Basiao, Burgos, Campo, Punta)
+       - Mid Barangays: ₱50.00 (e.g. Danlagan, Rizal, San Vicente)
+       - Far Barangays: ₱80.00 (e.g. Lipata, Marao, Sipa, Yawe)
+    2. Pick-up or Dine-in orders exist with free delivery (₱0.00 fee).
+  Test Scenario  : Validate that a status update does not alter the order's existing items,
+                   total amount, or its order type/destination delivery fee details.
   Acceptance Criteria:
-    Given  an existing order with items and a total amount is visible,
+    Given  an existing order (either Delivery with location fee or Pick-up/Dine-in with free fee) is visible,
     When   the Admin updates the order's status using the Action dropdown,
-    Then   the Items column and the Price column must remain unchanged -
-           only the Status badge must reflect the new status.
+    Then   the Items, Price, and Destination Fee (inc. fee details for Delivery, or free for Pick-up/Dine-in)
+           must remain unchanged - only the Status badge must reflect the new status.
   Test Steps     :
     1. Log in as Admin and navigate to the Orders tab.
-    2. Locate Order #15 (currently showing 2 items, total P500).
-       - Verify the "Items" column shows 2 items listed.
-       - Verify the "Price" column shows P500.00.
-    3. In the "Action" column dropdown, change the status from "Pending"
-       to "Preparing".
-    4. Wait for the success toast notification ("Status Updated").
-    5. Observe the same Order #15 row again.
+    2. Locate four order types: Poblacion (₱30 fee), Mid (₱50 fee), Far (₱80 fee), and Pick-up/Dine-in (₱0 fee).
+    3. Verify that each displays its correct items and total price (including the respective fee).
+    4. Use the dropdown to update each order status from "Pending" to "Preparing".
+    5. Verify the "Status Updated" toast appears and confirm that the items, total price, and delivery fee details remain unchanged.
   Test Data      :
-    Existing Order ID       : 15
-    Valid Status (Dropdown) : "Preparing" => maps to status: PREPARING
-    Order Audit Data        : 2 items, totalAmount = P500.00
+    - Poblacion Delivery: ID 15 (subtotal ₱200.00 + ₱30.00 fee = ₱230.00)
+    - Mid Barangay Delivery: ID 16 (subtotal ₱200.00 + ₱50.00 fee = ₱250.00)
+    - Far Barangay Delivery: ID 17 (subtotal ₱200.00 + ₱80.00 fee = ₱280.00)
+    - Pick-up / Dine-in: ID 18 (subtotal ₱200.00 + ₱0.00 fee = ₱200.00)
+    - Valid Status Update Action: "Preparing" (status: PREPARING)
   Expected Result:
-    - The "Items" column still shows the same 2 items (unchanged).
-    - The "Price" column still shows P500.00 (unchanged).
-    - Only the "Status" column badge changed to: Blue/Cyan badge "PREPARING".
-    - No data loss occurred on the order record.
+    - All order statuses update to "PREPARING" successfully.
+    - All items, total amounts, and delivery/destination fee mappings (₱30.00, ₱50.00, ₱80.00, or free ₱0.00) remain unchanged.
   Priority       : High
 
 --------------------------------------------------------------------------------
@@ -356,11 +326,14 @@ Test Data
 
   Description              Value
   -----------------------  -----------------------------------------------
-  Existing Order ID        15
+  Existing Order ID        15 (Poblacion), 16 (Mid), 17 (Far), 18 (Pick-up)
   Non-Existent Order ID    999999
   Valid Status (Dropdown)  "Completed" => maps to status: COMPLETED
   Valid Status (Dropdown)  "Preparing" => maps to status: PREPARING
-  Order Audit Data         2 items, totalAmount = P500.00
+  Order Audit Data         - Poblacion: 2 items, subtotal P200.00 + P30.00 fee = P230.00
+                           - Mid Brgy:  2 items, subtotal P200.00 + P50.00 fee = P250.00
+                           - Far Brgy:  2 items, subtotal P200.00 + P80.00 fee = P280.00
+                           - Pick-up:   2 items, subtotal P200.00 + P0.00 fee  = P200.00
 
 ================================================================================
 
@@ -378,7 +351,6 @@ Requirement
 
 Preconditions
   - Admin is logged in and on the Orders tab.
-  - An existing PENDING order is available (e.g., Order #21).
 
 --------------------------------------------------------------------------------
 Test Cases
@@ -389,6 +361,7 @@ TEST CASE 3.1
   Requirement ID : REQ-FBD-050
   User Story     : US-07 | As an Admin, I want to cancel an order and record a reason, so
                    that the cancellation details are saved and visible on the dashboard.
+  Preconditions  : Order with ID 21 exists with status PENDING.
   Test Scenario  : Validate that a valid cancellation reason successfully cancels
                    the order and stores the reason.
   Acceptance Criteria:
@@ -415,18 +388,7 @@ TEST CASE 3.1
     Existing PENDING Order ID : 21
     Valid Cancellation Reason : "Out of ingredients"
   Expected Result:
-    - The SweetAlert2 popup closes.
-    - A toast notification appears at the top-right:
-        Icon  : (success checkmark)
-        Title : "Order Cancelled"
-        (Auto-dismisses after 2 seconds)
-    - The "Status" column badge for Order #21 updates to:
-        Red badge labeled "CANCELLED"
-    - Below the CANCELLED badge, a small italic red note appears:
-        "(i) Out of ingredients"
-      (This is the stored cancellationReason displayed on the UI row.)
-    - The cancellationReason "Out of ingredients" is saved in the database
-      and verifiable via GET /api/admin/orders.
+    - Order status updates to "CANCELLED" showing reason on UI row, success toast shows, and reason is saved in database.
   Priority       : High
 
 TEST CASE 3.2
@@ -435,6 +397,7 @@ TEST CASE 3.2
   User Story     : US-08 | As an Admin, I want the system to block order cancellations
                    when no reason is entered, so that all cancellations are properly
                    documented.
+  Preconditions  : A PENDING order exists in the database.
   Test Scenario  : Validate that a missing cancellation reason blocks the
                    cancellation with a validation error.
   Acceptance Criteria:
@@ -453,12 +416,7 @@ TEST CASE 3.2
   Test Data      :
     Missing Reason : (leave textarea blank - no input)
   Expected Result:
-    - The popup does NOT close.
-    - A validation error message appears inside the SweetAlert2 modal:
-        "You must provide a cancellation reason!"
-    - The order status remains unchanged (still shows original status badge).
-    - No API request is sent (verifiable in DevTools > Network tab - no PUT
-      request to /api/admin/orders/{id}/status is fired).
+    - Cancellation is blocked, displaying "You must provide a cancellation reason!" validation error, with no API request sent.
   Priority       : High
 
 TEST CASE 3.3
@@ -467,6 +425,7 @@ TEST CASE 3.3
   User Story     : US-09 | As an Admin, I want the cancellation validation to reject
                    whitespace-only inputs, so that users cannot bypass the mandatory
                    reason requirement.
+  Preconditions  : A PENDING order exists in the database.
   Test Scenario  : Validate that a whitespace-only cancellation reason is
                    rejected identically to an empty input.
   Acceptance Criteria:
@@ -492,13 +451,7 @@ TEST CASE 3.3
       }
     }
   Expected Result:
-    - The popup does NOT close.
-    - The same validation error message appears:
-        "You must provide a cancellation reason!"
-      (The SweetAlert2 inputValidator checks: !value.trim() - meaning a
-       whitespace-only string is treated the same as an empty string.)
-    - The order status remains unchanged.
-    - No cancellation API request is sent.
+    - Cancellation is blocked, displaying "You must provide a cancellation reason!" validation error, with no API request sent.
   Priority       : High
 
 TEST CASE 3.4
@@ -507,6 +460,7 @@ TEST CASE 3.4
   User Story     : US-10 | As an Admin, I want to close the cancellation modal without
                    changing the order status, so that I can revert the action if selected
                    by mistake.
+  Preconditions  : A PENDING order exists in the database, and the cancellation modal is open.
   Test Scenario  : Validate that dismissing the cancellation modal leaves the
                    order's status and dropdown unchanged.
   Acceptance Criteria:
@@ -523,11 +477,7 @@ TEST CASE 3.4
   Test Data      :
     SweetAlert2 Dismiss Button : "Go Back" (gray button)
   Expected Result:
-    - The SweetAlert2 modal closes immediately.
-    - The order status in the table reverts to its original status value.
-      (The frontend calls fetchData() automatically to re-sync the table.)
-    - No API cancellation request is sent.
-    - The Action dropdown in the row resets back to the original status value.
+    - Cancellation modal closes, order status and dropdown revert to original values, and no API request is sent.
   Priority       : Medium
 
 --------------------------------------------------------------------------------

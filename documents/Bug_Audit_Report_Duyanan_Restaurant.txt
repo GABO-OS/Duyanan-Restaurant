@@ -1,0 +1,407 @@
+===============================================================================
+                DUYANAN RESTAURANT — COMPREHENSIVE BUG AUDIT REPORT
+===============================================================================
+
+Audited: July 24, 2026
+Scope:   Full-stack (React + Vite frontend, Spring Boot backend)
+
+===============================================================================
+                                   SUMMARY
+===============================================================================
+
+  Severity                              Count
+  ------------------------------------  -----
+  CRITICAL (Security / Data Loss)         5
+  HIGH     (Broken Functionality)         6
+  MEDIUM   (Logic / UX Issues)            7
+  LOW      (Code Quality / Minor)         5
+  ------------------------------------  -----
+  TOTAL                                  23
+
+===============================================================================
+                          CRITICAL ISSUES
+===============================================================================
+
+-------------------------------------------------------------------------------
+Bug #1: JWT Secret Hardcoded in application.properties
+-------------------------------------------------------------------------------
+Severity: CRITICAL
+File:     backend/src/main/resources/application.properties (Line 18)
+
+  jwt.secret=DuyananRestaurantSuperSecretKeyForJWT2026!MustBe32+Chars
+
+The JWT signing secret is hardcoded in plain text and committed to source
+control. Anyone with access to the repo can forge valid JWT tokens and
+impersonate any user, including the admin.
+
+RECOMMENDATION: Move to an environment variable (JWT_SECRET) and NEVER
+commit to version control.
+
+-------------------------------------------------------------------------------
+Bug #2: Admin Credentials Hardcoded & Printed to Console
+-------------------------------------------------------------------------------
+Severity: CRITICAL
+File:     backend/src/main/java/com/duyanan/backend/DataSeeder.java (Lines 31-34)
+
+  admin.setPassword(passwordEncoder.encode("admin123"));
+  System.out.println("Default admin account created: admin@duyanan.com / admin123");
+
+- The admin password "admin123" is trivially weak.
+- The password is printed in plaintext to the console/logs on every first
+  startup.
+
+-------------------------------------------------------------------------------
+Bug #3: Forgot Password Returns New Password in API Response (NOT Emailed)
+-------------------------------------------------------------------------------
+Severity: CRITICAL
+File:     backend/src/main/java/com/duyanan/backend/controller/UserController.java
+          (Lines 227-230)
+
+  return ResponseEntity.ok(Map.of(
+      "message", "Your new password has been generated.",
+      "newPassword", newPassword  // <-- Sent in HTTP response!
+  ));
+
+Despite the mail dependency being included in pom.xml and SMTP settings in
+application.properties, the forgot-password endpoint DOES NOT actually send
+an email. Instead, it returns the new plaintext password directly in the HTTP
+response body. The frontend even shows "Check Your Email!" which is
+MISLEADING — no email is sent.
+
+NOTE: The SMTP credentials are also placeholder values (YOUR_GMAIL@gmail.com /
+YOUR_APP_PASSWORD), so mail would fail even if implemented.
+
+-------------------------------------------------------------------------------
+Bug #4: Order Endpoint Has No Authorization Check — Any User Can View Any Order
+-------------------------------------------------------------------------------
+Severity: CRITICAL
+File:     backend/src/main/java/com/duyanan/backend/controller/OrderController.java
+          (Lines 133-138)
+
+  @GetMapping("/{id}")
+  public ResponseEntity<?> getOrderById(@PathVariable Long id) {
+      return orderRepository.findById(id)
+              .map(ResponseEntity::ok)
+              .orElse(ResponseEntity.notFound().build());
+  }
+
+Any authenticated user can fetch ANY order by ID (including other users'
+orders), leaking personal info like names, addresses, phone numbers, and order
+details. There's no ownership check.
+
+-------------------------------------------------------------------------------
+Bug #5: Reservation Endpoint Has Same Authorization Issue
+-------------------------------------------------------------------------------
+Severity: CRITICAL
+File:     backend/src/main/java/com/duyanan/backend/controller/ReservationController.java
+          (Lines 113-118)
+
+  @GetMapping("/{id}")
+  public ResponseEntity<?> getReservationById(@PathVariable Long id) {
+      return reservationRepository.findById(id)
+              .map(ResponseEntity::ok)
+              .orElse(ResponseEntity.notFound().build());
+  }
+
+Same as Bug #4 — any authenticated user can view any reservation's details.
+
+
+===============================================================================
+                            HIGH ISSUES
+===============================================================================
+
+-------------------------------------------------------------------------------
+Bug #6: CSRF Protection Completely Disabled
+-------------------------------------------------------------------------------
+Severity: HIGH
+File:     backend/src/main/java/com/duyanan/backend/config/SecurityConfig.java
+          (Line 35)
+
+  .csrf(csrf -> csrf.disable())
+
+While CSRF disable is common for stateless JWT APIs, the combination with
+allowCredentials(true) and wildcard origin patterns (*) creates a risk. If
+cookies or credentials are ever introduced, CSRF attacks become possible.
+
+-------------------------------------------------------------------------------
+Bug #7: "Remember Me" Checkbox Has No Effect
+-------------------------------------------------------------------------------
+Severity: HIGH
+File:     frontend/src/pages/Login.jsx (Line 11)
+
+The login form has a "Remember Me" checkbox, but it is never used in the login
+logic. The value of credentials.rememberMe is captured in state but NEVER sent
+to the backend or used to control session persistence.
+
+- Currently, the session always persists via localStorage (so it's effectively
+  "always remembered").
+- This is MISLEADING UX — the checkbox does nothing.
+
+-------------------------------------------------------------------------------
+Bug #8: Duplicate CORS Configuration (Potential Conflict)
+-------------------------------------------------------------------------------
+Severity: HIGH
+Files:
+  - backend/src/main/java/com/duyanan/backend/config/SecurityConfig.java
+    (Lines 62-74) — CORS via Security filter
+  - backend/src/main/java/com/duyanan/backend/config/CorsConfig.java
+    — Empty leftover class
+  - backend/src/main/resources/application.properties (Line 15)
+    — spring.web.cors.allowed-origins=*
+
+CORS is configured in THREE places. While CorsConfig.java is intentionally
+empty and application.properties likely doesn't take effect due to programmatic
+config, this is confusing and could cause issues if Spring Boot version behavior
+changes.
+
+-------------------------------------------------------------------------------
+Bug #9: Cart Not Cleared on Logout
+-------------------------------------------------------------------------------
+Severity: HIGH
+File:     frontend/src/context/AuthContext.jsx (Lines 30-33)
+
+  const logout = () => {
+      setUser(null);
+      localStorage.removeItem('duyanan_user');
+  };
+
+When a user logs out, the cart (duyanan_cart in localStorage) is NOT cleared.
+If another user logs in on the same browser, they will see the previous user's
+cart items. This is a data leakage issue.
+
+-------------------------------------------------------------------------------
+Bug #10: updateProduct Doesn't Properly Re-Link customCombos
+-------------------------------------------------------------------------------
+Severity: HIGH
+File:     backend/src/main/java/com/duyanan/backend/controller/AdminController.java
+          (Lines 86-89)
+
+  if (product.getCustomCombos() != null) {
+      existing.getCustomCombos().clear();
+      existing.getCustomCombos().addAll(product.getCustomCombos());
+  }
+
+When customCombos is null in the request body (field omitted), existing combos
+are NOT cleared. This means you can never remove all combos from a product via
+the API — they'll persist silently. Also, if the client sends customCombos: [],
+the null check passes but clear() + addAll([]) is correct. The asymmetry
+between null and [] is error-prone.
+
+-------------------------------------------------------------------------------
+Bug #11: Order Price Calculation Uses Server-Side Product Prices, But Variant
+         Logic Has a Gap
+-------------------------------------------------------------------------------
+Severity: HIGH
+File:     backend/src/main/java/com/duyanan/backend/controller/OrderController.java
+          (Lines 79-84)
+
+  Double unitPrice = 0.0;
+  if ("A La Carte".equalsIgnoreCase(variant) && product.getPriceALaCarte() != null) {
+      unitPrice = product.getPriceALaCarte();
+  } else if (product.getPriceSolo() != null) {
+      unitPrice = product.getPriceSolo();
+  }
+
+- Only "A La Carte" variant is handled. Other variants like liter sizes
+  (1 Liter, 1.5 Liter, 2 Liter) and priceALaCarte2 are COMPLETELY IGNORED —
+  they'll all fall through to priceSolo, causing INCORRECT ORDER TOTALS.
+- If both priceALaCarte and priceSolo are null, the price defaults to 0.0 —
+  a customer gets free items.
+
+
+===============================================================================
+                           MEDIUM ISSUES
+===============================================================================
+
+-------------------------------------------------------------------------------
+Bug #12: Feedback GET /api/feedback Is Accessible by All Authenticated Users
+-------------------------------------------------------------------------------
+Severity: MEDIUM
+File:     backend/src/main/java/com/duyanan/backend/controller/FeedbackController.java
+          (Lines 95-98)
+
+The GET /api/feedback endpoint returns ALL feedback from all users and is only
+guarded by authenticated() in SecurityConfig, not hasRole("ADMIN"). Any
+logged-in customer can see every feedback entry.
+
+-------------------------------------------------------------------------------
+Bug #13: Reservation Update Does findAll() for Duplicate Check — Performance
+-------------------------------------------------------------------------------
+Severity: MEDIUM
+File:     backend/src/main/java/com/duyanan/backend/controller/ReservationController.java
+          (Lines 159-165)
+
+  boolean isReallyDuplicate = reservationRepository.findAll().stream()
+      .anyMatch(r -> !r.getId().equals(id)
+                     && r.getUser().getId().equals(user.getId())
+                     && ...);
+
+This loads ALL reservations from the database into memory to check for
+duplicates, instead of using the repository query method that already exists
+for the create endpoint. This will cause severe performance issues as the
+reservation table grows.
+
+-------------------------------------------------------------------------------
+Bug #14: Frontend Login Doesn't Store phone and address from Response
+-------------------------------------------------------------------------------
+Severity: MEDIUM
+File:     frontend/src/pages/Login.jsx (Lines 129-135)
+
+  login({
+      email: data.email,
+      firstName: data.firstName,
+      lastName: data.lastName,
+      role: data.role,
+      token: data.token,
+      // Missing: phone, address
+  });
+
+The backend sends phone and address in the login response, but the frontend
+doesn't save them to the auth context. This means profile data may be
+incomplete until a separate /api/auth/me call is made.
+
+-------------------------------------------------------------------------------
+Bug #15: ProductController.getProductById Throws Unhandled RuntimeException
+-------------------------------------------------------------------------------
+Severity: MEDIUM
+File:     backend/src/main/java/com/duyanan/backend/controller/ProductController.java
+          (Lines 25-27)
+
+  return productRepository.findById(id)
+      .orElseThrow(() -> new RuntimeException("Product not found"));
+
+This will result in a 500 Internal Server Error with a stack trace being
+returned to the client instead of a proper 404 Not Found response.
+
+-------------------------------------------------------------------------------
+Bug #16: Admin Status Update Allows Invalid Status Transitions
+-------------------------------------------------------------------------------
+Severity: MEDIUM
+Files:
+  - backend/src/main/java/com/duyanan/backend/controller/AdminController.java
+    (Lines 126-147) — orders
+  - backend/src/main/java/com/duyanan/backend/controller/AdminController.java
+    (Lines 155-176) — reservations
+
+There's no validation of status transitions. An admin can set any arbitrary
+string as the status (e.g., "ASDF"), or move from COMPLETED back to PENDING,
+or mark a CANCELLED order as COMPLETED. There's also no whitelist of valid
+statuses.
+
+-------------------------------------------------------------------------------
+Bug #17: Image URL Validation Missing in Product & Event Upload
+-------------------------------------------------------------------------------
+Severity: MEDIUM
+File:     backend/src/main/java/com/duyanan/backend/controller/AdminController.java
+          (Lines 254-291)
+
+- No file type validation — a user could upload .exe, .php, or any file type
+  through the image upload endpoints.
+- Only the extension is checked from the original filename, which can be
+  spoofed.
+- No maximum file dimension checks (only overall size limit via Spring config).
+
+-------------------------------------------------------------------------------
+Bug #18: Cart Image URLs May Point to Backend Server
+-------------------------------------------------------------------------------
+Severity: MEDIUM
+File:     frontend/src/pages/CartPage.jsx (Line 479)
+
+  src={item.imageUrl || 'https://placehold.co/72x72/f5ebe0/a04000?text=...'}
+
+Product imageUrl values are stored as relative paths like
+/uploads/products/xyz.jpg. The cart and menu components use these directly. If
+the frontend and backend are on different hosts (which they are during
+development — Vite on 5173, Spring Boot on 8080), images will fail to load
+unless the full API URL is prepended.
+
+
+===============================================================================
+                            LOW ISSUES
+===============================================================================
+
+-------------------------------------------------------------------------------
+Bug #19: Unused import — useState Unused in App.jsx
+-------------------------------------------------------------------------------
+Severity: LOW
+File:     frontend/src/App.jsx (Line 1)
+
+  import React, { useState } from 'react';
+
+useState is imported but never used in this file.
+
+-------------------------------------------------------------------------------
+Bug #20: CorsConfig.java Is an Empty, Dead Class
+-------------------------------------------------------------------------------
+Severity: LOW
+File:     backend/src/main/java/com/duyanan/backend/config/CorsConfig.java
+
+This class does nothing and could be deleted. The comment says it's kept
+"to avoid breaking references," but there are no references to it in the
+codebase.
+
+-------------------------------------------------------------------------------
+Bug #21: Event.eventDate Is a String Instead of a Proper Date Type
+-------------------------------------------------------------------------------
+Severity: LOW
+File:     backend/src/main/java/com/duyanan/backend/model/Event.java (Line 26)
+
+  private String eventDate;
+
+This should be LocalDate or LocalDateTime for proper sorting, filtering, and
+validation. As a String, invalid dates like "banana" can be stored.
+
+-------------------------------------------------------------------------------
+Bug #22: Order and Reservation Entities Expose User Password in JSON
+-------------------------------------------------------------------------------
+Severity: LOW (but security-relevant)
+Files:
+  - backend/src/main/java/com/duyanan/backend/model/Order.java (Lines 20-22)
+  - backend/src/main/java/com/duyanan/backend/model/Reservation.java (Lines 19-21)
+
+Both Order and Reservation have @ManyToOne relationships to User with
+FetchType.EAGER. When these entities are serialized to JSON (e.g., via
+GET /api/orders/my-orders or admin endpoints), the FULL User object is
+included, which contains the HASHED PASSWORD. The User model has no
+@JsonIgnore on the password field.
+
+WARNING: BCrypt hashes shouldn't be exposed. Add @JsonIgnore to User.password
+or use DTOs.
+
+-------------------------------------------------------------------------------
+Bug #23: CartContext Doesn't Handle localStorage Parse Errors Gracefully
+-------------------------------------------------------------------------------
+Severity: LOW
+File:     frontend/src/context/CartContext.jsx (Lines 8-11)
+
+  const [cart, setCart] = useState(() => {
+      const savedCart = localStorage.getItem('duyanan_cart');
+      return savedCart ? JSON.parse(savedCart) : [];
+  });
+
+If duyanan_cart contains malformed JSON (e.g., due to manual tampering or a
+version change), JSON.parse will throw and crash the entire app. The
+AuthContext handles this case but CartContext doesn't.
+
+
+===============================================================================
+                  QUICK-WIN FIXES (RECOMMENDED PRIORITY)
+===============================================================================
+
+  Priority   Bug #    Fix
+  ---------  ------   ----------------------------------------------------------
+  P0         #22      Add @JsonIgnore to User.password field
+  P0         #4, #5   Add ownership checks to getOrderById and
+                      getReservationById
+  P0         #11      Add all variant price types to order price calculation
+  P1         #3       Either implement actual email sending or display the new
+                      password properly
+  P1         #9       Clear cart in logout() function
+  P1         #12      Restrict GET /api/feedback to admin role
+  P2         #23      Wrap cart localStorage parse in try/catch
+  P2         #7       Remove the "Remember Me" checkbox or implement it
+  P3         #19,#20  Clean up unused imports and dead code
+
+===============================================================================
+                              END OF REPORT
+===============================================================================
